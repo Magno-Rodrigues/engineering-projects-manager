@@ -24,10 +24,7 @@ class DevelopmentConfig(Config):
 class TestingConfig(Config):
     """Testing configuration."""
     TESTING: bool = True
-    SQLALCHEMY_DATABASE_URI: str = os.environ.get(
-        'TEST_DATABASE_URL',
-        'postgresql://postgres:postgres@localhost:5432/engineering_projects_test'
-    )
+    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'postgresql://engineering_user:password@localhost:5432/engineering_projects')
     WTF_CSRF_ENABLED: bool = False
 
 
