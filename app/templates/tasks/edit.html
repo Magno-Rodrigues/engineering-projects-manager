@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Edit Task{% endblock %}
+{% block content %}
+<h1>Edit Task</h1>
+<form method="POST">
+    <label>Title: <input type="text" name="title" value="{{ task.title }}" required></label>
+    <label>Description: <textarea name="description">{{ task.description }}</textarea></label>
+    <label>Status:
+        <select name="status">
+            <option value="todo" {% if task.status == 'todo' %}selected{% endif %}>To Do</option>
+            <option value="in_progress" {% if task.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+            <option value="done" {% if task.status == 'done' %}selected{% endif %}>Done</option>
+        </select>
+    </label>
+    <label>Priority:
+        <select name="priority">
+            <option value="low" {% if task.priority == 'low' %}selected{% endif %}>Low</option>
+            <option value="medium" {% if task.priority == 'medium' %}selected{% endif %}>Medium</option>
+            <option value="high" {% if task.priority == 'high' %}selected{% endif %}>High</option>
+        </select>
+    </label>
+    <button type="submit">Save</button>
+</form>
+{% endblock %}

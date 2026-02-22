@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}{{ report.title }}{% endblock %}
+{% block content %}
+<h1>{{ report.title }}</h1>
+<p>Type: {{ report.report_type }}</p>
+<p>Author: {{ report.author.username }}</p>
+<div>{{ report.content }}</div>
+{% endblock %}
