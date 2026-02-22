@@ -26,6 +26,8 @@ def get_project(project_id: int):
     project = ProjectService.get_project(project_id)
     if not project:
         return jsonify({'error': 'Project not found'}), 404
+    if project.owner_id != current_user.id:
+        return jsonify({'error': 'Forbidden'}), 403
     return jsonify({
         'id': project.id,
         'name': project.name,
