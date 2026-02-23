@@ -1,5 +1,4 @@
 """Admin service for user CRUD operations."""
-import json
 import logging
 from datetime import date
 from typing import Dict, List, Optional, Tuple
@@ -123,15 +122,15 @@ class AdminService:
             if User.query.filter(User.key == key, User.id != user_id).first():
                 return None, 'Chave já está em uso.'
 
-        user.full_name = data.get('full_name', user.full_name) or user.full_name
+        user.full_name = data.get('full_name') or user.full_name
         user.role = data.get('role', user.role)
         user.key = key if key is not None else user.key
-        user.phone = data.get('phone') or user.phone
-        user.supervision = data.get('supervision') or user.supervision
-        user.function = data.get('function') or user.function
-        user.company = data.get('company') or user.company
-        user.state = data.get('state') or user.state
-        user.measurement_criteria = data.get('measurement_criteria') or user.measurement_criteria
+        user.phone = data.get('phone') if data.get('phone') is not None else user.phone
+        user.supervision = data.get('supervision') if data.get('supervision') is not None else user.supervision
+        user.function = data.get('function') if data.get('function') is not None else user.function
+        user.company = data.get('company') if data.get('company') is not None else user.company
+        user.state = data.get('state') if data.get('state') is not None else user.state
+        user.measurement_criteria = data.get('measurement_criteria') if data.get('measurement_criteria') is not None else user.measurement_criteria
         user.status = data.get('status', user.status)
 
         if data.get('birth_date'):
