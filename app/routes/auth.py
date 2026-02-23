@@ -2,6 +2,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
 from app.services.auth_service import AuthService
+from app.utils.decorators import admin_required
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -31,17 +32,20 @@ def logout():
 
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
+@login_required
+@admin_required
 def register():
-    """Handle user registration."""
-    if current_user.is_authenticated:
-        return redirect(url_for('projects.index'))
+    """Handle user registration (admin only)."""
     if request.method == 'POST':
         username = request.form.get('username')
         email = request.form.get('email')
         password = request.form.get('password')
-        user, error = AuthService.register(username, email, password)
+        role = request.form.get('role', 'engineer')
+        user, error = AuthService.register_user_by_admin(
+            username, email, password, role=role, admin_id=current_user.id
+        )
         if user:
-            login_user(user)
-            return redirect(url_for('projects.index'))
+            flash(f'User {user.username} created successfully.', 'success')
+            return redirect(url_for('auth.register'))
         flash(error, 'error')
     return render_template('auth/register.html')
