@@ -1,18 +1,169 @@
 {% extends "base.html" %}
-{% block title %}Tarefas{% endblock %}
+{% block title %}Tarefas — Engineering Projects Manager{% endblock %}
 {% block content %}
-<h1>Tarefas</h1>
-<a href="{{ url_for('tasks.create', project_id=project_id) }}">Nova Tarefa</a>
-<ul>
-{% for task in tasks %}
-    <li>{{ task.title }} - {{ task.status }} ({{ task.priority }})
-        <a href="{{ url_for('tasks.edit', task_id=task.id) }}">Edit</a>
-        <form method="POST" action="{{ url_for('tasks.delete', task_id=task.id) }}" style="display:inline">
-            <button type="submit" onclick="return confirm('Deletar?')">Deletar</button>
-        </form>
-    </li>
+<!-- Breadcrumb -->
+<nav class="flex items-center gap-2 text-sm text-gray-500 mb-6">
+    <a href="{{ url_for('projects.index') }}" class="hover:text-blue-600 transition-colors">Projetos</a>
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+    </svg>
+    <span class="text-gray-800 font-medium">Tarefas</span>
+</nav>
+
+<!-- Page header -->
+<div class="flex items-center justify-between mb-8">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">Tarefas</h1>
+        <p class="text-sm text-gray-500 mt-1">Acompanhe o progresso das tarefas do projeto</p>
+    </div>
+    <a href="{{ url_for('tasks.create', project_id=project_id) }}"
+        class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2.5 rounded-lg text-sm transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+        Nova Tarefa
+    </a>
+</div>
+
+{% if tasks %}
+    <!-- Kanban columns -->
+    {% set todo_tasks = tasks | selectattr('status', 'equalto', 'todo') | list %}
+    {% set inprogress_tasks = tasks | selectattr('status', 'equalto', 'in_progress') | list %}
+    {% set done_tasks = tasks | selectattr('status', 'equalto', 'done') | list %}
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- To Do column -->
+        <div class="bg-gray-50 rounded-2xl border border-gray-200 p-4">
+            <div class="flex items-center gap-2 mb-4">
+                <span class="w-3 h-3 rounded-full bg-gray-400"></span>
+                <h2 class="font-semibold text-gray-700 text-sm">A Fazer</h2>
+                <span class="ml-auto text-xs font-medium text-gray-500 bg-white border border-gray-200 rounded-full px-2 py-0.5">{{ todo_tasks | length }}</span>
+            </div>
+            <div class="space-y-3">
+                {% for task in todo_tasks %}
+                    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 hover:shadow-md transition-shadow">
+                        <div class="flex items-start justify-between gap-2 mb-2">
+                            <span class="font-medium text-gray-800 text-sm">{{ task.title }}</span>
+                            <!-- Priority badge -->
+                            {% if task.priority == 'high' %}
+                                <span class="flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Alta</span>
+                            {% elif task.priority == 'medium' %}
+                                <span class="flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">Média</span>
+                            {% else %}
+                                <span class="flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">Baixa</span>
+                            {% endif %}
+                        </div>
+                        <div class="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+                            <a href="{{ url_for('tasks.edit', task_id=task.id) }}"
+                                class="flex-1 text-center text-xs font-medium text-gray-500 hover:text-blue-600 transition-colors py-1 rounded-lg hover:bg-blue-50">
+                                Editar
+                            </a>
+                            <form method="POST" action="{{ url_for('tasks.delete', task_id=task.id) }}" class="flex-1" onsubmit="return confirm('Deletar esta tarefa?')">
+                                <button type="submit" class="w-full text-xs font-medium text-gray-500 hover:text-red-600 transition-colors py-1 rounded-lg hover:bg-red-50">
+                                    Deletar
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="text-center py-8 text-sm text-gray-400">Nenhuma tarefa</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- In Progress column -->
+        <div class="bg-blue-50 rounded-2xl border border-blue-200 p-4">
+            <div class="flex items-center gap-2 mb-4">
+                <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+                <h2 class="font-semibold text-blue-700 text-sm">Em Progresso</h2>
+                <span class="ml-auto text-xs font-medium text-blue-600 bg-white border border-blue-200 rounded-full px-2 py-0.5">{{ inprogress_tasks | length }}</span>
+            </div>
+            <div class="space-y-3">
+                {% for task in inprogress_tasks %}
+                    <div class="bg-white rounded-xl border border-blue-200 shadow-sm p-4 hover:shadow-md transition-shadow">
+                        <div class="flex items-start justify-between gap-2 mb-2">
+                            <span class="font-medium text-gray-800 text-sm">{{ task.title }}</span>
+                            {% if task.priority == 'high' %}
+                                <span class="flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Alta</span>
+                            {% elif task.priority == 'medium' %}
+                                <span class="flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">Média</span>
+                            {% else %}
+                                <span class="flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">Baixa</span>
+                            {% endif %}
+                        </div>
+                        <div class="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+                            <a href="{{ url_for('tasks.edit', task_id=task.id) }}"
+                                class="flex-1 text-center text-xs font-medium text-gray-500 hover:text-blue-600 transition-colors py-1 rounded-lg hover:bg-blue-50">
+                                Editar
+                            </a>
+                            <form method="POST" action="{{ url_for('tasks.delete', task_id=task.id) }}" class="flex-1" onsubmit="return confirm('Deletar esta tarefa?')">
+                                <button type="submit" class="w-full text-xs font-medium text-gray-500 hover:text-red-600 transition-colors py-1 rounded-lg hover:bg-red-50">
+                                    Deletar
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="text-center py-8 text-sm text-blue-400">Nenhuma tarefa</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Done column -->
+        <div class="bg-emerald-50 rounded-2xl border border-emerald-200 p-4">
+            <div class="flex items-center gap-2 mb-4">
+                <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                <h2 class="font-semibold text-emerald-700 text-sm">Concluído</h2>
+                <span class="ml-auto text-xs font-medium text-emerald-600 bg-white border border-emerald-200 rounded-full px-2 py-0.5">{{ done_tasks | length }}</span>
+            </div>
+            <div class="space-y-3">
+                {% for task in done_tasks %}
+                    <div class="bg-white rounded-xl border border-emerald-200 shadow-sm p-4 hover:shadow-md transition-shadow">
+                        <div class="flex items-start justify-between gap-2 mb-2">
+                            <span class="font-medium text-gray-800 text-sm line-through text-gray-400">{{ task.title }}</span>
+                            {% if task.priority == 'high' %}
+                                <span class="flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Alta</span>
+                            {% elif task.priority == 'medium' %}
+                                <span class="flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">Média</span>
+                            {% else %}
+                                <span class="flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">Baixa</span>
+                            {% endif %}
+                        </div>
+                        <div class="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+                            <a href="{{ url_for('tasks.edit', task_id=task.id) }}"
+                                class="flex-1 text-center text-xs font-medium text-gray-500 hover:text-blue-600 transition-colors py-1 rounded-lg hover:bg-blue-50">
+                                Editar
+                            </a>
+                            <form method="POST" action="{{ url_for('tasks.delete', task_id=task.id) }}" class="flex-1" onsubmit="return confirm('Deletar esta tarefa?')">
+                                <button type="submit" class="w-full text-xs font-medium text-gray-500 hover:text-red-600 transition-colors py-1 rounded-lg hover:bg-red-50">
+                                    Deletar
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="text-center py-8 text-sm text-emerald-400">Nenhuma tarefa</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
 {% else %}
-    <li>No tasks yet.</li>
-{% endfor %}
-</ul>
+    <!-- Empty state -->
+    <div class="text-center py-20">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gray-100 mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+        </div>
+        <h3 class="text-lg font-semibold text-gray-900 mb-1">Nenhuma tarefa ainda</h3>
+        <p class="text-sm text-gray-500 mb-6">Crie sua primeira tarefa para este projeto.</p>
+        <a href="{{ url_for('tasks.create', project_id=project_id) }}"
+            class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Criar Primeira Tarefa
+        </a>
+    </div>
+{% endif %}
 {% endblock %}
