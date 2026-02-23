@@ -35,6 +35,7 @@ class User(UserMixin, db.Model):
     permissions: dict = db.Column(db.JSON, nullable=True)
 
     # Authentication & onboarding
+    first_login: bool = db.Column(db.Boolean, default=True, nullable=False)
     password_reset_required: bool = db.Column(db.Boolean, default=False, nullable=False)
     last_login: datetime = db.Column(db.DateTime, nullable=True)
 

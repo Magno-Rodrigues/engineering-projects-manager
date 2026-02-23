@@ -82,10 +82,38 @@ def reset_password(token):
         token_obj.used = True
         user.set_password(password)
         user.password_reset_required = False
+        user.first_login = False
         db.session.commit()
 
         flash('Senha definida com sucesso! Faça login para continuar.', 'success')
         return redirect(url_for('auth.login'))
 
     return render_template('auth/reset_password.html', token=token)
+
+
+@auth_bp.route('/reset-password', methods=['GET', 'POST'])
+@login_required
+def reset_password_first_login():
+    """Handle in-app password reset for first login (no token required)."""
+    from app import db
+
+    if request.method == 'POST':
+        password = request.form.get('password', '').strip()
+        confirm = request.form.get('confirm_password', '').strip()
+        if not password:
+            flash('A senha não pode estar vazia.', 'error')
+            return render_template('auth/reset_password.html', token=None, first_login=True)
+        if password != confirm:
+            flash('As senhas não conferem.', 'error')
+            return render_template('auth/reset_password.html', token=None, first_login=True)
+
+        current_user.set_password(password)
+        current_user.password_reset_required = False
+        current_user.first_login = False
+        db.session.commit()
+
+        flash('Senha definida com sucesso!', 'success')
+        return redirect(url_for('main.dashboard'))
+
+    return render_template('auth/reset_password.html', token=None, first_login=True)
 
