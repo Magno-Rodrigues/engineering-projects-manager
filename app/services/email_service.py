@@ -6,6 +6,7 @@ Hybrid email backend:
 - Production / Linux / any other environment: uses SMTP via smtplib with the
   MAIL_* environment variables.
 """
+import gc
 import logging
 import os
 import platform
@@ -133,6 +134,8 @@ def _send_via_outlook_auto(to_email: str, subject: str, body_html: str) -> bool:
     Returns:
         True on success, False on failure (including SMTP fallback failure).
     """
+    outlook = None
+    mail = None
     try:
         import win32com.client  # type: ignore[import]
         import win32api  # type: ignore[import]
@@ -173,6 +176,11 @@ def _send_via_outlook_auto(to_email: str, subject: str, body_html: str) -> bool:
     except Exception as exc:  # noqa: BLE001
         logger.warning('[Outlook COM] Erro ao enviar para %s: %s — tentando SMTP como fallback', to_email, exc)
         return _send_via_smtp(to_email, subject, body_html)
+    finally:
+        # Release COM objects so subsequent sends get a fresh connection
+        mail = None
+        outlook = None
+        gc.collect()
 
 
 def _send_via_smtp(to_email: str, subject: str, body_html: str) -> bool:

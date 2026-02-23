@@ -1,6 +1,6 @@
 """Tests for the hybrid email service."""
 import platform
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 
@@ -46,6 +46,71 @@ class TestSendEmailRouting:
                 send_email('to@example.com', 'Subject', '<p>Body</p>')
                 mock_outlook.assert_called_once()
                 mock_smtp.assert_not_called()
+
+
+class TestSendViaOutlookAuto:
+    """Tests for the Outlook COM transport lifecycle."""
+
+    def _make_win32_mocks(self):
+        """Return mock objects for win32com.client, win32api, win32con."""
+        mock_mail = MagicMock()
+        mock_outlook = MagicMock()
+        mock_outlook.Session.Accounts.Count = 1
+        mock_outlook.Session.Accounts.Item.return_value = MagicMock()
+        mock_outlook.CreateItem.return_value = mock_mail
+
+        mock_win32com = MagicMock()
+        mock_win32com.client.Dispatch.return_value = mock_outlook
+        return mock_win32com, mock_outlook, mock_mail
+
+    def test_creates_fresh_dispatch_each_call(self, app):
+        """_send_via_outlook_auto calls Dispatch() on every invocation."""
+        with app.app_context():
+            mock_win32com, mock_outlook, mock_mail = self._make_win32_mocks()
+            modules = {
+                'win32com': mock_win32com,
+                'win32com.client': mock_win32com.client,
+                'win32api': MagicMock(),
+                'win32con': MagicMock(),
+            }
+            with patch.dict('sys.modules', modules):
+                from app.services.email_service import _send_via_outlook_auto
+                _send_via_outlook_auto('a@example.com', 'S', '<p>B</p>')
+                _send_via_outlook_auto('b@example.com', 'S', '<p>B</p>')
+            assert mock_win32com.client.Dispatch.call_count == 2
+
+    def test_releases_com_objects_after_send(self, app):
+        """_send_via_outlook_auto triggers gc.collect() after each send."""
+        with app.app_context():
+            mock_win32com, mock_outlook, mock_mail = self._make_win32_mocks()
+            modules = {
+                'win32com': mock_win32com,
+                'win32com.client': mock_win32com.client,
+                'win32api': MagicMock(),
+                'win32con': MagicMock(),
+            }
+            with patch('app.services.email_service.gc.collect') as mock_gc, patch.dict('sys.modules', modules):
+                from app.services.email_service import _send_via_outlook_auto
+                _send_via_outlook_auto('a@example.com', 'S', '<p>B</p>')
+            mock_gc.assert_called_once()
+
+    def test_gc_called_even_on_failure(self, app):
+        """gc.collect() is called even when the COM send raises an exception."""
+        with app.app_context():
+            mock_win32com = MagicMock()
+            mock_win32com.client.Dispatch.side_effect = RuntimeError('COM error')
+            modules = {
+                'win32com': mock_win32com,
+                'win32com.client': mock_win32com.client,
+                'win32api': MagicMock(),
+                'win32con': MagicMock(),
+            }
+            with patch('app.services.email_service.gc.collect') as mock_gc, \
+                 patch('app.services.email_service._send_via_smtp', return_value=False), \
+                 patch.dict('sys.modules', modules):
+                from app.services.email_service import _send_via_outlook_auto
+                _send_via_outlook_auto('a@example.com', 'S', '<p>B</p>')
+            mock_gc.assert_called_once()
 
 
 class TestSendViaSmtp:
