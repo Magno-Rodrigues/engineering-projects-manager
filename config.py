@@ -14,6 +14,14 @@ class Config:
         'postgresql://postgres:postgres@localhost:5432/engineering_projects'
     )
 
+    # Flask-Mail settings
+    MAIL_SERVER: str = os.environ.get('MAIL_SERVER', 'smtp-mail.outlook.com')
+    MAIL_PORT: int = int(os.environ.get('MAIL_PORT', 587))
+    MAIL_USE_TLS: bool = os.environ.get('MAIL_USE_TLS', 'true').lower() == 'true'
+    MAIL_USERNAME: str = os.environ.get('MAIL_USERNAME', '')
+    MAIL_PASSWORD: str = os.environ.get('MAIL_PASSWORD', '')
+    MAIL_DEFAULT_SENDER: str = os.environ.get('MAIL_DEFAULT_SENDER', '')
+
 
 class DevelopmentConfig(Config):
     """Development configuration."""
