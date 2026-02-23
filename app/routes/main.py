@@ -9,5 +9,5 @@ main_bp = Blueprint('main', __name__)
 def index():
     """Home page route."""
     if current_user.is_authenticated:
-        return redirect(url_for('projects.list_projects'))
+        return redirect(url_for('projects.index'))
     return redirect(url_for('auth.login'))
