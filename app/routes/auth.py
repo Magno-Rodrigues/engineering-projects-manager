@@ -11,14 +11,14 @@ auth_bp = Blueprint('auth', __name__)
 def login():
     """Handle user login."""
     if current_user.is_authenticated:
-        return redirect(url_for('projects.index'))
+        return redirect(url_for('main.dashboard'))
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
         user = AuthService.authenticate(username, password)
         if user:
             login_user(user)
-            return redirect(url_for('projects.index'))
+            return redirect(url_for('main.dashboard'))
         flash('Invalid username or password.', 'error')
     return render_template('auth/login.html')
 
@@ -49,3 +49,41 @@ def register():
             return redirect(url_for('auth.register'))
         flash(error, 'error')
     return render_template('auth/register.html')
+
+
+@auth_bp.route('/reset-password', methods=['GET', 'POST'])
+def reset_password():
+    """Handle password reset via token."""
+    if request.method == 'GET':
+        token = request.args.get('token', '')
+        if not token:
+            flash('Link de redefinição inválido.', 'error')
+            return redirect(url_for('auth.login'))
+        from app.services.token_service import TokenService
+        user, error = TokenService.verify_reset_token(token)
+        if not user:
+            flash(error, 'error')
+            return redirect(url_for('auth.login'))
+        return render_template('auth/reset_password.html', token=token)
+
+    token = request.form.get('token', '')
+    password = request.form.get('password', '').strip()
+    confirm_password = request.form.get('confirm_password', '').strip()
+
+    from app.services.token_service import TokenService
+    user, error = TokenService.verify_reset_token(token)
+    if not user:
+        flash(error, 'error')
+        return redirect(url_for('auth.login'))
+
+    if not password:
+        flash('A senha não pode estar em branco.', 'error')
+        return render_template('auth/reset_password.html', token=token)
+    if password != confirm_password:
+        flash('As senhas não conferem.', 'error')
+        return render_template('auth/reset_password.html', token=token)
+
+    user.set_password(password)
+    TokenService.invalidate_reset_token(user)
+    flash('Senha definida com sucesso! Faça o login.', 'success')
+    return redirect(url_for('auth.login'))

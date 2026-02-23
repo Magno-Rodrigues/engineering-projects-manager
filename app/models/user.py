@@ -34,6 +34,10 @@ class User(UserMixin, db.Model):
     status: str = db.Column(db.String(32), default='Ativo', nullable=False)
     permissions: dict = db.Column(db.JSON, nullable=True)
 
+    # Password reset fields
+    reset_token: str = db.Column(db.String(255), nullable=True, unique=True)
+    reset_token_expires_at: datetime = db.Column(db.DateTime, nullable=True)
+
     # Relationships
     projects = db.relationship('Project', backref='owner', lazy='dynamic')
     tasks = db.relationship('Task', backref='assignee', lazy='dynamic')

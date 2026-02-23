@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bem-vindo ao Engineering Projects Manager</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 40px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .header { background: #3B82F6; padding: 32px 40px; text-align: center; }
+        .header h1 { color: #ffffff; margin: 0; font-size: 22px; }
+        .body { padding: 32px 40px; }
+        .body p { color: #374151; line-height: 1.6; font-size: 15px; }
+        .btn { display: inline-block; margin: 20px 0; padding: 12px 28px; background: #3B82F6; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 15px; }
+        .notice { background: #FEF3C7; border: 1px solid #F59E0B; border-radius: 6px; padding: 12px 16px; color: #92400E; font-size: 13px; margin-top: 16px; }
+        .footer { background: #F9FAFB; border-top: 1px solid #E5E7EB; padding: 16px 40px; text-align: center; }
+        .footer p { color: #9CA3AF; font-size: 12px; margin: 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Engineering Projects Manager</h1>
+        </div>
+        <div class="body">
+            <p>Olá, <strong>{{ user_name }}</strong>!</p>
+            <p>
+                Sua conta foi criada com sucesso no <strong>Engineering Projects Manager</strong>.
+                Para acessar o sistema, você precisará definir sua senha clicando no botão abaixo.
+            </p>
+            <p><strong>Seu e-mail de acesso:</strong> {{ user_email }}</p>
+            <p style="text-align: center;">
+                <a href="{{ reset_url }}" class="btn">Definir minha senha</a>
+            </p>
+            <div class="notice">
+                ⚠️ Este link é válido por <strong>12 horas</strong>. Após esse prazo, solicite um novo link ao administrador.
+            </div>
+            <p>Se você não esperava receber este e-mail, ignore-o com segurança.</p>
+        </div>
+        <div class="footer">
+            <p>© 2024 Engineering Projects Manager. Todos os direitos reservados.</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -42,7 +42,7 @@ class AdminService:
 
     @staticmethod
     def create_user(data: Dict, admin_id: Optional[int] = None) -> Tuple[Optional[User], Optional[str]]:
-        """Create a new user.
+        """Create a new user and send a welcome email with a password reset link.
 
         Args:
             data: Dictionary of user fields.
@@ -90,6 +90,17 @@ class AdminService:
         user.set_password(password)
         db.session.add(user)
         db.session.commit()
+
+        # Generate reset token and send welcome email
+        try:
+            from app.services.token_service import TokenService
+            from app.services.email_service import EmailService
+            token = TokenService.generate_reset_token(user)
+            display_name = user.full_name or user.username
+            EmailService.send_welcome_email(user.email, display_name, token)
+        except Exception as exc:
+            logger.warning('Could not send welcome email for user %s: %s', username, exc)
+
         if admin_id is not None:
             logger.info('Admin %s created user %s', admin_id, username)
         return user, None
