@@ -1,7 +1,7 @@
 """Email service for sending password reset and welcome emails.
 
 Hybrid email backend:
-- Development on Windows: uses Outlook COM (win32com) natively.
+- Development on Windows: uses exchangelib (Outlook/Exchange) natively.
 - Production / Linux / any other environment: uses SMTP via smtplib with the
   MAIL_* environment variables.
 """
@@ -84,7 +84,7 @@ def validate_reset_token(token_str: str) -> Tuple[Optional[object], Optional[str
 def send_email(to_email: str, subject: str, body_html: str) -> bool:
     """Send an e-mail, automatically choosing the transport method.
 
-    - Windows + development environment → Outlook COM
+    - Windows + development environment → exchangelib (Outlook/Exchange)
     - All other cases (production, Linux, macOS, …) → SMTP
 
     Args:
@@ -104,15 +104,19 @@ def send_email(to_email: str, subject: str, body_html: str) -> bool:
     system = platform.system()
 
     if env == 'development' and system == 'Windows':
-        return _send_via_outlook(to_email, subject, body_html)
+        return _send_via_exchangelib(to_email, subject, body_html)
 
     return _send_via_smtp(to_email, subject, body_html)
 
 
-def _send_via_outlook(to_email: str, subject: str, body_html: str) -> bool:
-    """Send e-mail via Outlook COM (Windows development only).
+def _send_via_exchangelib(to_email: str, subject: str, body_html: str) -> bool:
+    """Send e-mail via exchangelib (Windows development only).
 
-    Requires the ``pywin32`` package and a configured Outlook installation.
+    Connects to Outlook/Exchange using NTLM credentials automatically —
+    no Outlook permission prompts and no need for Outlook to be open.
+
+    Requires the ``exchangelib`` package and a configured Outlook/Exchange
+    account.  Falls back to SMTP on any error.
 
     Args:
         to_email: Recipient e-mail address.
@@ -120,25 +124,34 @@ def _send_via_outlook(to_email: str, subject: str, body_html: str) -> bool:
         body_html: HTML body of the e-mail.
 
     Returns:
-        True on success, False on failure.
+        True on success, False on failure (including SMTP fallback failure).
     """
     try:
-        import win32com.client  # type: ignore[import]
+        from exchangelib import NTLM, Account, HTMLBody, Message  # type: ignore[import]
 
-        outlook = win32com.client.Dispatch('Outlook.Application')
-        mail = outlook.CreateItem(0)  # 0 = MailItem
-        mail.To = to_email
-        mail.Subject = subject
-        mail.HTMLBody = body_html
-        accounts = outlook.Session.Accounts
-        if accounts.Count > 0:
-            mail.SendUsingAccount = accounts.Item(1)
-        mail.Send()
-        logger.info('[Outlook COM] Email enviado para %s', to_email)
+        outlook_email = os.getenv('OUTLOOK_EMAIL')
+        if not outlook_email:
+            logger.warning('[ExchangeLib] OUTLOOK_EMAIL não configurado — usando SMTP como fallback')
+            return _send_via_smtp(to_email, subject, body_html)
+
+        account = Account(
+            primary_smtp_address=outlook_email,
+            autodiscover=True,
+            auth_type=NTLM,
+        )
+
+        msg = Message(
+            account=account,
+            subject=subject,
+            body=HTMLBody(body_html),
+            to_recipients=[to_email],
+        )
+        msg.send()
+        logger.info('[ExchangeLib] Email enviado para %s', to_email)
         return True
     except Exception as exc:  # noqa: BLE001
-        logger.warning('[Outlook COM] Erro ao enviar para %s: %s', to_email, exc)
-        return False
+        logger.warning('[ExchangeLib] Erro ao enviar para %s: %s — tentando SMTP como fallback', to_email, exc)
+        return _send_via_smtp(to_email, subject, body_html)
 
 
 def _send_via_smtp(to_email: str, subject: str, body_html: str) -> bool:
