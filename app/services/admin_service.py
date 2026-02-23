@@ -142,6 +142,8 @@ class AdminService:
         password = data.get('password', '').strip()
         if password:
             user.set_password(password)
+            user.password_reset_required = True
+            user.first_login = True
 
         db.session.commit()
         if admin_id is not None:
