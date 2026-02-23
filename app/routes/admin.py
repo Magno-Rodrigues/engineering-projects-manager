@@ -59,7 +59,8 @@ def usuarios_novo():
                 send_admin_registration_notification,
             )
             token = generate_reset_token(user)
-            send_user_registration_email(user, token)
+            reset_link = url_for('auth.reset_password', token=token.token, _external=True)
+            send_user_registration_email(user, reset_link)
             send_admin_registration_notification(current_user, user)
             flash(f'Usuário {user.username} cadastrado com sucesso.', 'success')
             return redirect(url_for('admin.usuarios_index'))
@@ -92,7 +93,8 @@ def usuarios_editar(user_id: int):
             if password_changed:
                 from app.services.email_service import generate_reset_token, send_password_reset_email
                 token = generate_reset_token(updated)
-                send_password_reset_email(updated, token)
+                reset_link = url_for('auth.reset_password', token=token.token, _external=True)
+                send_password_reset_email(updated, reset_link)
             flash('Usuário atualizado com sucesso.', 'success')
             return redirect(url_for('admin.usuarios_index'))
         flash(error, 'error')

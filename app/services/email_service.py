@@ -1,10 +1,21 @@
-"""Email service for sending password reset and welcome emails."""
+"""Email service for sending password reset and welcome emails.
+
+Hybrid email backend:
+- Development on Windows: uses Outlook COM (win32com) natively.
+- Production / Linux / any other environment: uses SMTP via smtplib with the
+  MAIL_* environment variables.
+"""
 import logging
+import os
+import platform
 import secrets
+import smtplib
 from datetime import datetime, timedelta, timezone
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from typing import Optional, Tuple
 
-from flask import current_app, url_for
+from flask import url_for
 
 from app import db
 from app.models.reset_token import PasswordResetToken
@@ -13,6 +24,10 @@ logger = logging.getLogger(__name__)
 
 TOKEN_EXPIRY_HOURS = 12
 
+
+# ---------------------------------------------------------------------------
+# Token helpers
+# ---------------------------------------------------------------------------
 
 def generate_reset_token(user) -> PasswordResetToken:
     """Generate a password-reset token for *user* valid for TOKEN_EXPIRY_HOURS.
@@ -62,44 +77,159 @@ def validate_reset_token(token_str: str) -> Tuple[Optional[object], Optional[str
     return user, None
 
 
-def send_user_registration_email(user, token: PasswordResetToken) -> bool:
-    """Send a welcome e-mail with a password-reset link to a newly registered *user*.
+# ---------------------------------------------------------------------------
+# Low-level transport
+# ---------------------------------------------------------------------------
 
-    Uses Flask-Mail when it is configured; logs a warning and returns False
-    when mail is not configured so that the rest of the application still works.
+def send_email(to_email: str, subject: str, body_html: str) -> bool:
+    """Send an e-mail, automatically choosing the transport method.
+
+    - Windows + development environment → Outlook COM
+    - All other cases (production, Linux, macOS, …) → SMTP
+
+    Args:
+        to_email: Recipient e-mail address.
+        subject: E-mail subject line.
+        body_html: HTML body of the e-mail.
+
+    Returns:
+        True if the e-mail was sent successfully, False otherwise.
+    """
+    try:
+        from flask import current_app
+        env = current_app.config.get('ENV', 'development')
+    except RuntimeError:
+        env = os.getenv('ENV', 'development')
+
+    system = platform.system()
+
+    if env == 'development' and system == 'Windows':
+        return _send_via_outlook(to_email, subject, body_html)
+
+    return _send_via_smtp(to_email, subject, body_html)
+
+
+def _send_via_outlook(to_email: str, subject: str, body_html: str) -> bool:
+    """Send e-mail via Outlook COM (Windows development only).
+
+    Requires the ``pywin32`` package and a configured Outlook installation.
+
+    Args:
+        to_email: Recipient e-mail address.
+        subject: E-mail subject line.
+        body_html: HTML body of the e-mail.
+
+    Returns:
+        True on success, False on failure.
+    """
+    try:
+        import win32com.client  # type: ignore[import]
+
+        outlook = win32com.client.Dispatch('Outlook.Application')
+        mail = outlook.CreateItem(0)  # 0 = MailItem
+        mail.To = to_email
+        mail.Subject = subject
+        mail.HTMLBody = body_html
+        accounts = outlook.Session.Accounts
+        if accounts.Count > 0:
+            mail.SendUsingAccount = accounts.Item(1)
+        mail.Send()
+        logger.info('[Outlook COM] Email enviado para %s', to_email)
+        return True
+    except Exception as exc:  # noqa: BLE001
+        logger.warning('[Outlook COM] Erro ao enviar para %s: %s', to_email, exc)
+        return False
+
+
+def _send_via_smtp(to_email: str, subject: str, body_html: str) -> bool:
+    """Send e-mail via SMTP using environment variables for configuration.
+
+    Required environment variables: MAIL_SERVER, MAIL_USERNAME, MAIL_PASSWORD,
+    MAIL_DEFAULT_SENDER.  MAIL_PORT defaults to 587.
+
+    Args:
+        to_email: Recipient e-mail address.
+        subject: E-mail subject line.
+        body_html: HTML body of the e-mail.
+
+    Returns:
+        True on success, False on failure.
+    """
+    try:
+        mail_server = os.getenv('MAIL_SERVER')
+        mail_port = int(os.getenv('MAIL_PORT', 587))
+        mail_username = os.getenv('MAIL_USERNAME')
+        mail_password = os.getenv('MAIL_PASSWORD')
+        mail_sender = os.getenv('MAIL_DEFAULT_SENDER', mail_username)
+
+        if not all([mail_server, mail_username, mail_password, mail_sender]):
+            logger.warning('[SMTP] Configuração incompleta nas variáveis de ambiente')
+            return False
+
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = mail_sender
+        msg['To'] = to_email
+        msg.attach(MIMEText(body_html, 'html'))
+
+        with smtplib.SMTP(mail_server, mail_port) as server:
+            server.starttls()
+            server.login(mail_username, mail_password)
+            server.send_message(msg)
+
+        logger.info('[SMTP] Email enviado para %s', to_email)
+        return True
+    except Exception as exc:  # noqa: BLE001
+        logger.warning('[SMTP] Erro ao enviar para %s: %s', to_email, exc)
+        return False
+
+
+# ---------------------------------------------------------------------------
+# High-level helpers
+# ---------------------------------------------------------------------------
+
+def send_user_registration_email(user, reset_link: str) -> bool:
+    """Send a welcome e-mail with a password-reset link to a newly registered *user*.
 
     Args:
         user: The User instance to send the email to.
-        token: The PasswordResetToken to embed in the link.
+        reset_link: The full URL the user should visit to set their password.
 
     Returns:
         True if the email was sent, False otherwise.
     """
-    try:
-        from flask_mail import Message
-        from app import mail  # imported lazily so tests without Flask-Mail still work
-
-        reset_url = url_for(
-            'auth.reset_password', token=token.token, _external=True
-        )
-        display_name = user.full_name or user.username
-        subject = 'Bem-vindo ao Sistema de Gerenciamento!'
-        body = (
-            f'Olá {display_name},\n\n'
-            'Parabéns! Você foi cadastrado no Sistema de Gerenciamento de Projetos de Engenharia.\n\n'
-            'Para acessar o sistema e definir sua senha, clique no link abaixo:\n'
-            f'{reset_url}\n\n'
-            'Este link expira em 12 horas.\n\n'
-            'Atenciosamente,\n'
-            'Sistema RGM'
-        )
-        msg = Message(subject=subject, recipients=[user.email], body=body)
-        mail.send(msg)
+    display_name = user.full_name or user.username
+    subject = 'Bem-vindo ao Sistema de Gerenciamento!'
+    body_html = f"""
+    <html>
+        <body style="font-family: Arial, sans-serif; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #0066cc;">Bem-vindo, {display_name}!</h2>
+                <p>Você foi cadastrado com sucesso no <strong>Sistema de Gerenciamento de Projetos de Engenharia</strong>.</p>
+                <p>Para acessar o sistema e definir sua senha, clique no botão abaixo:</p>
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="{reset_link}" style="background-color: #0066cc; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                        Acessar Sistema
+                    </a>
+                </div>
+                <p style="color: #666; font-size: 12px;">
+                    <strong>Atenção:</strong> Este link expira em <strong>12 horas</strong>.
+                </p>
+                <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+                <p style="color: #999; font-size: 12px;">
+                    Se você não solicitou este cadastro, ignore este email.<br>
+                    © 2026 Sistema RGM. Todos os direitos reservados.
+                </p>
+            </div>
+        </body>
+    </html>
+    """
+    result = send_email(user.email, subject, body_html)
+    if result:
         logger.info('Registration email sent to %s', user.email)
-        return True
-    except Exception as exc:  # noqa: BLE001
-        logger.warning('Failed to send registration email to %s: %s', user.email, exc)
-        return False
+    else:
+        logger.warning('Failed to send registration email to %s', user.email)
+    return result
 
 
 # Backward-compatible alias
@@ -116,65 +246,88 @@ def send_admin_registration_notification(admin, user) -> bool:
     Returns:
         True if the email was sent, False otherwise.
     """
-    try:
-        from flask_mail import Message
-        from app import mail
-
-        admin_name = admin.full_name or admin.username
-        user_name = user.full_name or user.username
-        role_label = 'Administrador' if user.role == 'admin' else 'Usuário'
-        subject = 'Novo Usuário Cadastrado'
-        body = (
-            f'Olá {admin_name},\n\n'
-            'Um novo usuário foi cadastrado com sucesso:\n\n'
-            f'Nome: {user_name}\n'
-            f'Email: {user.email}\n'
-            f'Tipo: {role_label}\n\n'
-            'O usuário receberá um email com instruções de acesso.\n\n'
-            'Atenciosamente,\n'
-            'Sistema RGM'
-        )
-        msg = Message(subject=subject, recipients=[admin.email], body=body)
-        mail.send(msg)
+    admin_name = admin.full_name or admin.username
+    user_name = user.full_name or user.username
+    role_label = 'Administrador' if user.role == 'admin' else 'Usuário'
+    subject = 'Novo Usuário Cadastrado'
+    body_html = f"""
+    <html>
+        <body style="font-family: Arial, sans-serif; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #0066cc;">Novo Usuário Cadastrado</h2>
+                <p>Olá {admin_name},</p>
+                <p>Um novo usuário foi cadastrado com sucesso:</p>
+                <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                    <tr style="background-color: #f5f5f5;">
+                        <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Nome:</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">{user_name}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Email:</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">{user.email}</td>
+                    </tr>
+                    <tr style="background-color: #f5f5f5;">
+                        <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Tipo:</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">{role_label}</td>
+                    </tr>
+                </table>
+                <p>O usuário receberá um email com instruções de acesso.</p>
+                <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+                <p style="color: #999; font-size: 12px;">
+                    © 2026 Sistema RGM. Todos os direitos reservados.
+                </p>
+            </div>
+        </body>
+    </html>
+    """
+    result = send_email(admin.email, subject, body_html)
+    if result:
         logger.info('Admin registration notification sent to %s', admin.email)
-        return True
-    except Exception as exc:  # noqa: BLE001
-        logger.warning('Failed to send admin notification to %s: %s', admin.email, exc)
-        return False
+    else:
+        logger.warning('Failed to send admin notification to %s', admin.email)
+    return result
 
 
-def send_password_reset_email(user, token: PasswordResetToken) -> bool:
+def send_password_reset_email(user, reset_link: str) -> bool:
     """Send an e-mail to *user* notifying that their password was changed by an admin.
 
     Args:
         user: The User instance whose password was reset.
-        token: The PasswordResetToken to embed in the link.
+        reset_link: The full URL the user should visit to set a new password.
 
     Returns:
         True if the email was sent, False otherwise.
     """
-    try:
-        from flask_mail import Message
-        from app import mail
-
-        reset_url = url_for(
-            'auth.reset_password', token=token.token, _external=True
-        )
-        display_name = user.full_name or user.username
-        subject = 'Sua Senha foi Alterada'
-        body = (
-            f'Olá {display_name},\n\n'
-            'Sua senha foi alterada pelo administrador.\n\n'
-            'Para redefinir sua senha, clique no link abaixo:\n'
-            f'{reset_url}\n\n'
-            'Este link expira em 12 horas.\n\n'
-            'Atenciosamente,\n'
-            'Sistema RGM'
-        )
-        msg = Message(subject=subject, recipients=[user.email], body=body)
-        mail.send(msg)
+    display_name = user.full_name or user.username
+    subject = 'Sua Senha foi Alterada'
+    body_html = f"""
+    <html>
+        <body style="font-family: Arial, sans-serif; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #0066cc;">Alteração de Senha</h2>
+                <p>Olá {display_name},</p>
+                <p>Sua senha foi alterada pelo administrador do sistema.</p>
+                <p>Para redefinir sua senha, clique no botão abaixo:</p>
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="{reset_link}" style="background-color: #0066cc; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                        Redefinir Senha
+                    </a>
+                </div>
+                <p style="color: #666; font-size: 12px;">
+                    <strong>Atenção:</strong> Este link expira em <strong>12 horas</strong>.
+                </p>
+                <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+                <p style="color: #999; font-size: 12px;">
+                    Se você não solicitou esta alteração, entre em contato com o administrador.<br>
+                    © 2026 Sistema RGM. Todos os direitos reservados.
+                </p>
+            </div>
+        </body>
+    </html>
+    """
+    result = send_email(user.email, subject, body_html)
+    if result:
         logger.info('Password reset email sent to %s', user.email)
-        return True
-    except Exception as exc:  # noqa: BLE001
-        logger.warning('Failed to send password reset email to %s: %s', user.email, exc)
-        return False
+    else:
+        logger.warning('Failed to send password reset email to %s', user.email)
+    return result
