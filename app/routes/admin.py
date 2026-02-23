@@ -52,6 +52,10 @@ def usuarios_novo():
     if request.method == 'POST':
         user, error = AdminService.create_user(request.form.to_dict(), admin_id=current_user.id)
         if user:
+            # Attempt to send welcome / password-reset email; failure is non-fatal
+            from app.services.email_service import generate_reset_token, send_welcome_email
+            token = generate_reset_token(user)
+            send_welcome_email(user, token)
             flash(f'Usuário {user.username} cadastrado com sucesso.', 'success')
             return redirect(url_for('admin.usuarios_index'))
         flash(error, 'error')
