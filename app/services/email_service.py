@@ -112,12 +112,59 @@ def send_email(to_email: str, subject: str, body_html: str) -> bool:
     return _send_via_smtp(to_email, subject, body_html)
 
 
+def _dismiss_outlook_security_popup() -> bool:
+    """Find and click the 'Permitir'/'Allow' button in the Outlook security popup.
+
+    Uses ``win32gui`` to enumerate all visible top-level windows, looking for
+    an Outlook security dialog.  When found, its child Button controls are
+    inspected and the first one labelled 'Permitir' or 'Allow' is clicked
+    directly via ``BM_CLICK`` — no keyboard focus required.
+
+    Returns:
+        True if the button was found and clicked, False otherwise.
+    """
+    try:
+        import win32gui  # type: ignore[import]
+        import win32con  # type: ignore[import]
+
+        clicked: list[bool] = []
+
+        def _check_child(child_hwnd: int, _: object) -> None:
+            if clicked:
+                return  # already clicked
+            class_name = win32gui.GetClassName(child_hwnd)
+            text = win32gui.GetWindowText(child_hwnd)
+            if class_name == 'Button' and text.strip() in ('Permitir', 'Allow'):
+                win32gui.SendMessage(child_hwnd, win32con.BM_CLICK, 0, 0)
+                clicked.append(True)
+
+        def _check_window(hwnd: int, _: object) -> None:
+            if clicked or not win32gui.IsWindowVisible(hwnd):
+                return
+            title = win32gui.GetWindowText(hwnd)
+            if 'Outlook' in title or 'Microsoft' in title:
+                try:
+                    win32gui.EnumChildWindows(hwnd, _check_child, None)
+                except Exception:  # noqa: BLE001
+                    pass
+
+        win32gui.EnumWindows(_check_window, None)
+        return bool(clicked)
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def _send_via_outlook_auto(to_email: str, subject: str, body_html: str) -> bool:
     """Send e-mail via Outlook COM with automated permission-popup handling.
 
     Creates a MailItem through the Outlook COM interface, sends it, then
-    automatically simulates TAB + ENTER to dismiss any "Permitir" permission
-    popup — so no manual interaction is required.
+    attempts to dismiss the "Permitir" permission popup automatically using
+    three escalating techniques so no manual interaction is required:
+
+    1. **win32gui window search** – enumerates visible windows and clicks the
+       "Permitir"/"Allow" button directly (no focus required, most reliable).
+    2. **pyautogui** – simulates TAB + ENTER keystrokes.
+    3. **win32api keybd_event** – low-level keyboard simulation as last resort.
 
     Requires:
     - Windows OS
@@ -152,24 +199,28 @@ def _send_via_outlook_auto(to_email: str, subject: str, body_html: str) -> bool:
 
         mail.Send()
 
-        # Wait briefly for any permission popup to appear, then dismiss it
+        # Wait briefly for any permission popup to appear, then dismiss it.
+        # Three techniques are tried in order of reliability.
         time.sleep(0.5)
 
-        # Simulate TAB (navigate to "Permitir") + ENTER (confirm) to auto-click
-        try:
-            import pyautogui  # type: ignore[import]
-            pyautogui.press('tab')
-            time.sleep(0.1)
-            pyautogui.press('return')
-        except Exception:  # noqa: BLE001
+        # Technique 1: direct button click via win32gui (focus-independent)
+        if not _dismiss_outlook_security_popup():
+            # Technique 2: pyautogui TAB + ENTER
             try:
-                win32api.keybd_event(win32con.VK_TAB, 0, 0, 0)
-                win32api.keybd_event(win32con.VK_TAB, 0, win32con.KEYEVENTF_KEYUP, 0)
+                import pyautogui  # type: ignore[import]
+                pyautogui.press('tab')
                 time.sleep(0.1)
-                win32api.keybd_event(win32con.VK_RETURN, 0, 0, 0)
-                win32api.keybd_event(win32con.VK_RETURN, 0, win32con.KEYEVENTF_KEYUP, 0)
+                pyautogui.press('return')
             except Exception:  # noqa: BLE001
-                pass  # Email was already sent; popup automation is best-effort
+                # Technique 3: win32api low-level keyboard events
+                try:
+                    win32api.keybd_event(win32con.VK_TAB, 0, 0, 0)
+                    win32api.keybd_event(win32con.VK_TAB, 0, win32con.KEYEVENTF_KEYUP, 0)
+                    time.sleep(0.1)
+                    win32api.keybd_event(win32con.VK_RETURN, 0, 0, 0)
+                    win32api.keybd_event(win32con.VK_RETURN, 0, win32con.KEYEVENTF_KEYUP, 0)
+                except Exception:  # noqa: BLE001
+                    pass  # Email was already sent; popup automation is best-effort
 
         logger.info('[Outlook COM] Email enviado para %s', to_email)
         return True

@@ -73,7 +73,8 @@ class TestSendViaOutlookAuto:
                 'win32api': MagicMock(),
                 'win32con': MagicMock(),
             }
-            with patch.dict('sys.modules', modules):
+            with patch.dict('sys.modules', modules), \
+                 patch('app.services.email_service._dismiss_outlook_security_popup', return_value=True):
                 from app.services.email_service import _send_via_outlook_auto
                 _send_via_outlook_auto('a@example.com', 'S', '<p>B</p>')
                 _send_via_outlook_auto('b@example.com', 'S', '<p>B</p>')
@@ -89,7 +90,9 @@ class TestSendViaOutlookAuto:
                 'win32api': MagicMock(),
                 'win32con': MagicMock(),
             }
-            with patch('app.services.email_service.gc.collect') as mock_gc, patch.dict('sys.modules', modules):
+            with patch('app.services.email_service.gc.collect') as mock_gc, \
+                 patch.dict('sys.modules', modules), \
+                 patch('app.services.email_service._dismiss_outlook_security_popup', return_value=True):
                 from app.services.email_service import _send_via_outlook_auto
                 _send_via_outlook_auto('a@example.com', 'S', '<p>B</p>')
             mock_gc.assert_called_once()
@@ -111,6 +114,91 @@ class TestSendViaOutlookAuto:
                 from app.services.email_service import _send_via_outlook_auto
                 _send_via_outlook_auto('a@example.com', 'S', '<p>B</p>')
             mock_gc.assert_called_once()
+
+    def test_dismiss_popup_called_before_keyboard_fallbacks(self, app):
+        """_dismiss_outlook_security_popup is tried before keyboard fallbacks."""
+        with app.app_context():
+            mock_win32com, mock_outlook, mock_mail = self._make_win32_mocks()
+            modules = {
+                'win32com': mock_win32com,
+                'win32com.client': mock_win32com.client,
+                'win32api': MagicMock(),
+                'win32con': MagicMock(),
+            }
+            with patch.dict('sys.modules', modules), \
+                 patch('app.services.email_service._dismiss_outlook_security_popup', return_value=True) as mock_dismiss:
+                from app.services.email_service import _send_via_outlook_auto
+                result = _send_via_outlook_auto('a@example.com', 'S', '<p>B</p>')
+            assert result is True
+            mock_dismiss.assert_called_once()
+
+
+class TestDismissOutlookSecurityPopup:
+    """Tests for the win32gui-based popup dismissal helper."""
+
+    def test_returns_false_when_win32gui_unavailable(self, app):
+        """_dismiss_outlook_security_popup returns False when win32gui is not installed."""
+        with app.app_context():
+            # On non-Windows environments win32gui is not installed; importing it
+            # raises ImportError, which the function catches and returns False.
+            from app.services.email_service import _dismiss_outlook_security_popup
+            result = _dismiss_outlook_security_popup()
+            assert result is False
+
+    def test_clicks_permitir_button_when_found(self, app):
+        """_dismiss_outlook_security_popup clicks the 'Permitir' button and returns True."""
+        with app.app_context():
+            mock_win32gui = MagicMock()
+            mock_win32con = MagicMock()
+            mock_win32con.BM_CLICK = 0xF5
+
+            # Simulate one visible window titled "Microsoft Outlook"
+            mock_win32gui.IsWindowVisible.return_value = True
+            mock_win32gui.GetWindowText.return_value = 'Microsoft Outlook'
+
+            # Capture the child-enumeration callback so we can invoke it
+            child_callbacks: list = []
+
+            def capture_enum_child(hwnd, callback, extra):
+                child_callbacks.append(callback)
+
+            mock_win32gui.EnumChildWindows.side_effect = capture_enum_child
+
+            def invoke_enum_windows(callback, extra):
+                callback(1001, extra)  # call with a fake hwnd
+                # Now trigger child enumeration with a fake "Permitir" button
+                if child_callbacks:
+                    mock_win32gui.GetClassName.return_value = 'Button'
+                    mock_win32gui.GetWindowText.return_value = 'Permitir'
+                    child_callbacks[0](2001, None)  # fake child hwnd
+
+            mock_win32gui.EnumWindows.side_effect = invoke_enum_windows
+
+            modules = {'win32gui': mock_win32gui, 'win32con': mock_win32con}
+            with patch.dict('sys.modules', modules):
+                from app.services.email_service import _dismiss_outlook_security_popup
+                result = _dismiss_outlook_security_popup()
+
+            assert result is True
+            mock_win32gui.SendMessage.assert_called_once_with(2001, mock_win32con.BM_CLICK, 0, 0)
+
+    def test_returns_false_when_no_outlook_window_found(self, app):
+        """_dismiss_outlook_security_popup returns False when no matching window exists."""
+        with app.app_context():
+            mock_win32gui = MagicMock()
+            mock_win32con = MagicMock()
+
+            mock_win32gui.IsWindowVisible.return_value = True
+            mock_win32gui.GetWindowText.return_value = 'Some Other App'
+            mock_win32gui.EnumWindows.side_effect = lambda cb, extra: cb(1001, extra)
+
+            modules = {'win32gui': mock_win32gui, 'win32con': mock_win32con}
+            with patch.dict('sys.modules', modules):
+                from app.services.email_service import _dismiss_outlook_security_popup
+                result = _dismiss_outlook_security_popup()
+
+            assert result is False
+            mock_win32gui.EnumChildWindows.assert_not_called()
 
 
 class TestSendViaSmtp:
