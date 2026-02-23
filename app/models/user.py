@@ -1,5 +1,5 @@
 """User model."""
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -20,6 +20,15 @@ class User(UserMixin, db.Model):
     is_active: bool = db.Column(db.Boolean, default=True)
     created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Extended profile fields
+    phone: Optional[str] = db.Column(db.String(20))
+    job_title: Optional[str] = db.Column(db.String(128))
+    company: Optional[str] = db.Column(db.String(128))
+    supervisor: Optional[str] = db.Column(db.String(128))
+    birth_date: Optional[date] = db.Column(db.Date)
+    appointment_start_date: Optional[date] = db.Column(db.Date)
+    measurement_criterion: Optional[str] = db.Column(db.String(64))
 
     # Relationships
     projects = db.relationship('Project', backref='owner', lazy='dynamic')

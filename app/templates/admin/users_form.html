@@ -1,0 +1,199 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ "Editar" if action == "edit" else "Cadastrar" }} Usuário - Admin{% endblock %}
+{% block page_title %}{{ "Editar Usuário" if action == "edit" else "Cadastrar Novo Usuário" }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <form method="POST" class="space-y-5">
+
+            <!-- Row 1: Nome + Email -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Nome <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" name="full_name"
+                           value="{{ user.full_name if user else "" }}"
+                           placeholder="Nome completo"
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Email <span class="text-red-500">*</span>
+                    </label>
+                    <input type="email" name="email"
+                           value="{{ user.email if user else "" }}"
+                           placeholder="email@exemplo.com"
+                           required
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+            </div>
+
+            <!-- Row 2: Chave + Senha -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Chave (username) <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" name="username"
+                           value="{{ user.username if user else "" }}"
+                           placeholder="nome_usuario"
+                           required
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Senha {% if not user %}<span class="text-red-500">*</span>{% else %}<span class="text-gray-400 text-xs">(deixe em branco para manter)</span>{% endif %}
+                    </label>
+                    <div class="relative">
+                        <input type="password" name="password" id="password-input"
+                               placeholder="{{ "Nova senha (opcional)" if user else "Senha" }}"
+                               {% if not user %}required{% endif %}
+                               class="w-full border border-gray-300 rounded-lg px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <button type="button" onclick="togglePassword()"
+                                class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600">
+                            <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            <svg id="eye-off-icon" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 3: Tipo + Status -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+                    <select name="role"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+                        <option value="engineer" {{ "selected" if (user and user.role == "engineer") or not user else "" }}>Usuário (Engenheiro)</option>
+                        <option value="manager" {{ "selected" if user and user.role == "manager" else "" }}>Manager</option>
+                        <option value="admin" {{ "selected" if user and user.role == "admin" else "" }}>Admin</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select name="status"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+                        <option value="active" {{ "selected" if (not user) or (user and user.is_active) else "" }}>Ativo</option>
+                        <option value="inactive" {{ "selected" if user and not user.is_active else "" }}>Inativo</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Row 4: Telefone + Função -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+                    <input type="tel" name="phone" id="phone-input"
+                           value="{{ user.phone if user else "" }}"
+                           placeholder="(XX) XXXXX-XXXX"
+                           maxlength="15"
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Função</label>
+                    <input type="text" name="job_title"
+                           value="{{ user.job_title if user else "" }}"
+                           placeholder="Ex: Engenheiro Civil"
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+            </div>
+
+            <!-- Row 5: Empresa + Supervisão -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Empresa</label>
+                    <input type="text" name="company"
+                           value="{{ user.company if user else "" }}"
+                           placeholder="Nome da empresa"
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Supervisão</label>
+                    <input type="text" name="supervisor"
+                           value="{{ user.supervisor if user else "" }}"
+                           placeholder="Nome do supervisor"
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+            </div>
+
+            <!-- Row 6: Data Nascimento + Data Início Apontamento -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Data Nascimento</label>
+                    <input type="date" name="birth_date"
+                           value="{{ user.birth_date.strftime("%Y-%m-%d") if user and user.birth_date else "" }}"
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Data Início Apontamento</label>
+                    <input type="date" name="appointment_start_date"
+                           value="{{ user.appointment_start_date.strftime("%Y-%m-%d") if user and user.appointment_start_date else "" }}"
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+            </div>
+
+            <!-- Row 7: Critério Medição -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Critério Medição</label>
+                    <select name="measurement_criterion"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+                        <option value="">Selecione...</option>
+                        <option value="hours" {{ "selected" if user and user.measurement_criterion == "hours" else "" }}>Horas</option>
+                        <option value="tasks" {{ "selected" if user and user.measurement_criterion == "tasks" else "" }}>Tarefas</option>
+                        <option value="projects" {{ "selected" if user and user.measurement_criterion == "projects" else "" }}>Projetos</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="flex items-center gap-3 pt-2 border-t border-gray-100">
+                <button type="submit"
+                        class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+                    Salvar
+                </button>
+                <a href="{{ url_for("admin.users_list") }}"
+                   class="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors">
+                    Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function togglePassword() {
+    var input = document.getElementById("password-input");
+    var eyeIcon = document.getElementById("eye-icon");
+    var eyeOffIcon = document.getElementById("eye-off-icon");
+    if (input.type === "password") {
+        input.type = "text";
+        eyeIcon.classList.add("hidden");
+        eyeOffIcon.classList.remove("hidden");
+    } else {
+        input.type = "password";
+        eyeIcon.classList.remove("hidden");
+        eyeOffIcon.classList.add("hidden");
+    }
+}
+
+// Phone mask
+document.getElementById("phone-input").addEventListener("input", function (e) {
+    var v = e.target.value.replace(/\D/g, "");
+    if (v.length > 11) v = v.slice(0, 11);
+    var formatted = "";
+    if (v.length > 0) formatted = "(" + v.slice(0, 2);
+    if (v.length > 2) formatted += ") " + v.slice(2, 7);
+    if (v.length > 7) formatted += "-" + v.slice(7, 11);
+    e.target.value = formatted;
+});
+</script>
+{% endblock %}
