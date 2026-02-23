@@ -46,3 +46,9 @@ USER_ROLES = [
     'Administrador',
     'Usuário',
 ]
+
+PROJECT_STATUS = ['planning', 'in_progress', 'on_hold', 'completed', 'cancelled']
+
+PROJECT_PRIORITY = ['low', 'medium', 'high', 'critical']
+
+PROJECT_CATEGORIES = ['Infrastructure', 'Software', 'Hardware', 'Consulting', 'Other']
