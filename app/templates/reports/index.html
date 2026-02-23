@@ -1,13 +1,13 @@
 {% extends "base.html" %}
-{% block title %}Reports{% endblock %}
+{% block title %}Relatórios{% endblock %}
 {% block content %}
-<h1>Reports</h1>
-<a href="{{ url_for('reports.create', project_id=project_id) }}">New Report</a>
+<h1>Relatórios</h1>
+<a href="{{ url_for('reports.create', project_id=project_id) }}">Novo Relatório</a>
 <ul>
 {% for report in reports %}
     <li><a href="{{ url_for('reports.detail', report_id=report.id) }}">{{ report.title }}</a> - {{ report.report_type }}</li>
 {% else %}
-    <li>No reports yet.</li>
+    <li>Nenhum relatório ainda.</li>
 {% endfor %}
 </ul>
 {% endblock %}

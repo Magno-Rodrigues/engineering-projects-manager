@@ -1,17 +1,17 @@
 {% extends "base.html" %}
 {% block title %}New Report{% endblock %}
 {% block content %}
-<h1>New Report</h1>
+<h1>Novo Relatório</h1>
 <form method="POST">
-    <label>Title: <input type="text" name="title" required></label>
-    <label>Type:
+    <label>Título: <input type="text" name="title" required></label>
+    <label>Tipo:
         <select name="report_type">
-            <option value="progress">Progress</option>
-            <option value="technical">Technical</option>
+            <option value="progress">Progresso</option>
+            <option value="technical">Técnico</option>
             <option value="final">Final</option>
         </select>
     </label>
-    <label>Content: <textarea name="content" rows="10"></textarea></label>
-    <button type="submit">Create</button>
+    <label>Conteúdo: <textarea name="content" rows="10"></textarea></label>
+    <button type="submit">Criar</button>
 </form>
 {% endblock %}

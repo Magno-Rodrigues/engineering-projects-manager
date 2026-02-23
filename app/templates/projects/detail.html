@@ -4,10 +4,10 @@
 <h1>{{ project.name }}</h1>
 <p>{{ project.description }}</p>
 <p>Status: {{ project.status }}</p>
-<a href="{{ url_for('projects.edit', project_id=project.id) }}">Edit</a>
-<a href="{{ url_for('tasks.index', project_id=project.id) }}">Tasks</a>
-<a href="{{ url_for('reports.index', project_id=project.id) }}">Reports</a>
+<a href="{{ url_for('projects.edit', project_id=project.id) }}">Editar</a>
+<a href="{{ url_for('tasks.index', project_id=project.id) }}">Tarefas</a>
+<a href="{{ url_for('reports.index', project_id=project.id) }}">Relatórios</a>
 <form method="POST" action="{{ url_for('projects.delete', project_id=project.id) }}">
-    <button type="submit" onclick="return confirm('Delete this project?')">Delete</button>
+    <button type="submit" onclick="return confirm('Excluir este projeto?')">Excluir</button>
 </form>
 {% endblock %}

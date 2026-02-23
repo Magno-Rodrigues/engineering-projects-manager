@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% block title %}Dashboard - Engineering Projects Manager{% endblock %}
+{% block title %}Dashboard - Gerenciador de Projetos de Engenharia{% endblock %}
 {% block content %}
 <h1>Dashboard</h1>
-<p>Welcome, {{ current_user.username }}!</p>
-<a href="{{ url_for('projects.index') }}">View Projects</a>
+<p>Bem-vindo, {{ current_user.username }}!</p>
+<a href="{{ url_for('projects.index') }}">Ver Projetos</a>
 {% endblock %}
