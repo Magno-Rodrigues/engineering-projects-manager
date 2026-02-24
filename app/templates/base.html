@@ -45,6 +45,7 @@
                 <div class="flex items-center gap-4">
                     {% if current_user.is_authenticated %}
                         <a href="{{ url_for('projects.index') }}" class="text-gray-600 hover:text-blue-600 font-medium text-sm transition-colors">Projetos</a>
+                        <a href="{{ url_for('timeentry.index') }}" class="text-gray-600 hover:text-blue-600 font-medium text-sm transition-colors">Apontamentos</a>
                         {% if current_user.role == 'admin' %}
                             <a href="{{ url_for('admin.dashboard') }}" class="text-gray-600 hover:text-blue-600 font-medium text-sm transition-colors">Admin</a>
                         {% endif %}
