@@ -25,6 +25,10 @@ def _parse_date(date_str):
 @login_required
 def index(project_id: int):
     """List all tasks for a project."""
+    project = Project.query.get_or_404(project_id)
+    if not (current_user.role == 'admin' or project.owner_id == current_user.id):
+        flash('Access denied.', 'error')
+        return redirect(url_for('projects.index'))
     tasks = Task.query.filter_by(project_id=project_id).all()
     return render_template('tasks/index.html', tasks=tasks, project_id=project_id)
 
@@ -33,6 +37,10 @@ def index(project_id: int):
 @login_required
 def create(project_id: int):
     """Create a new task for a project."""
+    project = Project.query.get_or_404(project_id)
+    if not (current_user.role == 'admin' or project.owner_id == current_user.id):
+        flash('Access denied.', 'error')
+        return redirect(url_for('projects.index'))
     if request.method == 'POST':
         effort_str = request.form.get('estimated_effort')
         progress_str = request.form.get('progress', '0')
@@ -74,7 +82,7 @@ def edit(task_id: int):
     """Edit an existing task."""
     task = Task.query.get_or_404(task_id)
     project = Project.query.get_or_404(task.project_id)
-    if project.owner_id != current_user.id and task.assignee_id != current_user.id:
+    if not (current_user.role == 'admin' or project.owner_id == current_user.id or task.assignee_id == current_user.id):
         abort(403)
     if request.method == 'POST':
         effort_str = request.form.get('estimated_effort')
@@ -114,7 +122,7 @@ def delete(task_id: int):
     """Delete a task."""
     task = Task.query.get_or_404(task_id)
     project = Project.query.get_or_404(task.project_id)
-    if project.owner_id != current_user.id:
+    if not (current_user.role == 'admin' or project.owner_id == current_user.id):
         abort(403)
     project_id = task.project_id
     db.session.delete(task)
