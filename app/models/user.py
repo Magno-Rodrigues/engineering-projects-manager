@@ -22,6 +22,15 @@ class User(UserMixin, db.Model):
     updated_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Extended profile fields
+<<<<<<< HEAD
+    phone: Optional[str] = db.Column(db.String(20))
+    job_title: Optional[str] = db.Column(db.String(128))
+    company: Optional[str] = db.Column(db.String(128))
+    supervisor: Optional[str] = db.Column(db.String(128))
+    birth_date: Optional[date] = db.Column(db.Date)
+    appointment_start_date: Optional[date] = db.Column(db.Date)
+    measurement_criterion: Optional[str] = db.Column(db.String(64))
+=======
     key: str = db.Column(db.String(64), unique=True, nullable=True, index=True)
     phone: str = db.Column(db.String(20), nullable=True)
     supervision: str = db.Column(db.String(64), nullable=True)
@@ -38,6 +47,7 @@ class User(UserMixin, db.Model):
     first_login: bool = db.Column(db.Boolean, default=True, nullable=False)
     password_reset_required: bool = db.Column(db.Boolean, default=False, nullable=False)
     last_login: datetime = db.Column(db.DateTime, nullable=True)
+>>>>>>> 339a9e0aa632b01f6eb535e14e2417c96de2eec1
 
     # Relationships
     projects = db.relationship('Project', backref='owner', lazy='dynamic')
