@@ -2,7 +2,7 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from flask_login import LoginManager
+from flask_login import LoginManager, current_user
 from flask_mail import Mail
 from config import config
 
@@ -39,6 +39,19 @@ def create_app(config_name: str = 'default') -> Flask:
                 init_default_modules()
             except Exception as e:
                 app.logger.warning(f"Could not initialize default modules: {str(e)}")
+
+    # Context processor: inject user_can() helper into all templates
+    @app.context_processor
+    def inject_user_can():
+        def user_can(module: str, action: str) -> bool:
+            """Return True if the current user can perform action on module."""
+            if not current_user.is_authenticated:
+                return False
+            if current_user.role == 'admin':
+                return True
+            from app.services.permission_service import PermissionService
+            return PermissionService.can_perform_action(current_user.id, module, action)
+        return dict(user_can=user_can)
 
     # Register blueprints
     from app.routes.main import main_bp
