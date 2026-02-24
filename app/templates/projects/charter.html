@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block title %}TAP — {{ project.name }} — Engineering Projects Manager{% endblock %}
+{% block content %}
+<!-- Breadcrumb -->
+<nav class="flex items-center gap-2 text-sm text-gray-500 mb-6">
+    <a href="{{ url_for('projects.index') }}" class="hover:text-blue-600 transition-colors">Projetos</a>
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+    </svg>
+    <a href="{{ url_for('projects.detail', project_id=project.id) }}" class="hover:text-blue-600 transition-colors">{{ project.name }}</a>
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+    </svg>
+    <span class="text-gray-800 font-medium">TAP</span>
+</nav>
+
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Termo de Abertura do Projeto (TAP)</h1>
+    {% if charter and charter.status == 'draft' %}
+    <form method="POST" action="{{ url_for('pmbok.approve_charter', project_id=project.id, charter_id=charter.id) }}" class="flex gap-2">
+        <input type="hidden" name="action" value="approve">
+        <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg text-sm transition-colors">
+            Aprovar TAP
+        </button>
+        <input type="hidden" name="action" value="reject">
+        <button type="submit" formaction="{{ url_for('pmbok.approve_charter', project_id=project.id, charter_id=charter.id) }}" onclick="this.form.elements['action'].value='reject'" class="inline-flex items-center gap-1.5 px-3 py-2 border border-red-200 hover:border-red-400 text-red-500 hover:text-red-700 font-medium rounded-lg text-sm transition-colors">
+            Rejeitar
+        </button>
+    </form>
+    {% endif %}
+</div>
+
+{% if charter %}
+<!-- Charter display -->
+<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Status</h2>
+        {% if charter.status == 'draft' %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">Rascunho</span>
+        {% elif charter.status == 'approved' %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">Aprovado</span>
+        {% elif charter.status == 'rejected' %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Rejeitado</span>
+        {% endif %}
+    </div>
+    <dl class="space-y-4">
+        {% if charter.business_case %}
+        <div>
+            <dt class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Caso de Negócio</dt>
+            <dd class="text-sm text-gray-800 whitespace-pre-line">{{ charter.business_case }}</dd>
+        </div>
+        {% endif %}
+        {% if charter.project_purpose %}
+        <div>
+            <dt class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Objetivo do Projeto</dt>
+            <dd class="text-sm text-gray-800 whitespace-pre-line">{{ charter.project_purpose }}</dd>
+        </div>
+        {% endif %}
+        {% if charter.success_criteria %}
+        <div>
+            <dt class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Critérios de Sucesso</dt>
+            <dd class="text-sm text-gray-800 whitespace-pre-line">{{ charter.success_criteria }}</dd>
+        </div>
+        {% endif %}
+        {% if charter.high_level_requirements %}
+        <div>
+            <dt class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Requisitos de Alto Nível</dt>
+            <dd class="text-sm text-gray-800 whitespace-pre-line">{{ charter.high_level_requirements }}</dd>
+        </div>
+        {% endif %}
+        {% if charter.high_level_risks %}
+        <div>
+            <dt class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Riscos de Alto Nível</dt>
+            <dd class="text-sm text-gray-800 whitespace-pre-line">{{ charter.high_level_risks }}</dd>
+        </div>
+        {% endif %}
+        {% if charter.assumptions %}
+        <div>
+            <dt class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Premissas</dt>
+            <dd class="text-sm text-gray-800 whitespace-pre-line">{{ charter.assumptions }}</dd>
+        </div>
+        {% endif %}
+        {% if charter.constraints %}
+        <div>
+            <dt class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Restrições</dt>
+            <dd class="text-sm text-gray-800 whitespace-pre-line">{{ charter.constraints }}</dd>
+        </div>
+        {% endif %}
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-gray-100">
+            {% if charter.approved_budget is not none %}
+            <div>
+                <dt class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Orçamento Aprovado</dt>
+                <dd class="text-sm text-gray-800">R$ {{ "%.2f"|format(charter.approved_budget|float) }}</dd>
+            </div>
+            {% endif %}
+            {% if charter.scheduled_start_date %}
+            <div>
+                <dt class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Início Previsto</dt>
+                <dd class="text-sm text-gray-800">{{ charter.scheduled_start_date.strftime('%d/%m/%Y') }}</dd>
+            </div>
+            {% endif %}
+            {% if charter.scheduled_end_date %}
+            <div>
+                <dt class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Término Previsto</dt>
+                <dd class="text-sm text-gray-800">{{ charter.scheduled_end_date.strftime('%d/%m/%Y') }}</dd>
+            </div>
+            {% endif %}
+        </div>
+    </dl>
+</div>
+{% endif %}
+
+{% if not charter or charter.status == 'rejected' %}
+<!-- Create/Update charter form -->
+<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+    <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">
+        {{ 'Criar novo TAP' if not charter else 'Criar revisão do TAP' }}
+    </h2>
+    <form method="POST" action="{{ url_for('pmbok.charter', project_id=project.id) }}" class="space-y-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Caso de Negócio</label>
+            <textarea name="business_case" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Descreva o caso de negócio...">{{ charter.business_case if charter else '' }}</textarea>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Objetivo do Projeto</label>
+            <textarea name="project_purpose" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Descreva o objetivo do projeto...">{{ charter.project_purpose if charter else '' }}</textarea>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Critérios de Sucesso</label>
+            <textarea name="success_criteria" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">{{ charter.success_criteria if charter else '' }}</textarea>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Requisitos de Alto Nível</label>
+            <textarea name="high_level_requirements" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">{{ charter.high_level_requirements if charter else '' }}</textarea>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Riscos de Alto Nível</label>
+            <textarea name="high_level_risks" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">{{ charter.high_level_risks if charter else '' }}</textarea>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Premissas</label>
+                <textarea name="assumptions" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">{{ charter.assumptions if charter else '' }}</textarea>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Restrições</label>
+                <textarea name="constraints" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">{{ charter.constraints if charter else '' }}</textarea>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Orçamento Aprovado (R$)</label>
+                <input type="number" name="approved_budget" step="0.01" min="0" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value="{{ charter.approved_budget if charter and charter.approved_budget is not none else '' }}">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Início Previsto</label>
+                <input type="date" name="scheduled_start_date" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value="{{ charter.scheduled_start_date.strftime('%Y-%m-%d') if charter and charter.scheduled_start_date else '' }}">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Término Previsto</label>
+                <input type="date" name="scheduled_end_date" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value="{{ charter.scheduled_end_date.strftime('%Y-%m-%d') if charter and charter.scheduled_end_date else '' }}">
+            </div>
+        </div>
+        <div class="flex justify-end pt-2">
+            <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm transition-colors">
+                Salvar TAP
+            </button>
+        </div>
+    </form>
+</div>
+{% endif %}
+{% endblock %}
