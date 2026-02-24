@@ -177,3 +177,81 @@ class TestAdminPermissionsRoutes:
         with app.app_context():
             perm = PermissionService.get_user_permission(target_id, mod_name)
             assert perm is None
+
+
+class TestDisabledButtonsUI:
+    """Tests that action buttons are disabled/enabled based on user permissions."""
+
+    @pytest.fixture(autouse=True)
+    def reset_login_state(self):
+        if hasattr(g, '_login_user'):
+            del g._login_user
+        yield
+        if hasattr(g, '_login_user'):
+            del g._login_user
+
+    def test_dashboard_shows_disabled_button_without_create_permission(self, client, app, db):
+        """User without projects.create sees disabled card on dashboard."""
+        with app.app_context():
+            _create_user(db, 'btn_user1', 'btn_user1@example.com')
+        client.post('/login', data={'username': 'btn_user1', 'password': 'userpass'})
+        response = client.get('/dashboard')
+        assert response.status_code == 200
+        html = response.data.decode()
+        # Disabled card should be present (no href to projects.create)
+        assert 'cursor-not-allowed' in html
+        assert 'Sem permissão para criar projetos' in html
+
+    def test_dashboard_shows_enabled_button_for_admin(self, client, app, db):
+        """Admin user sees enabled Novo Projeto link on dashboard."""
+        with app.app_context():
+            _create_admin(db, 'btn_admin1', 'btn_admin1@example.com')
+        client.post('/login', data={'username': 'btn_admin1', 'password': 'adminpass'})
+        response = client.get('/dashboard')
+        assert response.status_code == 200
+        html = response.data.decode()
+        assert '/projects/new' in html
+        assert 'cursor-not-allowed' not in html
+
+    def test_dashboard_shows_enabled_button_with_create_permission(self, client, app, db):
+        """User with projects.create permission sees enabled link on dashboard."""
+        with app.app_context():
+            user = _create_user(db, 'btn_user2', 'btn_user2@example.com')
+            PermissionService.grant_module_permission(user.id, 'projects', can_create=True, can_read=True)
+        client.post('/login', data={'username': 'btn_user2', 'password': 'userpass'})
+        response = client.get('/dashboard')
+        assert response.status_code == 200
+        html = response.data.decode()
+        assert '/projects/new' in html
+
+    def test_projects_index_shows_disabled_button_without_create_permission(self, client, app, db):
+        """User with only projects.read sees disabled Novo Projeto button on index."""
+        with app.app_context():
+            user = _create_user(db, 'btn_user3', 'btn_user3@example.com')
+            PermissionService.grant_module_permission(user.id, 'projects', can_read=True)
+        client.post('/login', data={'username': 'btn_user3', 'password': 'userpass'})
+        response = client.get('/projects/')
+        assert response.status_code == 200
+        html = response.data.decode()
+        assert 'cursor-not-allowed' in html
+
+    def test_projects_index_shows_enabled_button_with_create_permission(self, client, app, db):
+        """User with projects.create permission sees enabled button on projects index."""
+        with app.app_context():
+            user = _create_user(db, 'btn_user4', 'btn_user4@example.com')
+            PermissionService.grant_module_permission(user.id, 'projects', can_read=True, can_create=True)
+        client.post('/login', data={'username': 'btn_user4', 'password': 'userpass'})
+        response = client.get('/projects/')
+        assert response.status_code == 200
+        html = response.data.decode()
+        assert '/projects/new' in html
+        assert 'cursor-not-allowed' not in html
+
+    def test_backend_still_blocks_create_without_permission(self, client, app, db):
+        """Backend still returns 403 if user without projects.create tries to access create URL."""
+        with app.app_context():
+            user = _create_user(db, 'btn_user5', 'btn_user5@example.com')
+            PermissionService.grant_module_permission(user.id, 'projects', can_read=True)
+        client.post('/login', data={'username': 'btn_user5', 'password': 'userpass'})
+        response = client.get('/projects/new')
+        assert response.status_code == 403
