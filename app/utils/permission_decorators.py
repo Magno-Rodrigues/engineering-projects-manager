@@ -60,3 +60,36 @@ def action_required(module_name: str, action: str) -> Callable:
             return f(*args, **kwargs)
         return decorated_function
     return decorator
+
+
+def admin_or_owner_required(get_object_fn: Callable, id_kwarg: str = 'project_id') -> Callable:
+    """Decorator to restrict access to admins or resource owners.
+
+    Admins have full access. Regular users can only access resources they own.
+
+    Args:
+        get_object_fn: Callable that accepts an ID and returns the object.
+                       The object must have an owner_id attribute.
+        id_kwarg: Name of the route keyword argument containing the object ID.
+
+    Example:
+        @admin_or_owner_required(ProjectService.get_project)
+        def detail(project_id: int):
+            ...
+    """
+    def decorator(f: Callable) -> Callable:
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if not current_user.is_authenticated:
+                abort(403)
+            if current_user.role == 'admin':
+                return f(*args, **kwargs)
+            obj_id = kwargs.get(id_kwarg)
+            obj = get_object_fn(obj_id)
+            if not obj:
+                abort(404)
+            if obj.owner_id != current_user.id:
+                abort(403)
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
