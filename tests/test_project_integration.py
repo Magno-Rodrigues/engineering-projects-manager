@@ -1,33 +1,35 @@
-import unittest
-from your_project import ProjectCharter, ProjectClosure  # Update the import according to your project structure
+"""Tests for ProjectCharter and ProjectClosure model integration."""
+from app.models.project_charter import ProjectCharter
+from app.models.project_closure import ProjectClosure
 
-class TestProjectCharter(unittest.TestCase):
-    def setUp(self):
-        # Set up code for ProjectCharter tests
-        self.project_charter = ProjectCharter()
 
-    def test_create_project_charter(self):
-        # Test case for creating a project charter
-        self.assertIsNotNone(self.project_charter)
+class TestProjectCharter:
+    """Tests for ProjectCharter model."""
 
-    def test_project_charter_attributes(self):
-        # Test the attributes of the project charter
-        self.project_charter.title = "Test Project"
-        self.assertEqual(self.project_charter.title, "Test Project")
+    def test_create_project_charter(self, app, db):
+        """Test that a ProjectCharter instance can be created."""
+        with app.app_context():
+            charter = ProjectCharter(project_id=1, created_by=1)
+            assert charter is not None
 
-class TestProjectClosure(unittest.TestCase):
-    def setUp(self):
-        # Set up code for ProjectClosure tests
-        self.project_closure = ProjectClosure()
+    def test_project_charter_repr(self, app, db):
+        """Test the string representation of a project charter."""
+        with app.app_context():
+            charter = ProjectCharter(project_id=1, created_by=1)
+            assert 'ProjectCharter' in repr(charter)
 
-    def test_create_project_closure(self):
-        # Test case for creating a project closure
-        self.assertIsNotNone(self.project_closure)
 
-    def test_closure_process(self):
-        # Test the closure process of the project
-        self.project_closure.status = "Closed"
-        self.assertEqual(self.project_closure.status, "Closed")
+class TestProjectClosure:
+    """Tests for ProjectClosure model."""
 
-if __name__ == '__main__':
-    unittest.main()
+    def test_create_project_closure(self, app, db):
+        """Test that a ProjectClosure instance can be created."""
+        with app.app_context():
+            closure = ProjectClosure(project_id=1, created_by=1)
+            assert closure is not None
+
+    def test_project_closure_repr(self, app, db):
+        """Test the string representation of a project closure."""
+        with app.app_context():
+            closure = ProjectClosure(project_id=1, created_by=1)
+            assert 'ProjectClosure' in repr(closure)
