@@ -34,6 +34,16 @@
                     {% elif project.status == 'cancelled' %}
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Cancelado</span>
                     {% endif %}
+                    <!-- Priority badge -->
+                    {% if project.priority == 'critical' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Crítico</span>
+                    {% elif project.priority == 'high' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">Alta</span>
+                    {% elif project.priority == 'medium' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">Média</span>
+                    {% elif project.priority == 'low' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Baixa</span>
+                    {% endif %}
                 </div>
                 {% if project.description %}
                     <p class="text-gray-500 mt-2 max-w-2xl">{{ project.description }}</p>
@@ -63,6 +73,80 @@
         </div>
     </div>
 </div>
+
+<!-- Project details grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+    <!-- Info card -->
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+        <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">Informações</h2>
+        <dl class="space-y-3">
+            {% if project.category %}
+            <div class="flex justify-between text-sm">
+                <dt class="text-gray-500">Categoria</dt>
+                <dd class="font-medium text-gray-800">{{ project.category }}</dd>
+            </div>
+            {% endif %}
+            {% if project.client_name %}
+            <div class="flex justify-between text-sm">
+                <dt class="text-gray-500">Cliente</dt>
+                <dd class="font-medium text-gray-800">{{ project.client_name }}</dd>
+            </div>
+            {% endif %}
+            {% if project.location %}
+            <div class="flex justify-between text-sm">
+                <dt class="text-gray-500">Localização</dt>
+                <dd class="font-medium text-gray-800">{{ project.location }}</dd>
+            </div>
+            {% endif %}
+            {% if project.start_date %}
+            <div class="flex justify-between text-sm">
+                <dt class="text-gray-500">Início</dt>
+                <dd class="font-medium text-gray-800">{{ project.start_date.strftime('%d/%m/%Y') }}</dd>
+            </div>
+            {% endif %}
+            {% if project.end_date %}
+            <div class="flex justify-between text-sm">
+                <dt class="text-gray-500">Término</dt>
+                <dd class="font-medium text-gray-800">{{ project.end_date.strftime('%d/%m/%Y') }}</dd>
+            </div>
+            {% endif %}
+        </dl>
+    </div>
+
+    <!-- Budget summary card -->
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+        <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">Resumo Financeiro</h2>
+        {% if project.budget is not none %}
+        <dl class="space-y-3">
+            <div class="flex justify-between text-sm">
+                <dt class="text-gray-500">Orçamento</dt>
+                <dd class="font-medium text-gray-800">R$ {{ "%.2f"|format(project.budget|float) }}</dd>
+            </div>
+            <div class="flex justify-between text-sm">
+                <dt class="text-gray-500">Custo Real</dt>
+                <dd class="font-medium text-gray-800">R$ {{ "%.2f"|format((project.actual_cost or 0)|float) }}</dd>
+            </div>
+            <div class="border-t border-gray-100 pt-3 flex justify-between text-sm">
+                <dt class="text-gray-500">Saldo Restante</dt>
+                {% set remaining = project.remaining_budget %}
+                <dd class="font-semibold {% if remaining < 0 %}text-red-600{% else %}text-emerald-600{% endif %}">
+                    R$ {{ "%.2f"|format(remaining|float) }}
+                </dd>
+            </div>
+        </dl>
+        {% else %}
+        <p class="text-sm text-gray-400 italic">Orçamento não definido</p>
+        {% endif %}
+    </div>
+</div>
+
+{% if project.notes %}
+<!-- Notes card -->
+<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
+    <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">Notas</h2>
+    <p class="text-sm text-gray-600 whitespace-pre-line">{{ project.notes }}</p>
+</div>
+{% endif %}
 
 <!-- Navigation cards -->
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">

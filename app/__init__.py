@@ -31,6 +31,15 @@ def create_app(config_name: str = 'default') -> Flask:
     login_manager.init_app(app)
     mail.init_app(app)
 
+    # Initialize default modules (skip during testing)
+    if config_name != 'testing':
+        with app.app_context():
+            try:
+                from app.utils.init_modules import init_default_modules
+                init_default_modules()
+            except Exception as e:
+                app.logger.warning(f"Could not initialize default modules: {str(e)}")
+
     # Register blueprints
     from app.routes.main import main_bp
     from app.routes.auth import auth_bp
@@ -39,6 +48,8 @@ def create_app(config_name: str = 'default') -> Flask:
     from app.routes.reports import reports_bp
     from app.routes.api import api_bp
     from app.routes.admin import admin_bp
+    from app.routes.admin_permissions import admin_permissions_bp
+    from app.routes.integration import integration_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
@@ -47,5 +58,7 @@ def create_app(config_name: str = 'default') -> Flask:
     app.register_blueprint(reports_bp)
     app.register_blueprint(api_bp, url_prefix='/api')
     app.register_blueprint(admin_bp)
+    app.register_blueprint(admin_permissions_bp)
+    app.register_blueprint(integration_bp)
 
     return app

@@ -9,4 +9,8 @@ pytest==7.4.0
 pytest-cov==4.1.0
 Werkzeug==2.3.7
 email-validator==2.1.0
+<<<<<<< HEAD
 pywin32==308; sys_platform == "win32"
+=======
+pywin32>=306; sys_platform == 'win32'
+>>>>>>> e816a38139425aa3b7bee095e9f940fd65744f7d

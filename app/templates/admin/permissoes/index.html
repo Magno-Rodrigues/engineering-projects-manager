@@ -1,0 +1,70 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Permissões de Módulo – Administração{% endblock %}
+{% block page_title %}Permissões de Módulo{% endblock %}
+
+{% block content %}
+<div class="space-y-4">
+    <div class="flex items-center justify-between">
+        <p class="text-sm text-gray-500">Gerencie quais módulos cada usuário pode acessar.</p>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 border-b border-gray-100">
+                <tr>
+                    <th class="px-6 py-3 text-left font-medium text-gray-600">Usuário</th>
+                    {% for module in modules %}
+                    <th class="px-4 py-3 text-center font-medium text-gray-600">{{ module.display_name }}</th>
+                    {% endfor %}
+                    <th class="px-6 py-3 text-center font-medium text-gray-600">Ações</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for user in users %}
+                {% set user_perms = {} %}
+                {% for p in user.module_permissions %}
+                    {% if user_perms.update({p.module_name: p}) %}{% endif %}
+                {% endfor %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4">
+                        <p class="font-medium text-gray-800">{{ user.full_name or user.username }}</p>
+                        <p class="text-xs text-gray-400">{{ user.username }}</p>
+                    </td>
+                    {% for module in modules %}
+                    {% set perm = user_perms.get(module.module_name) %}
+                    <td class="px-4 py-4 text-center">
+                        {% if perm and (perm.can_create or perm.can_read or perm.can_update or perm.can_delete) %}
+                            <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 text-green-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gray-100 text-gray-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </span>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                    <td class="px-6 py-4 text-center">
+                        <a href="{{ url_for('admin_permissions.permissoes_usuario', user_id=user.id) }}"
+                           class="text-blue-600 hover:text-blue-800 text-xs font-medium">
+                            Editar
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="{{ modules|length + 2 }}" class="px-6 py-8 text-center text-gray-400 text-sm">
+                        Nenhum usuário encontrado.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
