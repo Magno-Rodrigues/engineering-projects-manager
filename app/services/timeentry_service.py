@@ -210,7 +210,7 @@ class TimeEntryService:
             if entry.user_id != current_user_id:
                 return None, 'Você não tem permissão para editar este apontamento.'
             active_cycle = TimeEntryService.get_active_cycle()
-            if not active_cycle or entry.measurement_cycle_id != active_cycle.id:
+            if not active_cycle or not (active_cycle.start_date <= entry.work_date <= active_cycle.end_date):
                 return None, 'Apenas o administrador pode editar apontamentos de ciclos anteriores.'
 
         work_date = data.get('work_date', entry.work_date)
@@ -263,7 +263,7 @@ class TimeEntryService:
             if entry.user_id != current_user_id:
                 return False, 'Você não tem permissão para deletar este apontamento.'
             active_cycle = TimeEntryService.get_active_cycle()
-            if not active_cycle or entry.measurement_cycle_id != active_cycle.id:
+            if not active_cycle or not (active_cycle.start_date <= entry.work_date <= active_cycle.end_date):
                 return False, 'Apenas o administrador pode deletar apontamentos de ciclos anteriores.'
 
         db.session.delete(entry)
