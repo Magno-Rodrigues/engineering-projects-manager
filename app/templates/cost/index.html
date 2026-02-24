@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}Custo — {{ project.name }}{% endblock %}
+{% block content %}
+<nav class="flex items-center gap-2 text-sm text-gray-500 mb-6">
+    <a href="{{ url_for('projects.index') }}" class="hover:text-blue-600">Projetos</a>
+    <span>/</span>
+    <a href="{{ url_for('projects.detail', project_id=project.id) }}" class="hover:text-blue-600">{{ project.name }}</a>
+    <span>/</span>
+    <span class="text-gray-800 font-medium">Custo</span>
+</nav>
+
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Gestão de Custos</h1>
+    <div class="flex gap-2">
+        <a href="{{ url_for('cost.create_cost_variance', project_id=project.id) }}"
+            class="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 text-gray-600 hover:bg-gray-50 font-medium rounded-lg text-sm transition-colors">
+            + Variação EV
+        </a>
+        <a href="{{ url_for('cost.create_budget_line', project_id=project.id) }}"
+            class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm transition-colors">
+            + Linha de Orçamento
+        </a>
+    </div>
+</div>
+
+<!-- Cost Summary -->
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 text-center">
+        <div class="text-xl font-bold text-gray-900">R$ {{ "%.2f"|format(summary.total_planned_value) }}</div>
+        <div class="text-xs text-gray-500 mt-1">Valor Planejado (PV)</div>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 text-center">
+        <div class="text-xl font-bold text-blue-600">R$ {{ "%.2f"|format(summary.total_actual_cost) }}</div>
+        <div class="text-xs text-gray-500 mt-1">Custo Real (AC)</div>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 text-center">
+        {% set cv = summary.cost_variance %}
+        <div class="text-xl font-bold {% if cv >= 0 %}text-emerald-600{% else %}text-red-600{% endif %}">
+            R$ {{ "%.2f"|format(cv) }}
+        </div>
+        <div class="text-xs text-gray-500 mt-1">Variação de Custo (CV)</div>
+    </div>
+</div>
+
+<!-- Budget Lines -->
+<div class="mb-6">
+    <h2 class="text-lg font-semibold text-gray-800 mb-3">Linhas de Orçamento</h2>
+    {% if budget_lines %}
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                    <th class="text-left px-4 py-3 font-semibold text-gray-700">Título</th>
+                    <th class="text-left px-4 py-3 font-semibold text-gray-700">Categoria</th>
+                    <th class="text-right px-4 py-3 font-semibold text-gray-700">Valor Planejado</th>
+                    <th class="text-right px-4 py-3 font-semibold text-gray-700">Custo Real</th>
+                    <th class="text-left px-4 py-3 font-semibold text-gray-700">Ações</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for line in budget_lines %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 font-medium text-gray-900">{{ line.title }}</td>
+                    <td class="px-4 py-3 text-gray-500">{{ line.category or '—' }}</td>
+                    <td class="px-4 py-3 text-right text-gray-900">R$ {{ "%.2f"|format(line.planned_value|float) }}</td>
+                    <td class="px-4 py-3 text-right text-gray-600">R$ {{ "%.2f"|format((line.actual_cost or 0)|float) }}</td>
+                    <td class="px-4 py-3 flex items-center gap-2">
+                        <a href="{{ url_for('cost.edit_budget_line', project_id=project.id, line_id=line.id) }}"
+                            class="text-blue-600 hover:text-blue-800 text-xs font-medium">Editar</a>
+                        <form method="POST" action="{{ url_for('cost.delete_budget_line', project_id=project.id, line_id=line.id) }}"
+                            onsubmit="return confirm('Excluir esta linha?')">
+                            <button type="submit" class="text-red-500 hover:text-red-700 text-xs font-medium">Excluir</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 text-center">
+        <p class="text-gray-400 italic">Nenhuma linha de orçamento cadastrada.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- EV Metrics History -->
+{% if cost_variances %}
+<div class="mb-6">
+    <h2 class="text-lg font-semibold text-gray-800 mb-3">Histórico de Valor Agregado (EV)</h2>
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                    <th class="text-left px-4 py-3 font-semibold text-gray-700">Data</th>
+                    <th class="text-right px-4 py-3 font-semibold text-gray-700">PV</th>
+                    <th class="text-right px-4 py-3 font-semibold text-gray-700">EV</th>
+                    <th class="text-right px-4 py-3 font-semibold text-gray-700">AC</th>
+                    <th class="text-right px-4 py-3 font-semibold text-gray-700">CV</th>
+                    <th class="text-right px-4 py-3 font-semibold text-gray-700">SV</th>
+                    <th class="text-right px-4 py-3 font-semibold text-gray-700">CPI</th>
+                    <th class="text-right px-4 py-3 font-semibold text-gray-700">SPI</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for cv in cost_variances %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 text-gray-700">{{ cv.reference_date.strftime('%d/%m/%Y') }}</td>
+                    <td class="px-4 py-3 text-right text-gray-600">{{ "%.2f"|format(cv.planned_value|float) }}</td>
+                    <td class="px-4 py-3 text-right text-gray-600">{{ "%.2f"|format(cv.earned_value|float) }}</td>
+                    <td class="px-4 py-3 text-right text-gray-600">{{ "%.2f"|format(cv.actual_cost|float) }}</td>
+                    <td class="px-4 py-3 text-right {% if cv.cost_variance >= 0 %}text-emerald-600{% else %}text-red-600{% endif %}">
+                        {{ "%.2f"|format(cv.cost_variance|float) }}
+                    </td>
+                    <td class="px-4 py-3 text-right {% if cv.schedule_variance >= 0 %}text-emerald-600{% else %}text-red-600{% endif %}">
+                        {{ "%.2f"|format(cv.schedule_variance|float) }}
+                    </td>
+                    <td class="px-4 py-3 text-right text-gray-600">{{ "%.2f"|format(cv.cpi|float) if cv.cpi else '—' }}</td>
+                    <td class="px-4 py-3 text-right text-gray-600">{{ "%.2f"|format(cv.spi|float) if cv.spi else '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Cost Baselines -->
+{% if cost_baselines %}
+<div class="mb-6">
+    <h2 class="text-lg font-semibold text-gray-800 mb-3">Baselines de Custo</h2>
+    <div class="space-y-3">
+        {% for baseline in cost_baselines %}
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex items-center justify-between">
+            <div>
+                <div class="font-medium text-gray-900">{{ baseline.name }}</div>
+                {% if baseline.description %}<div class="text-xs text-gray-500">{{ baseline.description }}</div>{% endif %}
+            </div>
+            <div class="text-right">
+                <div class="font-semibold text-gray-900">R$ {{ "%.2f"|format(baseline.total_budget|float) }}</div>
+                <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{{ baseline.status }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<div class="flex gap-4 mt-4">
+    <a href="{{ url_for('cost.create_cost_baseline', project_id=project.id) }}" class="text-sm text-blue-600 hover:text-blue-800">+ Criar Baseline de Custo</a>
+    <a href="{{ url_for('projects.detail', project_id=project.id) }}" class="text-sm text-gray-500 hover:text-blue-600">← Voltar ao projeto</a>
+</div>
+{% endblock %}

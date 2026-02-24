@@ -52,6 +52,16 @@ def usuarios_novo():
     if request.method == 'POST':
         user, error = AdminService.create_user(request.form.to_dict(), admin_id=current_user.id)
         if user:
+            # Send welcome email to the new user and notification email to the admin
+            from app.services.email_service import (
+                generate_reset_token,
+                send_user_registration_email,
+                send_admin_registration_notification,
+            )
+            token = generate_reset_token(user)
+            reset_link = url_for('auth.reset_password', token=token.token, _external=True)
+            send_user_registration_email(user, reset_link)
+            send_admin_registration_notification(current_user, user)
             flash(f'Usuário {user.username} cadastrado com sucesso.', 'success')
             return redirect(url_for('admin.usuarios_index'))
         flash(error, 'error')
@@ -77,8 +87,14 @@ def usuarios_editar(user_id: int):
         flash('Usuário não encontrado.', 'error')
         return redirect(url_for('admin.usuarios_index'))
     if request.method == 'POST':
+        password_changed = bool(request.form.get('password', '').strip())
         updated, error = AdminService.update_user(user_id, request.form.to_dict(), admin_id=current_user.id)
         if updated:
+            if password_changed:
+                from app.services.email_service import generate_reset_token, send_password_reset_email
+                token = generate_reset_token(updated)
+                reset_link = url_for('auth.reset_password', token=token.token, _external=True)
+                send_password_reset_email(updated, reset_link)
             flash('Usuário atualizado com sucesso.', 'success')
             return redirect(url_for('admin.usuarios_index'))
         flash(error, 'error')

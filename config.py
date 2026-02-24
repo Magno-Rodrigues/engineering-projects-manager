@@ -14,6 +14,7 @@ class Config:
         'postgresql://postgres:postgres@localhost:5432/engineering_projects'
     )
 
+<<<<<<< HEAD
     # Email configuration
     MAIL_SERVER: str = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
     MAIL_PORT: int = int(os.getenv('MAIL_PORT', 587))
@@ -21,6 +22,18 @@ class Config:
     MAIL_USERNAME: str = os.getenv('MAIL_USERNAME')
     MAIL_PASSWORD: str = os.getenv('MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER: str = os.getenv('MAIL_DEFAULT_SENDER', 'noreply@engineeringpm.com')
+=======
+    # Application environment: 'development' or 'production'
+    ENV: str = os.environ.get('ENV', 'development')
+
+    # Email (SMTP) settings – used when ENV != 'development' or OS is not Windows
+    MAIL_SERVER: str = os.environ.get('MAIL_SERVER', '')
+    MAIL_PORT: int = int(os.environ.get('MAIL_PORT', 587))
+    MAIL_USE_TLS: bool = os.environ.get('MAIL_USE_TLS', 'true').lower() == 'true'
+    MAIL_USERNAME: str = os.environ.get('MAIL_USERNAME', '')
+    MAIL_PASSWORD: str = os.environ.get('MAIL_PASSWORD', '')
+    MAIL_DEFAULT_SENDER: str = os.environ.get('MAIL_DEFAULT_SENDER', '')
+>>>>>>> 339a9e0aa632b01f6eb535e14e2417c96de2eec1
 
 
 class DevelopmentConfig(Config):

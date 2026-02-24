@@ -34,13 +34,21 @@ class User(UserMixin, db.Model):
     status: str = db.Column(db.String(32), default='Ativo', nullable=False)
     permissions: dict = db.Column(db.JSON, nullable=True)
 
+<<<<<<< HEAD
     # Password reset fields
     reset_token: str = db.Column(db.String(255), nullable=True, unique=True)
     reset_token_expires_at: datetime = db.Column(db.DateTime, nullable=True)
+=======
+    # Authentication & onboarding
+    first_login: bool = db.Column(db.Boolean, default=True, nullable=False)
+    password_reset_required: bool = db.Column(db.Boolean, default=False, nullable=False)
+    last_login: datetime = db.Column(db.DateTime, nullable=True)
+>>>>>>> 339a9e0aa632b01f6eb535e14e2417c96de2eec1
 
     # Relationships
     projects = db.relationship('Project', backref='owner', lazy='dynamic')
     tasks = db.relationship('Task', backref='assignee', lazy='dynamic')
+    reset_tokens = db.relationship('PasswordResetToken', backref='user', lazy='dynamic', cascade='all, delete-orphan')
 
     def set_password(self, password: str) -> None:
         """Hash and set the user password."""

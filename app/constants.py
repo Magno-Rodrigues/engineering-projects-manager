@@ -1,3 +1,32 @@
+"""Application constants."""
+
+# Project Status
+PROJECT_STATUS = [
+    ('planning', 'Planejamento'),
+    ('in_progress', 'Em Progresso'),
+    ('on_hold', 'Pausado'),
+    ('completed', 'Concluído'),
+    ('cancelled', 'Cancelado'),
+]
+
+# Project Priority
+PROJECT_PRIORITY = [
+    ('low', 'Baixa'),
+    ('medium', 'Média'),
+    ('high', 'Alta'),
+    ('critical', 'Crítica'),
+]
+
+# Project Categories
+PROJECT_CATEGORIES = [
+    ('development', 'Desenvolvimento'),
+    ('design', 'Design'),
+    ('infrastructure', 'Infraestrutura'),
+    ('research', 'Pesquisa'),
+    ('maintenance', 'Manutenção'),
+]
+
+
 """Application constants and dropdown options."""
 
 SUPERVISION_TYPES = [
@@ -46,3 +75,9 @@ USER_ROLES = [
     'Administrador',
     'Usuário',
 ]
+
+PROJECT_STATUS = ['planning', 'in_progress', 'on_hold', 'completed', 'cancelled']
+
+PROJECT_PRIORITY = ['low', 'medium', 'high', 'critical']
+
+PROJECT_CATEGORIES = ['Infrastructure', 'Software', 'Hardware', 'Consulting', 'Other']

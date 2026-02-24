@@ -1,5 +1,6 @@
 """Tests for the admin dashboard and user management."""
 import pytest
+from unittest.mock import patch, MagicMock
 from flask import g
 from app import db
 from app.models.user import User
@@ -267,5 +268,111 @@ class TestAdminServiceValidation:
         assert len(MEASUREMENT_CRITERIA) > 0
         assert len(USER_STATUS) > 0
         assert len(USER_ROLES) > 0
+
+
+class TestAdminEmailRouting:
+    """Tests that creation and editing routes send the correct emails."""
+
+    @pytest.fixture(autouse=True)
+    def reset_login_state(self):
+        """Clear Flask-Login g state before each test to prevent cross-test pollution."""
+        if hasattr(g, '_login_user'):
+            del g._login_user
+        yield
+        if hasattr(g, '_login_user'):
+            del g._login_user
+
+    def test_new_user_sends_registration_and_admin_emails(self, client, app, db):
+        """Creating a new user sends welcome + admin notification, NOT password-reset."""
+        _create_admin(db, 'adm_email1', 'adm_email1@example.com')
+        client.post('/login', data={'username': 'adm_email1', 'password': 'adminpass'})
+
+        with patch('app.services.email_service.send_user_registration_email', return_value=True) as mock_reg, \
+             patch('app.services.email_service.send_admin_registration_notification', return_value=True) as mock_adm, \
+             patch('app.services.email_service.send_password_reset_email', return_value=True) as mock_reset, \
+             patch('app.services.email_service.generate_reset_token') as mock_token:
+            mock_token.return_value = MagicMock(token='fake-token')
+            client.post('/admin/usuarios/novo', data={
+                'username': 'emailtest1',
+                'email': 'emailtest1@example.com',
+                'password': 'pass123',
+                'full_name': 'Email Test',
+                'role': 'engineer',
+                'key': 'EKEY1',
+                'status': 'Ativo',
+            })
+
+        mock_reg.assert_called_once()
+        mock_adm.assert_called_once()
+        mock_reset.assert_not_called()
+
+    def test_edit_user_with_password_sends_only_reset_email(self, client, app, db):
+        """Editing a user with a new password sends only the password-reset email."""
+        _create_admin(db, 'adm_email2', 'adm_email2@example.com')
+        client.post('/login', data={'username': 'adm_email2', 'password': 'adminpass'})
+
+        # Create a target user first
+        client.post('/admin/usuarios/novo', data={
+            'username': 'edit_email_target',
+            'email': 'edit_email_target@example.com',
+            'password': 'pass123',
+            'full_name': 'Edit Email Target',
+            'role': 'engineer',
+            'key': 'EKEY2',
+            'status': 'Ativo',
+        })
+        target = User.query.filter_by(username='edit_email_target').first()
+
+        with patch('app.services.email_service.send_password_reset_email', return_value=True) as mock_reset, \
+             patch('app.services.email_service.send_user_registration_email', return_value=True) as mock_reg, \
+             patch('app.services.email_service.send_admin_registration_notification', return_value=True) as mock_adm, \
+             patch('app.services.email_service.generate_reset_token') as mock_token:
+            mock_token.return_value = MagicMock(token='fake-token')
+            client.post(f'/admin/usuarios/{target.id}/editar', data={
+                'username': 'edit_email_target',
+                'email': 'edit_email_target@example.com',
+                'full_name': 'Edit Email Target',
+                'role': 'engineer',
+                'key': 'EKEY2',
+                'status': 'Ativo',
+                'password': 'newpass456',
+            })
+
+        mock_reset.assert_called_once()
+        mock_reg.assert_not_called()
+        mock_adm.assert_not_called()
+
+    def test_edit_user_without_password_sends_no_email(self, client, app, db):
+        """Editing a user without changing the password sends no email at all."""
+        _create_admin(db, 'adm_email3', 'adm_email3@example.com')
+        client.post('/login', data={'username': 'adm_email3', 'password': 'adminpass'})
+
+        client.post('/admin/usuarios/novo', data={
+            'username': 'nopwd_email_target',
+            'email': 'nopwd_email_target@example.com',
+            'password': 'pass123',
+            'full_name': 'No Password Target',
+            'role': 'engineer',
+            'key': 'EKEY3',
+            'status': 'Ativo',
+        })
+        target = User.query.filter_by(username='nopwd_email_target').first()
+
+        with patch('app.services.email_service.send_password_reset_email', return_value=True) as mock_reset, \
+             patch('app.services.email_service.send_user_registration_email', return_value=True) as mock_reg, \
+             patch('app.services.email_service.send_admin_registration_notification', return_value=True) as mock_adm:
+            client.post(f'/admin/usuarios/{target.id}/editar', data={
+                'username': 'nopwd_email_target',
+                'email': 'nopwd_email_target@example.com',
+                'full_name': 'No Password Target Updated',
+                'role': 'engineer',
+                'key': 'EKEY3',
+                'status': 'Ativo',
+                'password': '',
+            })
+
+        mock_reset.assert_not_called()
+        mock_reg.assert_not_called()
+        mock_adm.assert_not_called()
 
 
