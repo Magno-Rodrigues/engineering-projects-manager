@@ -1,10 +1,33 @@
 """Report routes."""
+from datetime import datetime
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from app.services.report_service import ReportService
 from app.services.project_service import ProjectService
+from app.models.report import REPORT_TYPES
+from app.models.user import User
 
 reports_bp = Blueprint('reports', __name__, url_prefix='/reports')
+
+
+def _parse_date(date_str):
+    """Parse a date string (YYYY-MM-DD) into a date object or return None."""
+    if not date_str:
+        return None
+    try:
+        return datetime.strptime(date_str, '%Y-%m-%d').date()
+    except (ValueError, TypeError):
+        return None
+
+
+def _parse_decimal(value_str):
+    """Parse a string to float or return None."""
+    if not value_str:
+        return None
+    try:
+        return float(value_str)
+    except (ValueError, TypeError):
+        return None
 
 
 @reports_bp.route('/project/<int:project_id>')
@@ -26,12 +49,33 @@ def create(project_id: int):
             report_type=request.form.get('report_type', 'progress'),
             project_id=project_id,
             author_id=current_user.id,
+            report_date=_parse_date(request.form.get('report_date')),
+            period_start=_parse_date(request.form.get('period_start')),
+            period_end=_parse_date(request.form.get('period_end')),
+            executive_summary=request.form.get('executive_summary') or None,
+            scope_complete_pct=_parse_decimal(request.form.get('scope_complete_pct')),
+            schedule_variance=_parse_decimal(request.form.get('schedule_variance')),
+            cost_variance=_parse_decimal(request.form.get('cost_variance')),
+            risks_identified=request.form.get('risks_identified') or None,
+            current_issues=request.form.get('current_issues') or None,
+            completed_tasks_text=request.form.get('completed_tasks_text') or None,
+            tasks_in_progress_text=request.form.get('tasks_in_progress_text') or None,
+            next_activities=request.form.get('next_activities') or None,
+            corrective_actions=request.form.get('corrective_actions') or None,
+            attention_points=request.form.get('attention_points') or None,
+            approved_by_id=request.form.get('approved_by_id') or None,
         )
         if report:
             flash('Report created successfully.', 'success')
             return redirect(url_for('reports.index', project_id=project_id))
         flash(error, 'error')
-    return render_template('reports/create.html', project_id=project_id)
+    users = User.query.filter_by(is_active=True).all()
+    return render_template(
+        'reports/create.html',
+        project_id=project_id,
+        users=users,
+        report_types=REPORT_TYPES,
+    )
 
 
 @reports_bp.route('/<int:report_id>')
