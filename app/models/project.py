@@ -32,6 +32,17 @@ class Project(db.Model):
     tasks = db.relationship('Task', backref='project', lazy='dynamic', cascade='all, delete-orphan')
     reports = db.relationship('Report', backref='project', lazy='dynamic', cascade='all, delete-orphan')
 
+    # PMBOK constraints relationships
+    requirements = db.relationship('Requirement', backref='project', lazy='dynamic', cascade='all, delete-orphan')
+    wbs_items = db.relationship('WBSItem', backref='project', lazy='dynamic', cascade='all, delete-orphan')
+    scope_changes = db.relationship('ScopeChange', backref='project', lazy='dynamic', cascade='all, delete-orphan')
+    activities = db.relationship('Activity', backref='project', lazy='dynamic', cascade='all, delete-orphan')
+    milestones = db.relationship('Milestone', backref='project', lazy='dynamic', cascade='all, delete-orphan')
+    schedule_baselines = db.relationship('ScheduleBaseline', backref='project', lazy='dynamic', cascade='all, delete-orphan')
+    budget_lines = db.relationship('BudgetLine', backref='project', lazy='dynamic', cascade='all, delete-orphan')
+    cost_variances = db.relationship('CostVariance', backref='project', lazy='dynamic', cascade='all, delete-orphan')
+    cost_baselines = db.relationship('CostBaseline', backref='project', lazy='dynamic', cascade='all, delete-orphan')
+
     @property
     def remaining_budget(self):
         """Calculate remaining budget."""

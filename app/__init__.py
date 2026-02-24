@@ -49,6 +49,9 @@ def create_app(config_name: str = 'default') -> Flask:
     from app.routes.api import api_bp
     from app.routes.admin import admin_bp
     from app.routes.admin_permissions import admin_permissions_bp
+    from app.routes.scope import scope_bp
+    from app.routes.schedule import schedule_bp
+    from app.routes.cost import cost_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
@@ -58,5 +61,8 @@ def create_app(config_name: str = 'default') -> Flask:
     app.register_blueprint(api_bp, url_prefix='/api')
     app.register_blueprint(admin_bp)
     app.register_blueprint(admin_permissions_bp)
+    app.register_blueprint(scope_bp)
+    app.register_blueprint(schedule_bp)
+    app.register_blueprint(cost_bp)
 
     return app

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}{% if activity %}Editar Atividade{% else %}Nova Atividade{% endif %} — {{ project.name }}{% endblock %}
+{% block content %}
+<nav class="flex items-center gap-2 text-sm text-gray-500 mb-6">
+    <a href="{{ url_for('projects.index') }}" class="hover:text-blue-600">Projetos</a>
+    <span>/</span>
+    <a href="{{ url_for('projects.detail', project_id=project.id) }}" class="hover:text-blue-600">{{ project.name }}</a>
+    <span>/</span>
+    <a href="{{ url_for('schedule.index', project_id=project.id) }}" class="hover:text-blue-600">Cronograma</a>
+    <span>/</span>
+    <span class="text-gray-800 font-medium">{% if activity %}Editar{% else %}Nova Atividade{% endif %}</span>
+</nav>
+
+<div class="max-w-2xl">
+    <h1 class="text-2xl font-bold text-gray-900 mb-6">{% if activity %}Editar Atividade{% else %}Nova Atividade{% endif %}</h1>
+    <form method="POST" class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Título *</label>
+            <input type="text" name="title" value="{{ activity.title if activity else '' }}"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+            <textarea name="description" rows="2"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">{{ activity.description if activity else '' }}</textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Data Início</label>
+                <input type="date" name="start_date" value="{{ activity.start_date.strftime('%Y-%m-%d') if activity and activity.start_date else '' }}"
+                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Data Término</label>
+                <input type="date" name="end_date" value="{{ activity.end_date.strftime('%Y-%m-%d') if activity and activity.end_date else '' }}"
+                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Duração Estimada (dias)</label>
+                <input type="number" name="estimated_duration" min="1"
+                    value="{{ activity.estimated_duration if activity and activity.estimated_duration else '' }}"
+                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select name="status" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    {% for s in ['planned', 'in_progress', 'completed', 'cancelled'] %}
+                    <option value="{{ s }}" {% if activity and activity.status == s %}selected{% endif %}>
+                        {% if s == 'planned' %}Planejada{% elif s == 'in_progress' %}Em Andamento{% elif s == 'completed' %}Concluída{% else %}Cancelada{% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        {% if activity %}
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Progresso (%)</label>
+            <input type="number" name="progress" min="0" max="100" value="{{ activity.progress or 0 }}"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        {% endif %}
+        <div class="flex gap-3 pt-2">
+            <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm transition-colors">
+                {% if activity %}Salvar{% else %}Criar{% endif %}
+            </button>
+            <a href="{{ url_for('schedule.index', project_id=project.id) }}"
+                class="px-4 py-2 border border-gray-300 text-gray-600 font-medium rounded-lg text-sm hover:bg-gray-50 transition-colors">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

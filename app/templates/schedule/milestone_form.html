@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}{% if milestone %}Editar Marco{% else %}Novo Marco{% endif %} — {{ project.name }}{% endblock %}
+{% block content %}
+<nav class="flex items-center gap-2 text-sm text-gray-500 mb-6">
+    <a href="{{ url_for('projects.index') }}" class="hover:text-blue-600">Projetos</a>
+    <span>/</span>
+    <a href="{{ url_for('projects.detail', project_id=project.id) }}" class="hover:text-blue-600">{{ project.name }}</a>
+    <span>/</span>
+    <a href="{{ url_for('schedule.index', project_id=project.id) }}" class="hover:text-blue-600">Cronograma</a>
+    <span>/</span>
+    <span class="text-gray-800 font-medium">{% if milestone %}Editar Marco{% else %}Novo Marco{% endif %}</span>
+</nav>
+
+<div class="max-w-2xl">
+    <h1 class="text-2xl font-bold text-gray-900 mb-6">{% if milestone %}Editar Marco{% else %}Novo Marco{% endif %}</h1>
+    <form method="POST" class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Título *</label>
+            <input type="text" name="title" value="{{ milestone.title if milestone else '' }}"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+            <textarea name="description" rows="2"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">{{ milestone.description if milestone else '' }}</textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Data Prevista</label>
+                <input type="date" name="target_date" value="{{ milestone.target_date.strftime('%Y-%m-%d') if milestone and milestone.target_date else '' }}"
+                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            {% if milestone %}
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Data Real</label>
+                <input type="date" name="actual_date" value="{{ milestone.actual_date.strftime('%Y-%m-%d') if milestone and milestone.actual_date else '' }}"
+                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            {% endif %}
+        </div>
+        {% if milestone %}
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <select name="status" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                {% for s, label in [('pending', 'Pendente'), ('achieved', 'Atingido'), ('missed', 'Perdido')] %}
+                <option value="{{ s }}" {% if milestone.status == s %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+        <div class="flex gap-3 pt-2">
+            <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm transition-colors">
+                {% if milestone %}Salvar{% else %}Criar{% endif %}
+            </button>
+            <a href="{{ url_for('schedule.index', project_id=project.id) }}"
+                class="px-4 py-2 border border-gray-300 text-gray-600 font-medium rounded-lg text-sm hover:bg-gray-50 transition-colors">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
