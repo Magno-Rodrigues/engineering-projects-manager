@@ -4,7 +4,7 @@ from flask import Blueprint, jsonify, request
 from flask_login import login_required, current_user
 from app.services.integration_service import ProjectIntegrationService
 
-integration_bp = Blueprint('integration', __name__, url_prefix='/projects')
+integration_bp = Blueprint('integration', __name__, url_prefix='/api/projects')
 
 
 def _parse_date(date_str):
