@@ -22,6 +22,15 @@ class User(UserMixin, db.Model):
     updated_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Extended profile fields
+<<<<<<< HEAD
+    phone: Optional[str] = db.Column(db.String(20))
+    job_title: Optional[str] = db.Column(db.String(128))
+    company: Optional[str] = db.Column(db.String(128))
+    supervisor: Optional[str] = db.Column(db.String(128))
+    birth_date: Optional[date] = db.Column(db.Date)
+    appointment_start_date: Optional[date] = db.Column(db.Date)
+    measurement_criterion: Optional[str] = db.Column(db.String(64))
+=======
     key: str = db.Column(db.String(64), unique=True, nullable=True, index=True)
     phone: str = db.Column(db.String(20), nullable=True)
     supervision: str = db.Column(db.String(64), nullable=True)
