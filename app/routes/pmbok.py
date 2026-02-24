@@ -24,12 +24,12 @@ def _parse_date(date_str):
 
 
 def _get_project_or_abort(project_id: int):
-    """Return project if it belongs to current user, else flash error and return None."""
+    """Return project if current user is admin or owner, else flash error and return None."""
     project = ProjectService.get_project(project_id)
     if not project:
         flash('Projeto não encontrado.', 'error')
         return None
-    if project.owner_id != current_user.id:
+    if not (current_user.role == 'admin' or project.owner_id == current_user.id):
         flash('Acesso negado.', 'error')
         return None
     return project
