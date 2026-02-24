@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% block title %}Stakeholders — {{ project.name }} — Engineering Projects Manager{% endblock %}
+{% block content %}
+<!-- Breadcrumb -->
+<nav class="flex items-center gap-2 text-sm text-gray-500 mb-6">
+    <a href="{{ url_for('projects.index') }}" class="hover:text-blue-600 transition-colors">Projetos</a>
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+    </svg>
+    <a href="{{ url_for('projects.detail', project_id=project.id) }}" class="hover:text-blue-600 transition-colors">{{ project.name }}</a>
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+    </svg>
+    <span class="text-gray-800 font-medium">Stakeholders</span>
+</nav>
+
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Stakeholders</h1>
+    <button onclick="document.getElementById('add-stakeholder-form').classList.toggle('hidden')"
+        class="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+        Adicionar Stakeholder
+    </button>
+</div>
+
+<!-- Add Stakeholder Form -->
+<div id="add-stakeholder-form" class="hidden bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
+    <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">Novo Stakeholder</h2>
+    <form method="POST" action="{{ url_for('pmbok.stakeholders', project_id=project.id) }}" class="space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nome <span class="text-red-500">*</span></label>
+                <input type="text" name="name" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Cargo / Papel</label>
+                <input type="text" name="role" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Organização</label>
+                <input type="text" name="organization" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+                <input type="email" name="email" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+                <input type="text" name="phone" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
+                <select name="category" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    {% for cat in categories %}
+                    <option value="{{ cat }}">{{ cat|capitalize }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nível de Interesse</label>
+                <select name="interest_level" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    {% for level in interest_levels %}
+                    <option value="{{ level }}">{{ level|capitalize }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nível de Influência</label>
+                <select name="influence_level" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    {% for level in influence_levels %}
+                    <option value="{{ level }}">{{ level|capitalize }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Estratégia de Engajamento</label>
+            <textarea name="engagement_strategy" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Preferência de Comunicação</label>
+            <input type="text" name="communication_preference" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ex: Email semanal, reunião mensal...">
+        </div>
+        <div class="flex justify-end pt-2">
+            <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm transition-colors">
+                Salvar
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Stakeholder Matrix -->
+{% if stakeholders %}
+<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
+    <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">Matriz de Interesse × Influência</h2>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm border-collapse">
+            <thead>
+                <tr>
+                    <th class="text-left py-2 px-3 text-gray-500 font-medium border-b border-gray-100 w-32">Influência ↓ / Interesse →</th>
+                    <th class="py-2 px-3 text-gray-500 font-medium border-b border-gray-100 text-center">Baixo</th>
+                    <th class="py-2 px-3 text-gray-500 font-medium border-b border-gray-100 text-center">Médio</th>
+                    <th class="py-2 px-3 text-gray-500 font-medium border-b border-gray-100 text-center">Alto</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for inf_level in ['high', 'medium', 'low'] %}
+                <tr class="border-b border-gray-50">
+                    <td class="py-3 px-3 font-medium text-gray-700">
+                        {% if inf_level == 'high' %}Alta{% elif inf_level == 'medium' %}Média{% else %}Baixa{% endif %}
+                    </td>
+                    {% for int_level in ['low', 'medium', 'high'] %}
+                    <td class="py-3 px-3 align-top">
+                        {% set cell_stakeholders = stakeholders | selectattr('influence_level', 'equalto', inf_level) | selectattr('interest_level', 'equalto', int_level) | list %}
+                        {% if cell_stakeholders %}
+                            {% for s in cell_stakeholders %}
+                            <span class="inline-block mb-1 px-2 py-0.5 rounded-full text-xs font-medium
+                                {% if inf_level == 'high' and int_level == 'high' %}bg-red-100 text-red-700
+                                {% elif inf_level == 'high' %}bg-orange-100 text-orange-700
+                                {% elif int_level == 'high' %}bg-yellow-100 text-yellow-700
+                                {% else %}bg-gray-100 text-gray-600{% endif %}">
+                                {{ s.name }}
+                            </span>
+                            {% endfor %}
+                        {% else %}
+                            <span class="text-gray-300 text-xs">—</span>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Stakeholder List -->
+<div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+    <div class="p-6 border-b border-gray-100">
+        <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Lista de Stakeholders ({{ stakeholders|length }})</h2>
+    </div>
+    <div class="divide-y divide-gray-100">
+        {% for s in stakeholders %}
+        <div class="p-5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+            <div class="flex-1">
+                <div class="flex items-center gap-2 flex-wrap mb-1">
+                    <span class="font-semibold text-gray-900">{{ s.name }}</span>
+                    {% if s.role %}
+                    <span class="text-sm text-gray-500">· {{ s.role }}</span>
+                    {% endif %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">{{ s.category|capitalize }}</span>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">Interesse: {{ s.interest_level|capitalize }}</span>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">Influência: {{ s.influence_level|capitalize }}</span>
+                </div>
+                {% if s.organization %}
+                <p class="text-sm text-gray-500">{{ s.organization }}</p>
+                {% endif %}
+                {% if s.email %}
+                <p class="text-sm text-gray-500">{{ s.email }}</p>
+                {% endif %}
+                {% if s.engagement_strategy %}
+                <p class="text-sm text-gray-600 mt-1">{{ s.engagement_strategy }}</p>
+                {% endif %}
+            </div>
+            <form method="POST" action="{{ url_for('pmbok.delete_stakeholder', project_id=project.id, stakeholder_id=s.id) }}"
+                onsubmit="return confirm('Remover stakeholder {{ s.name }}?')">
+                <button type="submit" class="inline-flex items-center gap-1 px-2.5 py-1.5 border border-red-200 hover:border-red-400 text-red-500 hover:text-red-700 font-medium rounded-lg text-xs transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Remover
+                </button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% else %}
+<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-12 text-center">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+    <p class="text-gray-500 font-medium">Nenhum stakeholder cadastrado</p>
+    <p class="text-sm text-gray-400 mt-1">Clique em "Adicionar Stakeholder" para começar.</p>
+</div>
+{% endif %}
+{% endblock %}

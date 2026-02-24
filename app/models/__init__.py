@@ -8,9 +8,12 @@ from app.models.module_permission import ModulePermission
 from app.models.user_module_permission import UserModulePermission
 from app.models.project_charter import ProjectCharter
 from app.models.project_closure import ProjectClosure
+from app.models.stakeholder import Stakeholder
+from app.models.communication_plan import CommunicationPlan
 
 __all__ = [
     'User', 'Project', 'Task', 'Report', 'PasswordResetToken',
     'ModulePermission', 'UserModulePermission',
     'ProjectCharter', 'ProjectClosure',
+    'Stakeholder', 'CommunicationPlan',
 ]
