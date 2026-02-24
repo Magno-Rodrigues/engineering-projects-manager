@@ -31,6 +31,11 @@ def create_app(config_name: str = 'default') -> Flask:
     login_manager.init_app(app)
     mail.init_app(app)
 
+    # Initialize default modules
+    with app.app_context():
+        from app.utils.init_modules import init_default_modules
+        init_default_modules()
+
     # Register blueprints
     from app.routes.main import main_bp
     from app.routes.auth import auth_bp
