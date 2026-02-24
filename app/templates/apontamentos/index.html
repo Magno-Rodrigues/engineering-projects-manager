@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}Apontamentos — Engineering Projects Manager{% endblock %}
+{% block content %}
+<!-- Page header -->
+<div class="flex items-center justify-between mb-6">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">Apontamentos de Horas</h1>
+        <p class="text-sm text-gray-500 mt-1">Gerencie os apontamentos de horas trabalhadas</p>
+    </div>
+    <div class="flex items-center gap-3">
+        {% if current_user.role == 'admin' %}
+        <a href="{{ url_for('timeentry.cycles_index') }}"
+            class="inline-flex items-center gap-2 border border-gray-300 hover:border-gray-400 text-gray-700 font-medium px-4 py-2.5 rounded-lg text-sm transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            Ciclos de Medição
+        </a>
+        {% endif %}
+        <a href="{{ url_for('timeentry.create') }}"
+            class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2.5 rounded-lg text-sm transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Novo Apontamento
+        </a>
+    </div>
+</div>
+
+<!-- Active cycle info -->
+{% if active_cycle %}
+<div class="bg-blue-50 border border-blue-200 rounded-xl px-5 py-3 mb-6 flex items-center gap-3 text-sm">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    <span class="text-blue-800 font-medium">Ciclo ativo:</span>
+    <span class="text-blue-700">{{ active_cycle.start_date.strftime('%d/%m/%Y') }} a {{ active_cycle.end_date.strftime('%d/%m/%Y') }}</span>
+</div>
+{% else %}
+<div class="bg-yellow-50 border border-yellow-200 rounded-xl px-5 py-3 mb-6 flex items-center gap-3 text-sm">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+    </svg>
+    <span class="text-yellow-800">Nenhum ciclo de medição ativo. Os apontamentos não poderão ser criados.</span>
+</div>
+{% endif %}
+
+<!-- Filters -->
+<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 mb-6">
+    <form method="GET" class="flex flex-wrap gap-4 items-end">
+        <div class="flex-1 min-w-[180px]">
+            <label class="block text-xs font-medium text-gray-600 mb-1" for="filter_project">Projeto</label>
+            <select id="filter_project" name="project_id"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                <option value="">Todos os projetos</option>
+                {% for project in projects %}
+                <option value="{{ project.id }}" {% if selected_project_id == project.id %}selected{% endif %}>{{ project.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="flex-1 min-w-[180px]">
+            <label class="block text-xs font-medium text-gray-600 mb-1" for="filter_cycle">Ciclo</label>
+            <select id="filter_cycle" name="cycle_id"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                <option value="">Todos os ciclos</option>
+                {% for cycle in cycles %}
+                <option value="{{ cycle.id }}" {% if selected_cycle_id == cycle.id %}selected{% endif %}>
+                    {{ cycle.start_date.strftime('%d/%m/%Y') }} – {{ cycle.end_date.strftime('%d/%m/%Y') }}
+                    {% if cycle.is_active %}(ativo){% endif %}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="flex-1 min-w-[160px]">
+            <label class="block text-xs font-medium text-gray-600 mb-1" for="filter_date">Data</label>
+            <input id="filter_date" type="date" name="work_date" value="{{ selected_work_date }}"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div class="flex gap-2">
+            <button type="submit"
+                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm transition-colors">
+                Filtrar
+            </button>
+            <a href="{{ url_for('timeentry.index') }}"
+                class="px-4 py-2 border border-gray-300 hover:border-gray-400 text-gray-600 font-medium rounded-lg text-sm transition-colors">
+                Limpar
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Entries table -->
+{% if entries %}
+<div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Data</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Projeto</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Atividade</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Disciplina</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Horas</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Tipo</th>
+                    {% if current_user.role == 'admin' %}
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Usuário</th>
+                    {% endif %}
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Ações</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for entry in entries %}
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-4 py-3 text-gray-700 whitespace-nowrap">{{ entry.work_date.strftime('%d/%m/%Y') }}</td>
+                    <td class="px-4 py-3 text-gray-700">{{ entry.project.name if entry.project else '—' }}</td>
+                    <td class="px-4 py-3 text-gray-700">
+                        <div class="font-medium">{{ entry.main_activity }}</div>
+                        {% if entry.sub_activity %}
+                        <div class="text-xs text-gray-400">{{ entry.sub_activity }}</div>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-gray-500">{{ entry.discipline or '—' }}</td>
+                    <td class="px-4 py-3 font-mono text-gray-700">{{ entry.hours_worked }}</td>
+                    <td class="px-4 py-3">
+                        {% if entry.hour_type == 'Extra' %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">Extra</span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Normal</span>
+                        {% endif %}
+                    </td>
+                    {% if current_user.role == 'admin' %}
+                    <td class="px-4 py-3 text-gray-500 text-xs">{{ entry.user.username if entry.user else '—' }}</td>
+                    {% endif %}
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-2">
+                            {% set can_edit = current_user.role == 'admin' or (entry.user_id == current_user.id and active_cycle and entry.measurement_cycle_id == active_cycle.id) %}
+                            {% if can_edit %}
+                            <a href="{{ url_for('timeentry.edit', entry_id=entry.id) }}"
+                                class="text-blue-600 hover:text-blue-800 font-medium text-xs transition-colors">Editar</a>
+                            <form method="POST" action="{{ url_for('timeentry.delete', entry_id=entry.id) }}"
+                                onsubmit="return confirm('Tem certeza que deseja excluir este apontamento?');">
+                                <button type="submit" class="text-red-500 hover:text-red-700 font-medium text-xs transition-colors">Excluir</button>
+                            </form>
+                            {% else %}
+                            <span class="text-gray-300 text-xs">—</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<!-- Empty state -->
+<div class="text-center py-20">
+    <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gray-100 mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+    </div>
+    <h3 class="text-lg font-semibold text-gray-900 mb-1">Nenhum apontamento encontrado</h3>
+    <p class="text-sm text-gray-500 mb-6">Comece criando seu primeiro apontamento de horas.</p>
+    <a href="{{ url_for('timeentry.create') }}"
+        class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+        Novo Apontamento
+    </a>
+</div>
+{% endif %}
+{% endblock %}

@@ -65,6 +65,7 @@ def create_app(config_name: str = 'default') -> Flask:
     from app.routes.integration import integration_bp
     from app.routes.scope import scope_bp
     from app.routes.pmbok import pmbok_bp
+    from app.routes.timeentry import timeentry_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
@@ -77,5 +78,6 @@ def create_app(config_name: str = 'default') -> Flask:
     app.register_blueprint(integration_bp)
     app.register_blueprint(scope_bp)
     app.register_blueprint(pmbok_bp)
+    app.register_blueprint(timeentry_bp)
 
     return app
