@@ -31,10 +31,14 @@ def create_app(config_name: str = 'default') -> Flask:
     login_manager.init_app(app)
     mail.init_app(app)
 
-    # Initialize default modules
-    with app.app_context():
-        from app.utils.init_modules import init_default_modules
-        init_default_modules()
+    # Initialize default modules (skip during testing)
+    if config_name != 'testing':
+        with app.app_context():
+            try:
+                from app.utils.init_modules import init_default_modules
+                init_default_modules()
+            except Exception as e:
+                app.logger.warning(f"Could not initialize default modules: {str(e)}")
 
     # Register blueprints
     from app.routes.main import main_bp
