@@ -1,5 +1,6 @@
 """Project model."""
 from datetime import datetime
+from decimal import Decimal
 from app import db
 
 
@@ -18,9 +19,37 @@ class Project(db.Model):
     created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    # New fields
+    budget: Decimal = db.Column(db.Numeric(15, 2), nullable=True)
+    actual_cost: Decimal = db.Column(db.Numeric(15, 2), nullable=True)
+    category: str = db.Column(db.String(64), nullable=True)
+    priority: str = db.Column(db.String(16), nullable=True)
+    location: str = db.Column(db.String(256), nullable=True)
+    client_name: str = db.Column(db.String(128), nullable=True)
+    notes: str = db.Column(db.Text, nullable=True)
+
     # Relationships
     tasks = db.relationship('Task', backref='project', lazy='dynamic', cascade='all, delete-orphan')
     reports = db.relationship('Report', backref='project', lazy='dynamic', cascade='all, delete-orphan')
+
+    # PMBOK constraints relationships
+    requirements = db.relationship('Requirement', backref='project', lazy='dynamic', cascade='all, delete-orphan')
+    wbs_items = db.relationship('WBSItem', backref='project', lazy='dynamic', cascade='all, delete-orphan')
+    scope_changes = db.relationship('ScopeChange', backref='project', lazy='dynamic', cascade='all, delete-orphan')
+    activities = db.relationship('Activity', backref='project', lazy='dynamic', cascade='all, delete-orphan')
+    milestones = db.relationship('Milestone', backref='project', lazy='dynamic', cascade='all, delete-orphan')
+    schedule_baselines = db.relationship('ScheduleBaseline', backref='project', lazy='dynamic', cascade='all, delete-orphan')
+    budget_lines = db.relationship('BudgetLine', backref='project', lazy='dynamic', cascade='all, delete-orphan')
+    cost_variances = db.relationship('CostVariance', backref='project', lazy='dynamic', cascade='all, delete-orphan')
+    cost_baselines = db.relationship('CostBaseline', backref='project', lazy='dynamic', cascade='all, delete-orphan')
+
+    @property
+    def remaining_budget(self):
+        """Calculate remaining budget."""
+        if self.budget is None:
+            return None
+        cost = self.actual_cost or Decimal('0')
+        return self.budget - cost
 
     def __repr__(self) -> str:
         return f'<Project {self.name}>'

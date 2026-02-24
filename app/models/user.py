@@ -22,6 +22,7 @@ class User(UserMixin, db.Model):
     updated_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Extended profile fields
+<<<<<<< HEAD
     phone: Optional[str] = db.Column(db.String(20))
     job_title: Optional[str] = db.Column(db.String(128))
     company: Optional[str] = db.Column(db.String(128))
@@ -29,10 +30,29 @@ class User(UserMixin, db.Model):
     birth_date: Optional[date] = db.Column(db.Date)
     appointment_start_date: Optional[date] = db.Column(db.Date)
     measurement_criterion: Optional[str] = db.Column(db.String(64))
+=======
+    key: str = db.Column(db.String(64), unique=True, nullable=True, index=True)
+    phone: str = db.Column(db.String(20), nullable=True)
+    supervision: str = db.Column(db.String(64), nullable=True)
+    function: str = db.Column(db.String(128), nullable=True)
+    company: str = db.Column(db.String(64), nullable=True)
+    state: str = db.Column(db.String(2), nullable=True)
+    measurement_criteria: str = db.Column(db.String(64), nullable=True)
+    birth_date: date = db.Column(db.Date, nullable=True)
+    start_appointment_date: date = db.Column(db.Date, nullable=True)
+    status: str = db.Column(db.String(32), default='Ativo', nullable=False)
+    permissions: dict = db.Column(db.JSON, nullable=True)
+
+    # Authentication & onboarding
+    first_login: bool = db.Column(db.Boolean, default=True, nullable=False)
+    password_reset_required: bool = db.Column(db.Boolean, default=False, nullable=False)
+    last_login: datetime = db.Column(db.DateTime, nullable=True)
+>>>>>>> 339a9e0aa632b01f6eb535e14e2417c96de2eec1
 
     # Relationships
     projects = db.relationship('Project', backref='owner', lazy='dynamic')
     tasks = db.relationship('Task', backref='assignee', lazy='dynamic')
+    reset_tokens = db.relationship('PasswordResetToken', backref='user', lazy='dynamic', cascade='all, delete-orphan')
 
     def set_password(self, password: str) -> None:
         """Hash and set the user password."""

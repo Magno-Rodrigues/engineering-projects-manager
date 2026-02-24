@@ -46,7 +46,11 @@
                     {% if current_user.is_authenticated %}
                         <a href="{{ url_for('projects.index') }}" class="text-gray-600 hover:text-blue-600 font-medium text-sm transition-colors">Projetos</a>
                         {% if current_user.role == 'admin' %}
+<<<<<<< HEAD
                             <a href="{{ url_for('admin.users_list') }}" class="text-gray-600 hover:text-blue-600 font-medium text-sm transition-colors">Admin</a>
+=======
+                            <a href="{{ url_for('admin.dashboard') }}" class="text-gray-600 hover:text-blue-600 font-medium text-sm transition-colors">Admin</a>
+>>>>>>> 339a9e0aa632b01f6eb535e14e2417c96de2eec1
                         {% endif %}
                         <div class="flex items-center gap-2 ml-2 border-l border-gray-200 pl-4">
                             <span class="text-sm text-gray-500">

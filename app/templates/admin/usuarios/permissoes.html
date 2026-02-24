@@ -1,0 +1,65 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Permissões – {{ user.username }} – Administração{% endblock %}
+{% block page_title %}Permissões – {{ user.full_name or user.username }}{% endblock %}
+
+{% block content %}
+<div class="max-w-xl">
+    <form method="post" class="space-y-6">
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100">
+                <h2 class="text-base font-semibold text-gray-700">Permissões do usuário <span class="text-blue-600">{{ user.full_name or user.username }}</span></h2>
+                <p class="text-sm text-gray-500 mt-1">Defina quais ações este usuário pode executar no sistema.</p>
+            </div>
+
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 border-b border-gray-100">
+                    <tr>
+                        <th class="px-6 py-3 text-left font-medium text-gray-600">Permissão</th>
+                        <th class="px-6 py-3 text-center font-medium text-gray-600">Pode Executar</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 text-gray-700">Editar Projetos</td>
+                        <td class="px-6 py-4 text-center">
+                            <input type="checkbox" name="can_edit_projects" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                {% if permissions.get('can_edit_projects') %}checked{% endif %}>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 text-gray-700">Editar Tarefas</td>
+                        <td class="px-6 py-4 text-center">
+                            <input type="checkbox" name="can_edit_tasks" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                {% if permissions.get('can_edit_tasks') %}checked{% endif %}>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 text-gray-700">Visualizar Relatórios</td>
+                        <td class="px-6 py-4 text-center">
+                            <input type="checkbox" name="can_view_reports" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                {% if permissions.get('can_view_reports') %}checked{% endif %}>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 text-gray-700">Gerenciar Usuários</td>
+                        <td class="px-6 py-4 text-center">
+                            <input type="checkbox" name="can_manage_users" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                {% if permissions.get('can_manage_users') %}checked{% endif %}>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors">
+                Salvar Permissões
+            </button>
+            <a href="{{ url_for('admin.usuarios_index') }}" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium px-6 py-2.5 rounded-lg transition-colors">
+                Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

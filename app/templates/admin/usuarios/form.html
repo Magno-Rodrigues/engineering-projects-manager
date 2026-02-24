@@ -1,0 +1,174 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}{% if user %}Editar Usuário{% else %}Novo Usuário{% endif %} – Administração{% endblock %}
+{% block page_title %}{% if user %}Editar Usuário{% else %}Novo Usuário{% endif %}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl">
+    <form method="post" class="space-y-6">
+
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-5">
+            <h2 class="text-base font-semibold text-gray-700 pb-3 border-b border-gray-100">Dados Principais</h2>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <!-- Full name -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nome Completo *</label>
+                    <input type="text" name="full_name" required
+                        value="{{ user.full_name if user else '' }}"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <!-- Username -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nome de Usuário *</label>
+                    <input type="text" name="username" required
+                        value="{{ user.username if user else '' }}"
+                        {% if user %}readonly class="w-full border border-gray-200 bg-gray-50 rounded-lg px-3 py-2 text-sm text-gray-500 cursor-not-allowed"{% else %}class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"{% endif %}>
+                </div>
+
+                <!-- Email -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">E-mail *</label>
+                    <input type="email" name="email" required
+                        value="{{ user.email if user else '' }}"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <!-- Password -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Senha {% if not user %}*{% else %}<span class="text-gray-400 font-normal">(deixe em branco para não alterar)</span>{% endif %}
+                    </label>
+                    <input type="password" name="password" {% if not user %}required{% endif %}
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <!-- Role -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tipo *</label>
+                    <select name="role" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        {% for role_label in user_roles %}
+                            {% set role_value = 'admin' if role_label == 'Administrador' else 'engineer' %}
+                            <option value="{{ role_value }}"
+                                {% if user and user.role == role_value %}selected{% endif %}>
+                                {{ role_label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Key -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Chave *</label>
+                    <input type="text" name="key" required
+                        value="{{ user.key if user else '' }}"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <!-- Phone -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+                    <input type="text" name="phone" placeholder="(XX) 9XXXX-XXXX"
+                        value="{{ user.phone if user else '' }}"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <!-- Status -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select name="status" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        {% for s in user_status %}
+                            <option value="{{ s }}" {% if user and user.status == s %}selected{% elif not user and s == 'Ativo' %}selected{% endif %}>{{ s }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-5">
+            <h2 class="text-base font-semibold text-gray-700 pb-3 border-b border-gray-100">Dados Profissionais</h2>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <!-- Supervision -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Supervisão</label>
+                    <select name="supervision" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">— Selecione —</option>
+                        {% for s in supervision_types %}
+                            <option value="{{ s }}" {% if user and user.supervision == s %}selected{% endif %}>{{ s }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Function -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Função</label>
+                    <input type="text" name="function"
+                        value="{{ user.function if user else '' }}"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <!-- Company -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Empresa</label>
+                    <select name="company" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">— Selecione —</option>
+                        {% for c in companies %}
+                            <option value="{{ c }}" {% if user and user.company == c %}selected{% endif %}>{{ c }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- State -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                    <select name="state" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">— Selecione —</option>
+                        {% for st in states %}
+                            <option value="{{ st }}" {% if user and user.state == st %}selected{% endif %}>{{ st }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Measurement criteria -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Critério de Medição</label>
+                    <select name="measurement_criteria" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">— Selecione —</option>
+                        {% for m in measurement_criteria %}
+                            <option value="{{ m }}" {% if user and user.measurement_criteria == m %}selected{% endif %}>{{ m }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Birth date -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Data de Nascimento</label>
+                    <input type="date" name="birth_date"
+                        value="{{ user.birth_date.strftime('%Y-%m-%d') if user and user.birth_date else '' }}"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <!-- Start appointment date -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Data de Início de Apontamento</label>
+                    <input type="date" name="start_appointment_date"
+                        value="{{ user.start_appointment_date.strftime('%Y-%m-%d') if user and user.start_appointment_date else '' }}"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="flex items-center gap-3">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors">
+                Salvar
+            </button>
+            <a href="{{ url_for('admin.usuarios_index') }}" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium px-6 py-2.5 rounded-lg transition-colors">
+                Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}
