@@ -10,7 +10,7 @@ api_bp = Blueprint('api', __name__)
 @login_required
 def get_projects():
     """Return a JSON list of the current user's projects."""
-    projects = ProjectService.get_user_projects(current_user.id)
+    projects = ProjectService.get_user_projects(current_user.id, include_all=(current_user.role == 'admin'))
     return jsonify([{
         'id': p.id,
         'name': p.name,
@@ -26,7 +26,7 @@ def get_project(project_id: int):
     project = ProjectService.get_project(project_id)
     if not project:
         return jsonify({'error': 'Project not found'}), 404
-    if project.owner_id != current_user.id:
+    if current_user.role != 'admin' and project.owner_id != current_user.id:
         return jsonify({'error': 'Forbidden'}), 403
     return jsonify({
         'id': project.id,

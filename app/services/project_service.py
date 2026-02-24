@@ -9,8 +9,10 @@ class ProjectService:
     """Service class for project operations."""
 
     @staticmethod
-    def get_user_projects(user_id: int) -> List[Project]:
-        """Return all projects owned by a user."""
+    def get_user_projects(user_id: int, include_all: bool = False) -> List[Project]:
+        """Return projects owned by a user, or all projects if include_all is True."""
+        if include_all:
+            return Project.query.all()
         return Project.query.filter_by(owner_id=user_id).all()
 
     @staticmethod
