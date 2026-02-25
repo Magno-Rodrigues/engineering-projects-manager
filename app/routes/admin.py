@@ -15,6 +15,11 @@ DEFAULT_PERMISSIONS = {
     'can_edit_tasks': False,
     'can_view_reports': False,
     'can_manage_users': False,
+    'can_view_apontamentos': False,
+    'can_create_apontamentos': False,
+    'can_edit_apontamentos': False,
+    'can_delete_apontamentos': False,
+    'can_manage_cycles': False,
 }
 
 
@@ -156,6 +161,11 @@ def usuarios_permissoes(user_id: int):
             'can_edit_tasks': 'can_edit_tasks' in request.form,
             'can_view_reports': 'can_view_reports' in request.form,
             'can_manage_users': 'can_manage_users' in request.form,
+            'can_view_apontamentos': 'can_view_apontamentos' in request.form,
+            'can_create_apontamentos': 'can_create_apontamentos' in request.form,
+            'can_edit_apontamentos': 'can_edit_apontamentos' in request.form,
+            'can_delete_apontamentos': 'can_delete_apontamentos' in request.form,
+            'can_manage_cycles': 'can_manage_cycles' in request.form,
         }
         updated, error = AdminService.update_permissions(user_id, permissions, admin_id=current_user.id)
         if updated:
