@@ -83,6 +83,75 @@
     {% endif %}
 </div>
 
+<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-8">
+    <h2 class="text-base font-semibold text-gray-700 mb-4">Módulos Disponíveis</h2>
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        {% for module in available_modules %}
+        {% if module.has_access %}
+        <a href="{{ module.url }}"
+           class="group flex flex-col items-center gap-2 rounded-xl p-4 border border-gray-200 hover:shadow-md transition-all
+                  {% if module.color == 'blue' %}bg-blue-50 hover:bg-blue-100 border-blue-200
+                  {% elif module.color == 'amber' %}bg-amber-50 hover:bg-amber-100 border-amber-200
+                  {% elif module.color == 'emerald' %}bg-emerald-50 hover:bg-emerald-100 border-emerald-200
+                  {% elif module.color == 'purple' %}bg-purple-50 hover:bg-purple-100 border-purple-200
+                  {% elif module.color == 'rose' %}bg-rose-50 hover:bg-rose-100 border-rose-200
+                  {% else %}bg-gray-50 hover:bg-gray-100 border-gray-200{% endif %}">
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center
+                        {% if module.color == 'blue' %}bg-blue-100 group-hover:bg-blue-200
+                        {% elif module.color == 'amber' %}bg-amber-100 group-hover:bg-amber-200
+                        {% elif module.color == 'emerald' %}bg-emerald-100 group-hover:bg-emerald-200
+                        {% elif module.color == 'purple' %}bg-purple-100 group-hover:bg-purple-200
+                        {% elif module.color == 'rose' %}bg-rose-100 group-hover:bg-rose-200
+                        {% else %}bg-gray-200 group-hover:bg-gray-300{% endif %} transition-colors">
+                {% if module.icon == 'folder' %}
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 {% if module.color == 'blue' %}text-blue-600{% elif module.color == 'amber' %}text-amber-600{% elif module.color == 'emerald' %}text-emerald-600{% elif module.color == 'purple' %}text-purple-600{% elif module.color == 'rose' %}text-rose-600{% else %}text-gray-600{% endif %}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                </svg>
+                {% elif module.icon == 'clipboard' %}
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 {% if module.color == 'amber' %}text-amber-600{% else %}text-gray-600{% endif %}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                {% elif module.icon == 'chart' %}
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 {% if module.color == 'emerald' %}text-emerald-600{% else %}text-gray-600{% endif %}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                {% elif module.icon == 'clock' %}
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 {% if module.color == 'purple' %}text-purple-600{% else %}text-gray-600{% endif %}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {% elif module.icon == 'book' %}
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 {% if module.color == 'rose' %}text-rose-600{% else %}text-gray-600{% endif %}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+                {% elif module.icon == 'cog' %}
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                {% endif %}
+            </div>
+            <div class="text-center">
+                <p class="text-sm font-semibold text-gray-900">{{ module.label }}</p>
+                <p class="text-xs text-gray-500 mt-0.5">{{ module.description }}</p>
+            </div>
+        </a>
+        {% else %}
+        <div class="flex flex-col items-center gap-2 rounded-xl p-4 border border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed pointer-events-none" title="Sem permissão">
+            <div class="w-10 h-10 rounded-lg bg-gray-200 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+            </div>
+            <div class="text-center">
+                <p class="text-sm font-semibold text-gray-400">{{ module.label }}</p>
+                <p class="text-xs text-gray-400 mt-0.5">Sem permissão</p>
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+</div>
+
 {% if recent_projects %}
 <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
     <h2 class="text-base font-semibold text-gray-700 mb-4">Projetos Recentes</h2>
