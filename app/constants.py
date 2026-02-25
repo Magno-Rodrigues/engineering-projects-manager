@@ -76,6 +76,42 @@ USER_ROLES = [
     'Usuário',
 ]
 
+# Module names for the access control system
+VALID_MODULES = ['projects', 'tasks', 'reports', 'apontamentos', 'pmbok', 'admin']
+
+# Functions available per module
+MODULE_FUNCTIONS = {
+    'projects': ['view', 'create', 'edit', 'delete'],
+    'tasks': ['view', 'create', 'edit', 'delete'],
+    'reports': ['view', 'create', 'edit', 'delete', 'export'],
+    'apontamentos': ['view', 'create', 'edit', 'delete', 'manage_cycles'],
+    'pmbok': ['view', 'create', 'edit', 'delete'],
+    'admin': ['manage_users', 'manage_permissions', 'manage_config'],
+}
+
+# Human-readable labels for module names
+MODULE_DISPLAY_NAMES = {
+    'projects': 'Projetos',
+    'tasks': 'Tarefas',
+    'reports': 'Relatórios',
+    'apontamentos': 'Apontamentos',
+    'pmbok': 'PMBOK',
+    'admin': 'Administração',
+}
+
+# Human-readable labels for function names
+FUNCTION_DISPLAY_NAMES = {
+    'view': 'Visualizar',
+    'create': 'Criar',
+    'edit': 'Editar',
+    'delete': 'Excluir',
+    'export': 'Exportar',
+    'manage_cycles': 'Gerenciar Ciclos',
+    'manage_users': 'Gerenciar Usuários',
+    'manage_permissions': 'Gerenciar Permissões',
+    'manage_config': 'Gerenciar Configurações',
+}
+
 PROJECT_STATUS = ['planning', 'in_progress', 'on_hold', 'completed', 'cancelled']
 
 PROJECT_PRIORITY = ['low', 'medium', 'high', 'critical']
