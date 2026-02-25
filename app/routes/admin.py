@@ -3,9 +3,11 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_required, current_user
 from app.utils.decorators import admin_required
 from app.services.admin_service import AdminService
+from app.services.permission_service import PermissionService
 from app.constants import (
     SUPERVISION_TYPES, COMPANIES, STATES,
     MEASUREMENT_CRITERIA, USER_STATUS, USER_ROLES,
+    VALID_MODULES, MODULE_FUNCTIONS, MODULES_METADATA,
 )
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
@@ -57,6 +59,13 @@ def usuarios_novo():
     if request.method == 'POST':
         user, error = AdminService.create_user(request.form.to_dict(), admin_id=current_user.id)
         if user:
+            # Initialize function permissions for admin users (all non-admin modules)
+            if user.role == 'admin':
+                for module in VALID_MODULES:
+                    if module != 'admin':
+                        PermissionService.set_module_function_permissions(
+                            user.id, module, MODULE_FUNCTIONS[module], granted_by_id=current_user.id
+                        )
             # Send welcome email to the new user and notification email to the admin
             from app.services.email_service import (
                 generate_reset_token,
@@ -156,25 +165,24 @@ def usuarios_permissoes(user_id: int):
         flash('Usuário não encontrado.', 'error')
         return redirect(url_for('admin.usuarios_index'))
     if request.method == 'POST':
-        permissions = {
-            'can_edit_projects': 'can_edit_projects' in request.form,
-            'can_edit_tasks': 'can_edit_tasks' in request.form,
-            'can_view_reports': 'can_view_reports' in request.form,
-            'can_manage_users': 'can_manage_users' in request.form,
-            'can_view_apontamentos': 'can_view_apontamentos' in request.form,
-            'can_create_apontamentos': 'can_create_apontamentos' in request.form,
-            'can_edit_apontamentos': 'can_edit_apontamentos' in request.form,
-            'can_delete_apontamentos': 'can_delete_apontamentos' in request.form,
-            'can_manage_cycles': 'can_manage_cycles' in request.form,
-        }
-        updated, error = AdminService.update_permissions(user_id, permissions, admin_id=current_user.id)
-        if updated:
-            flash('Permissões atualizadas com sucesso.', 'success')
-            return redirect(url_for('admin.usuarios_index'))
-        flash(error, 'error')
-    current_permissions = user.permissions or DEFAULT_PERMISSIONS.copy()
+        for module_name in VALID_MODULES:
+            granted = MODULE_FUNCTIONS[module_name] if module_name in request.form else []
+            PermissionService.set_module_function_permissions(
+                user_id=user_id,
+                module_name=module_name,
+                granted_functions=granted,
+                granted_by_id=current_user.id,
+            )
+        flash('Permissões atualizadas com sucesso.', 'success')
+        return redirect(url_for('admin.usuarios_index'))
+
+    def user_has_module_access(uid, module_name):
+        return PermissionService.has_module_access_via_functions(uid, module_name)
+
     return render_template(
         'admin/usuarios/permissoes.html',
         user=user,
-        permissions=current_permissions,
+        VALID_MODULES=VALID_MODULES,
+        MODULES_METADATA=MODULES_METADATA,
+        user_has_module_access=user_has_module_access,
     )
