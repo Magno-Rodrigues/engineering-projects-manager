@@ -48,7 +48,8 @@ COMPANIES = [
     'Arcadis',
     'Worley',
     'Hatch',
-    'SNC-Lavalin',
+    'SNC-Lavalin'
+    'CMRDA',
 ]
 
 STATES = [
