@@ -99,6 +99,52 @@ MODULE_DISPLAY_NAMES = {
     'admin': 'Administração',
 }
 
+# Metadata for each module (used in dashboard module grid)
+MODULES_METADATA = {
+    'projects': {
+        'label': 'Projetos',
+        'description': 'Gerencie seus projetos',
+        'color': 'blue',
+        'route_name': 'projects.index',
+        'icon': 'folder',
+    },
+    'tasks': {
+        'label': 'Tarefas',
+        'description': 'Gerencie suas tarefas',
+        'color': 'amber',
+        'route_name': 'projects.index',
+        'icon': 'clipboard',
+    },
+    'reports': {
+        'label': 'Relatórios',
+        'description': 'Relatórios e análises',
+        'color': 'emerald',
+        'route_name': 'projects.index',
+        'icon': 'chart',
+    },
+    'apontamentos': {
+        'label': 'Apontamentos',
+        'description': 'Registro de apontamentos',
+        'color': 'purple',
+        'route_name': 'timeentry.index',
+        'icon': 'clock',
+    },
+    'pmbok': {
+        'label': 'PMBOK',
+        'description': 'Guia PMBOK',
+        'color': 'rose',
+        'route_name': 'projects.index',
+        'icon': 'book',
+    },
+    'admin': {
+        'label': 'Administração',
+        'description': 'Painel administrativo',
+        'color': 'gray',
+        'route_name': 'admin.dashboard',
+        'icon': 'cog',
+    },
+}
+
 # Human-readable labels for function names
 FUNCTION_DISPLAY_NAMES = {
     'view': 'Visualizar',

@@ -2,6 +2,8 @@
 from datetime import datetime
 from flask import Blueprint, redirect, url_for, render_template
 from flask_login import current_user, login_required
+from app.constants import VALID_MODULES, MODULES_METADATA
+from app.services.permission_service import PermissionService
 
 main_bp = Blueprint('main', __name__)
 
@@ -39,10 +41,37 @@ def dashboard():
     recent_projects = Project.query.order_by(Project.created_at.desc()).limit(5).all()
     pending_tasks = Task.query.filter_by(status='pending').count()
 
+    is_admin = current_user.role == 'admin'
+    available_modules = []
+    for module_name in VALID_MODULES:
+        if module_name == 'admin' and not is_admin:
+            continue
+        meta = MODULES_METADATA.get(module_name, {})
+        if is_admin:
+            has_access = True
+        else:
+            has_access = PermissionService.has_module_access_via_functions(current_user.id, module_name)
+        route_url = None
+        if has_access:
+            try:
+                route_url = url_for(meta.get('route_name', ''))
+            except Exception:
+                route_url = '#'
+        available_modules.append({
+            'name': module_name,
+            'label': meta.get('label', module_name.capitalize()),
+            'description': meta.get('description', ''),
+            'color': meta.get('color', 'gray'),
+            'icon': meta.get('icon', 'folder'),
+            'has_access': has_access,
+            'url': route_url,
+        })
+
     return render_template(
         'dashboard.html',
         greeting=greeting,
         formatted_date=formatted_date,
         recent_projects=recent_projects,
         pending_tasks=pending_tasks,
+        available_modules=available_modules,
     )
