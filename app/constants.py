@@ -37,7 +37,7 @@ SUPERVISION_TYPES = [
     'Qualidade',
     'Segurança',
     'TI',
-    'Administrativo'
+    'Administrativo',
     'Planejamento',
 ]
 
@@ -49,7 +49,7 @@ COMPANIES = [
     'Arcadis',
     'Worley',
     'Hatch',
-    'SNC-Lavalin'
+    'SNC-Lavalin',
     'CMRDA',
 ]
 
