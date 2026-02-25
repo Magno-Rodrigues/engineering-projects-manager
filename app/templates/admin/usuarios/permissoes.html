@@ -48,6 +48,43 @@
                                 {% if permissions.get('can_manage_users') %}checked{% endif %}>
                         </td>
                     </tr>
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 text-gray-700">Ver Apontamentos</td>
+                        <td class="px-6 py-4 text-center">
+                            <input type="checkbox" name="can_view_apontamentos" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                {% if permissions.get('can_view_apontamentos') %}checked{% endif %}>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 text-gray-700">Criar Apontamentos</td>
+                        <td class="px-6 py-4 text-center">
+                            <input type="checkbox" name="can_create_apontamentos" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                {% if permissions.get('can_create_apontamentos') %}checked{% endif %}>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 text-gray-700">Editar Apontamentos</td>
+                        <td class="px-6 py-4 text-center">
+                            <input type="checkbox" name="can_edit_apontamentos" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                {% if permissions.get('can_edit_apontamentos') %}checked{% endif %}>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 text-gray-700">Deletar Apontamentos</td>
+                        <td class="px-6 py-4 text-center">
+                            <input type="checkbox" name="can_delete_apontamentos" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                {% if permissions.get('can_delete_apontamentos') %}checked{% endif %}>
+                        </td>
+                    </tr>
+                    {% if user.role == 'admin' %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 text-gray-700">Gerenciar Ciclos</td>
+                        <td class="px-6 py-4 text-center">
+                            <input type="checkbox" name="can_manage_cycles" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                {% if permissions.get('can_manage_cycles') %}checked{% endif %}>
+                        </td>
+                    </tr>
+                    {% endif %}
                 </tbody>
             </table>
         </div>
