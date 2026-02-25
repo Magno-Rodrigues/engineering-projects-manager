@@ -28,6 +28,13 @@ def _parse_int(value):
         return None
 
 
+def _normalize_hours(hours_str):
+    """Normalize hours from HH:MM to HH:MM:SS by appending :00 if seconds are missing."""
+    if hours_str and len(hours_str) == 5 and hours_str[2] == ':':
+        return hours_str + ':00'
+    return hours_str
+
+
 # ── Measurement Cycle routes (admin only) ─────────────────────────────────────
 
 @timeentry_bp.route('/ciclos/')
@@ -141,7 +148,7 @@ def create():
             user_id=current_user.id,
             main_activity=request.form.get('main_activity'),
             work_date=work_date,
-            hours_worked=request.form.get('hours_worked'),
+            hours_worked=_normalize_hours(request.form.get('hours_worked')),
             hour_type=request.form.get('hour_type'),
             discipline=request.form.get('discipline'),
             sub_activity=request.form.get('sub_activity'),
@@ -179,6 +186,14 @@ def edit(entry_id: int):
     projects = ProjectService.get_user_projects(current_user.id, include_all=is_admin)
     active_cycle = TimeEntryService.get_active_cycle()
 
+    # Block non-admin from editing entries whose work_date is outside the active cycle
+    if not is_admin and (
+        not active_cycle or
+        not (active_cycle.start_date <= entry.work_date <= active_cycle.end_date)
+    ):
+        flash('Apenas o administrador pode editar apontamentos de ciclos anteriores.', 'error')
+        return redirect(url_for('timeentry.index'))
+
     if request.method == 'POST':
         work_date = _parse_date(request.form.get('work_date'))
         data = {
@@ -187,7 +202,7 @@ def edit(entry_id: int):
             'main_activity': request.form.get('main_activity'),
             'sub_activity': request.form.get('sub_activity'),
             'work_date': work_date,
-            'hours_worked': request.form.get('hours_worked'),
+            'hours_worked': _normalize_hours(request.form.get('hours_worked')),
             'hour_type': request.form.get('hour_type'),
             'observation': request.form.get('observation'),
         }

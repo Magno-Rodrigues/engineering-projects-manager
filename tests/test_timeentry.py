@@ -285,3 +285,81 @@ class TestTimeEntryService:
         assert TimeEntry.is_valid_hours('8:00') is False
         assert TimeEntry.is_valid_hours('abc') is False
         assert TimeEntry.is_valid_hours(None) is False
+
+    def test_update_entry_regular_user_work_date_outside_cycle(self, app, db, regular_user, test_project, active_cycle):
+        """Regular user cannot update an entry whose work_date is outside the active cycle."""
+        with app.app_context():
+            # Entry has a work_date before the active cycle (2026-02-01 to 2026-02-28)
+            entry = TimeEntry(
+                project_id=test_project.id,
+                user_id=regular_user.id,
+                main_activity='Old work',
+                work_date=date(2026, 1, 15),
+                hours_worked='04:00:00',
+                hour_type='Normal',
+                measurement_cycle_id=None,
+            )
+            db.session.add(entry)
+            db.session.commit()
+
+            updated, error = TimeEntryService.update_time_entry(
+                entry_id=entry.id,
+                data={'main_activity': 'Updated work'},
+                is_admin=False,
+                current_user_id=regular_user.id,
+            )
+            assert updated is None
+            assert error is not None
+            db.session.delete(entry)
+            db.session.commit()
+
+    def test_update_entry_admin_work_date_outside_cycle(self, app, db, admin_user, test_project, active_cycle):
+        """Admin can update an entry whose work_date is outside the active cycle."""
+        with app.app_context():
+            entry = TimeEntry(
+                project_id=test_project.id,
+                user_id=admin_user.id,
+                main_activity='Old work',
+                work_date=date(2026, 1, 15),
+                hours_worked='04:00:00',
+                hour_type='Normal',
+                measurement_cycle_id=None,
+            )
+            db.session.add(entry)
+            db.session.commit()
+
+            updated, error = TimeEntryService.update_time_entry(
+                entry_id=entry.id,
+                data={'main_activity': 'Updated by admin'},
+                is_admin=True,
+                current_user_id=admin_user.id,
+            )
+            assert updated is not None
+            assert error is None
+            db.session.delete(entry)
+            db.session.commit()
+
+    def test_delete_entry_regular_user_work_date_outside_cycle(self, app, db, regular_user, test_project, active_cycle):
+        """Regular user cannot delete an entry whose work_date is outside the active cycle."""
+        with app.app_context():
+            entry = TimeEntry(
+                project_id=test_project.id,
+                user_id=regular_user.id,
+                main_activity='Old work',
+                work_date=date(2026, 1, 15),
+                hours_worked='04:00:00',
+                hour_type='Normal',
+                measurement_cycle_id=None,
+            )
+            db.session.add(entry)
+            db.session.commit()
+
+            success, error = TimeEntryService.delete_time_entry(
+                entry_id=entry.id,
+                is_admin=False,
+                current_user_id=regular_user.id,
+            )
+            assert success is False
+            assert error is not None
+            db.session.delete(entry)
+            db.session.commit()
