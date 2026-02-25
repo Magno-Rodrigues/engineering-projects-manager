@@ -192,7 +192,7 @@ class TestAdminUserCRUD:
         assert deleted is None
 
     def test_admin_can_update_permissions(self, client, app, db):
-        """Admin can update a user's permissions."""
+        """Admin can update a user's module permissions."""
         _create_admin(db, 'adm_perm', 'adm_perm@example.com')
         client.post('/login', data={'username': 'adm_perm', 'password': 'adminpass'})
         # Create target user
@@ -210,15 +210,15 @@ class TestAdminUserCRUD:
         user_id = target.id
 
         response = client.post(f'/admin/usuarios/{user_id}/permissoes', data={
-            'can_edit_projects': 'on',
-            'can_view_reports': 'on',
+            'projects': 'on',
+            'reports': 'on',
         })
         assert response.status_code == 302
-        db.session.expire_all()
-        updated = db.session.get(User, user_id)
-        assert updated.permissions is not None
-        assert updated.permissions.get('can_edit_projects') is True
-        assert updated.permissions.get('can_edit_tasks') is False
+        with app.app_context():
+            from app.services.permission_service import PermissionService
+            assert PermissionService.has_module_access_via_functions(user_id, 'projects') is True
+            assert PermissionService.has_module_access_via_functions(user_id, 'reports') is True
+            assert PermissionService.has_module_access_via_functions(user_id, 'tasks') is False
 
 
 class TestAdminServiceValidation:
