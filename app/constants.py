@@ -37,7 +37,8 @@ SUPERVISION_TYPES = [
     'Qualidade',
     'Segurança',
     'TI',
-    'Administrativo',
+    'Administrativo'
+    'Planejamento',
 ]
 
 COMPANIES = [
