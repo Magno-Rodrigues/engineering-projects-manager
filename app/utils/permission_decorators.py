@@ -62,6 +62,37 @@ def action_required(module_name: str, action: str) -> Callable:
     return decorator
 
 
+def require_permission(module_name: str, function_name: str) -> Callable:
+    """Decorator to require a specific named function permission on a module.
+
+    Admins bypass this check entirely. Regular users must have a
+    FunctionPermission record with has_permission=True for the given
+    module and function.
+
+    Args:
+        module_name: The module identifier (e.g., 'apontamentos').
+        function_name: The function name (e.g., 'view', 'create', 'manage_cycles').
+
+    Example:
+        @require_permission('apontamentos', 'view')
+        def view_apontamentos():
+            ...
+    """
+    def decorator(f: Callable) -> Callable:
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if not current_user.is_authenticated:
+                abort(403)
+            if current_user.role == 'admin':
+                return f(*args, **kwargs)
+            from app.services.permission_service import PermissionService
+            if not PermissionService.has_function_permission(current_user.id, module_name, function_name):
+                abort(403)
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+
 def admin_or_owner_required(get_object_fn: Callable, id_kwarg: str = 'project_id') -> Callable:
     """Decorator to restrict access to admins or resource owners.
 

@@ -1,0 +1,91 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Usuários – Controle de Acesso{% endblock %}
+{% block page_title %}Controle de Acesso por Módulo{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <div class="flex items-center justify-between">
+        <p class="text-sm text-gray-500">Gerencie as permissões de módulo e funcionalidade para cada usuário.</p>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 border-b border-gray-100">
+                    <tr>
+                        <th class="px-6 py-3 text-left font-medium text-gray-600">Usuário</th>
+                        {% for module in modules %}
+                        <th class="px-4 py-3 text-center font-medium text-gray-600">
+                            {{ module_display_names.get(module, module) }}
+                        </th>
+                        {% endfor %}
+                        <th class="px-6 py-3 text-center font-medium text-gray-600">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for user in users %}
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-4">
+                            <p class="font-medium text-gray-800">{{ user.full_name or user.username }}</p>
+                            <p class="text-xs text-gray-400">{{ user.username }}</p>
+                            {% if user.role == 'admin' %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">Admin</span>
+                            {% endif %}
+                        </td>
+                        {% for module in modules %}
+                        <td class="px-4 py-4 text-center">
+                            {% if user.role == 'admin' %}
+                                <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-purple-100 text-purple-600" title="Admin – acesso total">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </span>
+                            {% else %}
+                                {% set ns = namespace(has_access=false) %}
+                                {% for fp in user.function_permissions %}
+                                    {% if fp.module_name == module and fp.has_permission %}
+                                        {% set ns.has_access = true %}
+                                    {% endif %}
+                                {% endfor %}
+                                {% if ns.has_access %}
+                                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 text-green-600">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gray-100 text-gray-400">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </span>
+                                {% endif %}
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                        <td class="px-6 py-4 text-center">
+                            {% if user.role != 'admin' %}
+                            <a href="{{ url_for('admin_users.user_permissions', user_id=user.id) }}"
+                               class="text-blue-600 hover:text-blue-800 text-xs font-medium px-3 py-1.5 rounded border border-blue-200 hover:bg-blue-50 transition-colors">
+                                Editar Permissões
+                            </a>
+                            {% else %}
+                            <span class="text-xs text-gray-400 italic">Acesso total</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="{{ modules|length + 2 }}" class="px-6 py-10 text-center text-gray-400 text-sm">
+                            Nenhum usuário encontrado.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

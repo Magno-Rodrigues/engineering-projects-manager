@@ -1,0 +1,148 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Permissões – {{ user.full_name or user.username }}{% endblock %}
+{% block page_title %}Permissões de {{ user.full_name or user.username }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl space-y-6">
+
+    <div class="flex items-center gap-3">
+        <a href="{{ url_for('admin_users.list_users') }}"
+           class="text-sm text-gray-500 hover:text-gray-800 flex items-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            Voltar à lista
+        </a>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+        <div class="flex items-center gap-4">
+            <span class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-600 text-white font-bold text-lg flex-shrink-0">
+                {{ (user.full_name or user.username)[0]|upper }}
+            </span>
+            <div>
+                <p class="font-semibold text-gray-800 text-base">{{ user.full_name or user.username }}</p>
+                <p class="text-sm text-gray-500">{{ user.email }}</p>
+                <p class="text-xs text-gray-400 mt-0.5">{{ user.role }}</p>
+            </div>
+        </div>
+        <p class="text-sm text-gray-500 mt-3">
+            Defina abaixo quais módulos e funcionalidades este usuário pode acessar.
+            Novos usuários não têm permissões por padrão.
+        </p>
+    </div>
+
+    <form method="post">
+        <!-- Tab navigation -->
+        <div class="border-b border-gray-200 mb-0" id="module-tabs">
+            <nav class="-mb-px flex space-x-1 overflow-x-auto" aria-label="Módulos">
+                {% for module in modules %}
+                <button type="button"
+                        data-tab="{{ module }}"
+                        onclick="showTab('{{ module }}')"
+                        class="tab-btn whitespace-nowrap py-3 px-4 text-sm font-medium border-b-2 transition-colors
+                               {% if loop.first %}border-blue-500 text-blue-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %}">
+                    {{ module_display_names.get(module, module) }}
+                    {% set ns = namespace(count=0) %}
+                    {% for fn in module_functions.get(module, []) %}
+                        {% if perm_map.get(module, {}).get(fn) %}{% set ns.count = ns.count + 1 %}{% endif %}
+                    {% endfor %}
+                    {% if ns.count > 0 %}
+                    <span class="ml-1.5 inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                        {{ ns.count }}
+                    </span>
+                    {% endif %}
+                </button>
+                {% endfor %}
+            </nav>
+        </div>
+
+        <!-- Tab panels -->
+        {% for module in modules %}
+        <div id="tab-{{ module }}"
+             class="tab-panel bg-white rounded-b-xl border border-t-0 border-gray-200 shadow-sm
+                    {% if not loop.first %}hidden{% endif %}">
+            <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                <div>
+                    <h3 class="font-semibold text-gray-700">{{ module_display_names.get(module, module) }}</h3>
+                    <p class="text-xs text-gray-400 mt-0.5">Selecione as funcionalidades permitidas para este módulo.</p>
+                </div>
+                <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-600">
+                    <input type="checkbox"
+                           class="module-select-all rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                           data-module="{{ module }}"
+                           onchange="toggleModule('{{ module }}', this.checked)"
+                           {% set ns = namespace(all_checked=true, any_fn=false) %}
+                           {% for fn in module_functions.get(module, []) %}
+                               {% set ns.any_fn = true %}
+                               {% if not perm_map.get(module, {}).get(fn) %}{% set ns.all_checked = false %}{% endif %}
+                           {% endfor %}
+                           {% if ns.any_fn and ns.all_checked %}checked{% endif %}>
+                    Selecionar todos
+                </label>
+            </div>
+            <div class="divide-y divide-gray-100">
+                {% for fn in module_functions.get(module, []) %}
+                <label class="flex items-center gap-4 px-6 py-3.5 hover:bg-gray-50 cursor-pointer">
+                    <input type="checkbox"
+                           name="{{ module }}__{{ fn }}"
+                           class="fn-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                           data-module="{{ module }}"
+                           {% if perm_map.get(module, {}).get(fn) %}checked{% endif %}>
+                    <div>
+                        <p class="text-sm font-medium text-gray-700">{{ function_display_names.get(fn, fn) }}</p>
+                        <p class="text-xs text-gray-400">{{ module }}.{{ fn }}</p>
+                    </div>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+
+        <div class="flex items-center gap-3 mt-6">
+            <button type="submit"
+                    class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors">
+                Salvar Permissões
+            </button>
+            <a href="{{ url_for('admin_users.list_users') }}"
+               class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium px-6 py-2.5 rounded-lg transition-colors">
+                Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+function showTab(module) {
+    document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.add('hidden'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b) {
+        b.classList.remove('border-blue-500', 'text-blue-600');
+        b.classList.add('border-transparent', 'text-gray-500');
+    });
+    document.getElementById('tab-' + module).classList.remove('hidden');
+    var btn = document.querySelector('[data-tab="' + module + '"]');
+    if (btn) {
+        btn.classList.remove('border-transparent', 'text-gray-500');
+        btn.classList.add('border-blue-500', 'text-blue-600');
+    }
+}
+
+function toggleModule(module, checked) {
+    document.querySelectorAll('.fn-checkbox[data-module="' + module + '"]').forEach(function(cb) {
+        cb.checked = checked;
+    });
+}
+
+// Keep "select all" checkbox in sync with individual checkboxes
+document.querySelectorAll('.fn-checkbox').forEach(function(cb) {
+    cb.addEventListener('change', function() {
+        var module = this.dataset.module;
+        var all = document.querySelectorAll('.fn-checkbox[data-module="' + module + '"]');
+        var checked = Array.from(all).every(function(c) { return c.checked; });
+        var selectAll = document.querySelector('.module-select-all[data-module="' + module + '"]');
+        if (selectAll) { selectAll.checked = checked; }
+    });
+});
+</script>
+{% endblock %}
