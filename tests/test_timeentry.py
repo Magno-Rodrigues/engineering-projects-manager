@@ -5,6 +5,7 @@ from app.models.time_entry import MeasurementCycle, TimeEntry
 from app.models.user import User
 from app.models.project import Project
 from app.services.timeentry_service import TimeEntryService
+from app import db as _db
 
 
 @pytest.fixture(scope='function')
@@ -363,3 +364,63 @@ class TestTimeEntryService:
             assert error is not None
             db.session.delete(entry)
             db.session.commit()
+
+
+class TestTimeEntryCreateRoute:
+    """Tests for the /apontamentos/new route (project dropdown population)."""
+
+    @pytest.fixture(scope='function')
+    def route_user(self, app, db):
+        """Create a regular user for route tests."""
+        with app.app_context():
+            user = User(username='route_user_te', email='route_te@example.com', role='engineer')
+            user.set_password('password')
+            _db.session.add(user)
+            _db.session.commit()
+            user_id = user.id
+        yield user_id
+        with app.app_context():
+            u = _db.session.get(User, user_id)
+            if u:
+                _db.session.delete(u)
+                _db.session.commit()
+
+    @pytest.fixture(scope='function')
+    def logged_in_client(self, app, db, route_user):
+        """Return an authenticated test client for route_user."""
+        with app.test_client() as c:
+            c.post('/login', data={'username': 'route_user_te', 'password': 'password'})
+            yield c
+
+    def test_create_page_requires_auth(self, client):
+        """GET /apontamentos/new redirects unauthenticated users."""
+        response = client.get('/apontamentos/new')
+        assert response.status_code == 302
+
+    def test_create_page_returns_200(self, logged_in_client):
+        """GET /apontamentos/new returns 200 for authenticated users."""
+        response = logged_in_client.get('/apontamentos/new')
+        assert response.status_code == 200
+
+    def test_create_page_includes_user_project_in_dropdown(self, app, db, route_user, logged_in_client):
+        """GET /apontamentos/new includes the user's project in the dropdown HTML."""
+        with app.app_context():
+            project = Project(name='My Route Project', owner_id=route_user)
+            _db.session.add(project)
+            _db.session.commit()
+            project_id = project.id
+
+        response = logged_in_client.get('/apontamentos/new')
+        assert response.status_code == 200
+        assert b'My Route Project' in response.data
+
+        with app.app_context():
+            p = _db.session.get(Project, project_id)
+            if p:
+                _db.session.delete(p)
+                _db.session.commit()
+
+    def test_create_page_dropdown_has_default_option(self, logged_in_client):
+        """GET /apontamentos/new contains the default placeholder option."""
+        response = logged_in_client.get('/apontamentos/new')
+        assert b'Selecione um projeto' in response.data
