@@ -191,35 +191,34 @@ class TestDisabledButtonsUI:
             del g._login_user
 
     def test_dashboard_shows_disabled_button_without_create_permission(self, client, app, db):
-        """User without projects.create sees disabled card on dashboard."""
+        """User without module access sees disabled module card on dashboard."""
         with app.app_context():
             _create_user(db, 'btn_user1', 'btn_user1@example.com')
         client.post('/login', data={'username': 'btn_user1', 'password': 'userpass'})
         response = client.get('/dashboard')
         assert response.status_code == 200
         html = response.data.decode()
-        # Disabled card should be present (no href to projects.create)
+        # Disabled module cards should be present
         assert 'cursor-not-allowed' in html
-        assert 'Sem permissão para criar projetos' in html
 
     def test_dashboard_shows_enabled_button_for_admin(self, client, app, db):
-        """Admin user sees enabled Novo Projeto link on dashboard."""
+        """Admin user sees enabled module links on dashboard."""
         with app.app_context():
             _create_admin(db, 'btn_admin1', 'btn_admin1@example.com')
         client.post('/login', data={'username': 'btn_admin1', 'password': 'adminpass'})
         response = client.get('/dashboard')
         assert response.status_code == 200
         html = response.data.decode()
-        assert '/projects/new' in html
+        assert '/projects/' in html
         assert 'cursor-not-allowed' not in html
 
     def test_dashboard_shows_enabled_button_with_create_permission(self, client, app, db):
-        """User with projects.create permission sees enabled link on dashboard."""
+        """User with projects.create permission sees enabled projects link on dashboard."""
         with app.app_context():
             user = _create_user(db, 'btn_user2', 'btn_user2@example.com')
             PermissionService.grant_module_permission(user.id, 'projects', can_create=True, can_read=True)
         client.post('/login', data={'username': 'btn_user2', 'password': 'userpass'})
-        response = client.get('/dashboard')
+        response = client.get('/projects/')
         assert response.status_code == 200
         html = response.data.decode()
         assert '/projects/new' in html

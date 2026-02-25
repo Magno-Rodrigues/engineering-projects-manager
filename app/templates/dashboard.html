@@ -27,62 +27,6 @@
     <p class="text-gray-500 mt-1 text-sm">Bem-vindo ao Sistema de Gerenciamento de Projetos de Engenharia.</p>
 </div>
 
-<div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
-    <!-- Total projects card -->
-    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex items-center gap-4">
-        <div class="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-            </svg>
-        </div>
-        <div>
-            <p class="text-2xl font-bold text-gray-900">{{ recent_projects|length }}</p>
-            <p class="text-sm text-gray-500">Projetos Recentes</p>
-        </div>
-    </div>
-
-    <!-- Pending tasks card -->
-    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex items-center gap-4">
-        <div class="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-        </div>
-        <div>
-            <p class="text-2xl font-bold text-gray-900">{{ pending_tasks }}</p>
-            <p class="text-sm text-gray-500">Tarefas Pendentes</p>
-        </div>
-    </div>
-
-    <!-- Quick link: New project -->
-    {% if user_can('projects', 'create') %}
-    <a href="{{ url_for('projects.create') }}"
-        class="group bg-white rounded-2xl border border-gray-200 hover:border-emerald-300 shadow-sm hover:shadow-md transition-all p-6 flex items-center gap-4 no-underline">
-        <div class="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-100 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-        </div>
-        <div>
-            <h2 class="font-semibold text-gray-900 group-hover:text-emerald-600 transition-colors">Novo Projeto</h2>
-            <p class="text-sm text-gray-500">Criar um novo projeto</p>
-        </div>
-    </a>
-    {% else %}
-    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex items-center gap-4 cursor-not-allowed opacity-50" title="Sem permissão para criar projetos">
-        <div class="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-        </div>
-        <div>
-            <h2 class="font-semibold text-gray-400">Novo Projeto</h2>
-            <p class="text-sm text-gray-400">Sem permissão para criar projetos</p>
-        </div>
-    </div>
-    {% endif %}
-</div>
-
 <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-8">
     <h2 class="text-base font-semibold text-gray-700 mb-4">Módulos Disponíveis</h2>
     <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -152,19 +96,5 @@
     </div>
 </div>
 
-{% if recent_projects %}
-<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-    <h2 class="text-base font-semibold text-gray-700 mb-4">Projetos Recentes</h2>
-    <ul class="divide-y divide-gray-100">
-        {% for project in recent_projects %}
-        <li class="py-3 flex items-center justify-between">
-            <span class="text-sm font-medium text-gray-800">{{ project.name }}</span>
-            <a href="{{ url_for('projects.detail', project_id=project.id) }}"
-                class="text-xs text-blue-600 hover:underline">Ver projeto →</a>
-        </li>
-        {% endfor %}
-    </ul>
-</div>
-{% endif %}
 {% endblock %}
 

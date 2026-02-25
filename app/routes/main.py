@@ -36,11 +36,6 @@ def dashboard():
     ]
     formatted_date = f'{now.day} de {months_pt[now.month - 1]} de {now.year}, {now.strftime("%H:%M")}'
 
-    from app.models.project import Project
-    from app.models.task import Task
-    recent_projects = Project.query.order_by(Project.created_at.desc()).limit(5).all()
-    pending_tasks = Task.query.filter_by(status='pending').count()
-
     is_admin = current_user.role == 'admin'
     available_modules = []
     for module_name in VALID_MODULES:
@@ -71,7 +66,15 @@ def dashboard():
         'dashboard.html',
         greeting=greeting,
         formatted_date=formatted_date,
-        recent_projects=recent_projects,
-        pending_tasks=pending_tasks,
         available_modules=available_modules,
     )
+
+
+@main_bp.route('/close-welcome', methods=['POST'])
+@login_required
+def close_welcome():
+    """Mark first login as complete."""
+    from app import db
+    current_user.first_login = False
+    db.session.commit()
+    return {'status': 'ok'}
