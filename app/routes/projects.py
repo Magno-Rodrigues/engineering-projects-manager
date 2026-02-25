@@ -32,8 +32,17 @@ def _parse_date(date_str):
 @action_required('projects', 'read')
 def index():
     """List all projects for the current user."""
+    from app.models.project import Project
+    from app.models.task import Task
     projects = ProjectService.get_user_projects(current_user.id, include_all=(current_user.role == 'admin'))
-    return render_template('projects/index.html', projects=projects)
+    recent_projects = Project.query.order_by(Project.created_at.desc()).limit(5).all()
+    pending_tasks = Task.query.filter_by(status='pending').count()
+    return render_template(
+        'projects/index.html',
+        projects=projects,
+        recent_projects=recent_projects,
+        pending_tasks=pending_tasks,
+    )
 
 
 @projects_bp.route('/new', methods=['GET', 'POST'])
