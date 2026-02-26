@@ -29,10 +29,47 @@ DEFAULT_PERMISSIONS = {
 @login_required
 @admin_required
 def dashboard():
-    """Admin dashboard."""
+    """Admin dashboard with statistics and recent data."""
     from app.models.user import User
+    from app.models.project import Project
+    from app.models.time_entry import TimeEntry
+    from datetime import datetime, timedelta
+
     total_users = User.query.count()
-    return render_template('admin/dashboard.html', total_users=total_users)
+    total_projects = Project.query.count()
+    total_time_entries = TimeEntry.query.count()
+
+    one_month_ago = datetime.utcnow() - timedelta(days=30)
+    active_users_month = User.query.filter(
+        User.last_login.isnot(None),
+        User.last_login >= one_month_ago,
+    ).count()
+
+    from sqlalchemy.orm import joinedload
+    recent_users = User.query.order_by(User.created_at.desc()).limit(5).all()
+    recent_projects = (
+        Project.query
+        .options(joinedload(Project.owner))
+        .order_by(Project.created_at.desc())
+        .limit(5).all()
+    )
+    recent_time_entries = (
+        TimeEntry.query
+        .options(joinedload(TimeEntry.project))
+        .order_by(TimeEntry.created_at.desc())
+        .limit(5).all()
+    )
+
+    return render_template(
+        'admin/dashboard.html',
+        total_users=total_users,
+        total_projects=total_projects,
+        total_time_entries=total_time_entries,
+        active_users_month=active_users_month,
+        recent_users=recent_users,
+        recent_projects=recent_projects,
+        recent_time_entries=recent_time_entries,
+    )
 
 
 @admin_bp.route('/usuarios')
