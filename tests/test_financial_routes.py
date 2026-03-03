@@ -21,7 +21,7 @@ def route_user(app, db):
 
 @pytest.fixture(scope='function')
 def route_project(app, db, route_user):
-    # route_user's with app.app_context(): is still active here, no need for another
+    # route_user with app.app_context(): is still active here, no need for another
     project = Project(name='Route Test Project', owner_id=route_user.id)
     _db.session.add(project)
     _db.session.commit()

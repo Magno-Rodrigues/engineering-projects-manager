@@ -24,7 +24,7 @@ def api_user(app, db):
 
 @pytest.fixture(scope='function')
 def api_project(app, db, api_user):
-    # api_user's with app.app_context(): is still active here, no need for another
+    # api_user with app.app_context(): is still active here, no need for another
     project = Project(name='API Test Project', owner_id=api_user.id)
     _db.session.add(project)
     _db.session.commit()
