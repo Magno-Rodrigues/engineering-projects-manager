@@ -11,6 +11,11 @@ from app.models.project_closure import ProjectClosure
 from app.models.stakeholder import Stakeholder
 from app.models.communication_plan import CommunicationPlan
 from app.models.time_entry import MeasurementCycle, TimeEntry
+from app.models.supplier import Supplier
+from app.models.cost_center import CostCenter
+from app.models.financial_budget import FinancialBudget, FinancialBudgetItem
+from app.models.financial_transaction import FinancialTransaction
+from app.models.financial_earned_value import FinancialEarnedValue
 
 __all__ = [
     'User', 'Project', 'Task', 'Report', 'PasswordResetToken',
@@ -18,4 +23,7 @@ __all__ = [
     'ProjectCharter', 'ProjectClosure',
     'Stakeholder', 'CommunicationPlan',
     'MeasurementCycle', 'TimeEntry',
+    'Supplier', 'CostCenter',
+    'FinancialBudget', 'FinancialBudgetItem',
+    'FinancialTransaction', 'FinancialEarnedValue',
 ]
