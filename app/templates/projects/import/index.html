@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Importar Planejamento — {{ project.name }}{% endblock %}
+{% block content %}
+<!-- Breadcrumb -->
+<nav class="flex items-center gap-2 text-sm text-gray-500 mb-6">
+    <a href="{{ url_for('projects.index') }}" class="hover:text-blue-600 transition-colors">Projetos</a>
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+    <a href="{{ url_for('projects.detail', project_id=project.id) }}" class="hover:text-blue-600 transition-colors">{{ project.name }}</a>
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+    <span class="text-gray-800 font-medium">Importar Planejamento</span>
+</nav>
+
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Importar Planejamento</h1>
+    <a href="{{ url_for('import.log', project_id=project.id) }}"
+       class="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 hover:border-gray-400 text-gray-600 hover:text-gray-800 font-medium rounded-lg text-sm transition-colors">
+        Histórico de Importações
+    </a>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div class="mb-4 space-y-2">
+{% for category, message in messages %}
+<div class="px-4 py-3 rounded-lg text-sm {% if category == 'error' %}bg-red-50 text-red-700 border border-red-200{% elif category == 'success' %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}bg-blue-50 text-blue-700 border border-blue-200{% endif %}">{{ message }}</div>
+{% endfor %}
+</div>
+{% endif %}
+{% endwith %}
+
+<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 max-w-xl">
+    <p class="text-gray-500 text-sm mb-6">
+        Importe cronogramas, WBS e orçamentos baseline a partir de arquivos
+        <strong>MS Project (.xml)</strong> ou <strong>Primavera P6 (.xml / .xls / .xlsx)</strong>.
+    </p>
+    <form method="post" enctype="multipart/form-data" class="space-y-5">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de arquivo</label>
+            <select name="import_type" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="ms_project">MS Project (.xml)</option>
+                <option value="primavera">Primavera P6 (.xml / .xls / .xlsx)</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Arquivo</label>
+            <input type="file" name="file" accept=".xml,.xls,.xlsx"
+                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+        </div>
+        <button type="submit"
+                class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            Processar Arquivo
+        </button>
+    </form>
+</div>
+{% endblock %}
