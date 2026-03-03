@@ -29,6 +29,11 @@ class FinancialBudget(db.Model):
     items = db.relationship('FinancialBudgetItem', backref='budget', lazy='dynamic',
                             cascade='all, delete-orphan')
 
+    @property
+    def is_locked(self) -> bool:
+        """Return True if the baseline is locked (closed status)."""
+        return self.status == 'closed'
+
     def __repr__(self) -> str:
         return f'<FinancialBudget project_id={self.project_id} total={self.total_planned_budget}>'
 

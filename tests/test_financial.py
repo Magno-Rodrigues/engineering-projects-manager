@@ -273,6 +273,144 @@ class TestFinancialBudgetService:
             db.session.delete(budget)
             db.session.commit()
 
+    def test_lock_baseline_success(self, app, db, fin_project, fin_user):
+        """Test locking a budget baseline."""
+        with app.app_context():
+            budget, _ = FinancialBudgetService.create_budget(
+                project_id=fin_project,
+                total_planned_budget='80000',
+                baseline_date='2026-03-01',
+                created_by=fin_user,
+            )
+            assert budget.is_locked is False
+            ok, error = FinancialBudgetService.lock_baseline(budget.id)
+            assert ok is True
+            assert error is None
+            refreshed = db.session.get(FinancialBudget, budget.id)
+            assert refreshed.is_locked is True
+            assert refreshed.status == 'closed'
+            db.session.delete(refreshed)
+            db.session.commit()
+
+    def test_lock_baseline_already_locked(self, app, db, fin_project, fin_user):
+        """Test that locking an already-locked baseline returns an error."""
+        with app.app_context():
+            budget, _ = FinancialBudgetService.create_budget(
+                project_id=fin_project,
+                total_planned_budget='50000',
+                baseline_date='2026-04-01',
+                created_by=fin_user,
+            )
+            FinancialBudgetService.lock_baseline(budget.id)
+            ok, error = FinancialBudgetService.lock_baseline(budget.id)
+            assert ok is False
+            assert error is not None
+            db.session.delete(db.session.get(FinancialBudget, budget.id))
+            db.session.commit()
+
+    def test_lock_baseline_not_found(self, app, db):
+        """Test locking a non-existent budget."""
+        with app.app_context():
+            ok, error = FinancialBudgetService.lock_baseline(99999)
+            assert ok is False
+            assert 'not found' in error.lower()
+
+    def test_add_item_to_locked_budget_fails(self, app, db, fin_project, fin_user):
+        """Test that adding items to a locked budget is rejected."""
+        with app.app_context():
+            budget, _ = FinancialBudgetService.create_budget(
+                project_id=fin_project,
+                total_planned_budget='60000',
+                baseline_date='2026-05-01',
+                created_by=fin_user,
+            )
+            FinancialBudgetService.lock_baseline(budget.id)
+            item, error = FinancialBudgetService.add_budget_item(
+                budget_id=budget.id,
+                description='New item',
+                planned_amount='1000',
+                category='other',
+            )
+            assert item is None
+            assert 'locked' in error.lower()
+            db.session.delete(db.session.get(FinancialBudget, budget.id))
+            db.session.commit()
+
+    def test_delete_item_from_locked_budget_fails(self, app, db, fin_project, fin_user):
+        """Test that deleting items from a locked budget is rejected."""
+        from app.models.financial_budget import FinancialBudgetItem
+        with app.app_context():
+            budget, _ = FinancialBudgetService.create_budget(
+                project_id=fin_project,
+                total_planned_budget='70000',
+                baseline_date='2026-06-01',
+                created_by=fin_user,
+            )
+            item, _ = FinancialBudgetService.add_budget_item(
+                budget_id=budget.id,
+                description='Item to protect',
+                planned_amount='7000',
+                category='labor',
+            )
+            FinancialBudgetService.lock_baseline(budget.id)
+            ok, error = FinancialBudgetService.delete_budget_item(item.id)
+            assert ok is False
+            assert 'locked' in error.lower()
+            db.session.delete(db.session.get(FinancialBudget, budget.id))
+            db.session.commit()
+
+    def test_create_revision_success(self, app, db, fin_project, fin_user):
+        """Test creating a new revision from a locked baseline."""
+        with app.app_context():
+            budget, _ = FinancialBudgetService.create_budget(
+                project_id=fin_project,
+                total_planned_budget='90000',
+                baseline_date='2026-07-01',
+                created_by=fin_user,
+            )
+            FinancialBudgetService.add_budget_item(
+                budget_id=budget.id,
+                description='Original item',
+                planned_amount='9000',
+                category='material',
+            )
+            FinancialBudgetService.lock_baseline(budget.id)
+            new_budget, error = FinancialBudgetService.create_revision(
+                budget.id, created_by=fin_user, notes='Revisão 1'
+            )
+            assert error is None
+            assert new_budget is not None
+            assert new_budget.status == 'active'
+            original = db.session.get(FinancialBudget, budget.id)
+            assert original.status == 'revised'
+            # New budget should have a copy of the items
+            assert new_budget.items.count() == 1
+            db.session.delete(new_budget)
+            db.session.delete(original)
+            db.session.commit()
+
+    def test_create_revision_unlocked_fails(self, app, db, fin_project, fin_user):
+        """Test that creating a revision of an unlocked budget returns an error."""
+        with app.app_context():
+            budget, _ = FinancialBudgetService.create_budget(
+                project_id=fin_project,
+                total_planned_budget='40000',
+                baseline_date='2026-08-01',
+                created_by=fin_user,
+            )
+            new_budget, error = FinancialBudgetService.create_revision(budget.id)
+            assert new_budget is None
+            assert error is not None
+            db.session.delete(budget)
+            db.session.commit()
+
+    def test_create_revision_not_found(self, app, db):
+        """Test creating a revision for a non-existent budget."""
+        with app.app_context():
+            new_budget, error = FinancialBudgetService.create_revision(99999)
+            assert new_budget is None
+            assert 'not found' in error.lower()
+
 
 class TestFinancialTransactionService:
     """Tests for FinancialTransactionService."""

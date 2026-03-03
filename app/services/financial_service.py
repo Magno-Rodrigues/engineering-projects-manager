@@ -1,5 +1,5 @@
 """Financial service for the financial module."""
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -196,6 +196,72 @@ class FinancialBudgetService:
         return budget, None
 
     @staticmethod
+    def lock_baseline(budget_id: int) -> Tuple[bool, Optional[str]]:
+        """Lock (freeze) a budget baseline by setting its status to 'closed'.
+
+        Once locked, no items can be added or deleted.
+        Returns (True, None) on success or (False, error) on failure.
+        """
+        budget = db.session.get(FinancialBudget, budget_id)
+        if not budget:
+            return False, 'Budget not found.'
+        if budget.is_locked:
+            return False, 'Budget is already locked.'
+        budget.status = 'closed'
+        db.session.commit()
+        return True, None
+
+    @staticmethod
+    def create_revision(
+        budget_id: int,
+        created_by: int = None,
+        notes: str = None,
+    ) -> Tuple[Optional['FinancialBudget'], Optional[str]]:
+        """Create a new revision of a locked budget baseline.
+
+        The original budget is marked as 'revised' and a new 'active' budget
+        is created copying all items from the original.
+        Returns (new_budget, None) on success or (None, error) on failure.
+        """
+        original = db.session.get(FinancialBudget, budget_id)
+        if not original:
+            return None, 'Budget not found.'
+        if not original.is_locked:
+            return None, 'Only locked baselines can be revised. Lock the baseline first.'
+
+        # Mark original as revised
+        original.status = 'revised'
+
+        # Create the new budget as a copy
+        new_budget = FinancialBudget(
+            project_id=original.project_id,
+            total_planned_budget=original.total_planned_budget,
+            currency=original.currency,
+            baseline_date=datetime.now(timezone.utc),
+            created_by=created_by,
+            status='active',
+            notes=notes or f'Revisão de orçamento #{original.id}',
+        )
+        db.session.add(new_budget)
+        db.session.flush()
+
+        # Copy all items
+        for item in original.items.all():
+            new_item = FinancialBudgetItem(
+                budget_id=new_budget.id,
+                description=item.description,
+                planned_amount=item.planned_amount,
+                category=item.category,
+                cost_center_id=item.cost_center_id,
+                planned_date_start=item.planned_date_start,
+                planned_date_end=item.planned_date_end,
+            )
+            db.session.add(new_item)
+
+        db.session.commit()
+        return new_budget, None
+
+    @staticmethod
     def add_budget_item(
         budget_id: int,
         description: str,
@@ -209,6 +275,8 @@ class FinancialBudgetService:
         budget = db.session.get(FinancialBudget, budget_id)
         if not budget:
             return None, 'Budget not found.'
+        if budget.is_locked:
+            return None, 'Cannot add items to a locked baseline.'
         if not description or not description.strip():
             return None, 'Description is required.'
         if category not in BUDGET_CATEGORIES:
@@ -248,6 +316,8 @@ class FinancialBudgetService:
         item = db.session.get(FinancialBudgetItem, item_id)
         if not item:
             return False, 'Budget item not found.'
+        if item.budget.is_locked:
+            return False, 'Cannot delete items from a locked baseline.'
         db.session.delete(item)
         db.session.commit()
         return True, None
