@@ -36,11 +36,77 @@
 </div>
 {% endif %}
 
-<!-- S-Curve Data Table -->
+<!-- S-Curve Chart -->
 <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
-    <h2 class="text-lg font-semibold text-gray-800 mb-4">Dados Curva S</h2>
+    <h2 class="text-lg font-semibold text-gray-800 mb-4">Curva S</h2>
     {% if scurve %}
-    <div class="overflow-x-auto">
+    <canvas id="scurveChart" height="100"></canvas>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+    <script>
+    (function () {
+        var labels = {{ scurve | map(attribute='date') | list | tojson }};
+        var pvData = {{ scurve | map(attribute='pv') | list | tojson }};
+        var evData = {{ scurve | map(attribute='ev') | list | tojson }};
+        var acData = {{ scurve | map(attribute='ac') | list | tojson }};
+        new Chart(document.getElementById('scurveChart'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'PV — Valor Planejado',
+                        data: pvData,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59,130,246,0.08)',
+                        tension: 0.3,
+                        fill: false,
+                        pointRadius: 4,
+                    },
+                    {
+                        label: 'EV — Valor Agregado',
+                        data: evData,
+                        borderColor: '#22c55e',
+                        backgroundColor: 'rgba(34,197,94,0.08)',
+                        tension: 0.3,
+                        fill: false,
+                        pointRadius: 4,
+                    },
+                    {
+                        label: 'AC — Custo Real',
+                        data: acData,
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239,68,68,0.08)',
+                        tension: 0.3,
+                        fill: false,
+                        pointRadius: 4,
+                    },
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                return ctx.dataset.label + ': R$ ' + ctx.parsed.y.toFixed(2);
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        ticks: {
+                            callback: function(v) { return 'R$ ' + v.toLocaleString('pt-BR'); }
+                        }
+                    }
+                }
+            }
+        });
+    })();
+    </script>
+    <!-- Data table below the chart -->
+    <div class="overflow-x-auto mt-6">
         <table class="w-full text-sm text-left text-gray-600">
             <thead class="bg-gray-50 text-gray-700 uppercase text-xs">
                 <tr>
