@@ -100,3 +100,68 @@ class TestEVMAnalysisService:
             db.session.delete(r1)
             db.session.delete(r2)
             db.session.commit()
+
+    def test_get_variance_analysis_empty(self, app, db, evm_project):
+        with app.app_context():
+            result = EVMAnalysisService.get_variance_analysis(evm_project)
+            assert result == []
+
+    def test_get_variance_analysis_with_reports(self, app, db, evm_project):
+        with app.app_context():
+            r = FinancialEarnedValue(
+                project_id=evm_project, report_date=date(2024, 3, 31),
+                bac=100000, ac=60000, ev=70000, pv=80000,
+            )
+            db.session.add(r)
+            db.session.commit()
+            result = EVMAnalysisService.get_variance_analysis(evm_project)
+            assert len(result) == 1
+            row = result[0]
+            assert row['date'] == '2024-03-31'
+            # CV = EV - AC = 70000 - 60000 = 10000
+            assert row['cost_variance'] == pytest.approx(10000.0)
+            # SV = EV - PV = 70000 - 80000 = -10000
+            assert row['schedule_variance'] == pytest.approx(-10000.0)
+            assert row['cpi'] == pytest.approx(70000 / 60000)
+            assert row['spi'] == pytest.approx(70000 / 80000)
+            db.session.delete(r)
+            db.session.commit()
+
+    def test_get_variance_analysis_sorted_by_date(self, app, db, evm_project):
+        with app.app_context():
+            r1 = FinancialEarnedValue(
+                project_id=evm_project, report_date=date(2024, 4, 30),
+                bac=100000, ac=50000, ev=55000, pv=60000,
+            )
+            r2 = FinancialEarnedValue(
+                project_id=evm_project, report_date=date(2024, 3, 31),
+                bac=100000, ac=25000, ev=30000, pv=35000,
+            )
+            db.session.add_all([r1, r2])
+            db.session.commit()
+            result = EVMAnalysisService.get_variance_analysis(evm_project)
+            assert len(result) == 2
+            assert result[0]['date'] < result[1]['date']
+            db.session.delete(r1)
+            db.session.delete(r2)
+            db.session.commit()
+
+    def test_get_evm_summary_includes_eac_etc(self, app, db, evm_project):
+        """EAC and ETC are auto-calculated when not provided."""
+        with app.app_context():
+            r = FinancialEarnedValue(
+                project_id=evm_project, report_date=date(2024, 5, 31),
+                bac=100000, ac=60000, ev=70000, pv=80000,
+            )
+            db.session.add(r)
+            db.session.commit()
+            result = EVMAnalysisService.get_evm_summary(evm_project)
+            assert result is not None
+            assert 'eac' in result
+            assert 'etc' in result
+            # EAC = BAC / CPI = 100000 / (70000/60000) ≈ 85714.29
+            assert result['eac'] == pytest.approx(100000 / (70000 / 60000), rel=1e-3)
+            # ETC = EAC - AC
+            assert result['etc'] == pytest.approx(result['eac'] - 60000.0, rel=1e-3)
+            db.session.delete(r)
+            db.session.commit()
