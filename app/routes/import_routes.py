@@ -102,6 +102,7 @@ def preview(project_id: int):
             flash('Importação cancelada.', 'info')
             return redirect(url_for('import.index', project_id=project_id))
 
+        lock_baseline = request.form.get('lock_baseline') == '1'
         # Re-parse to get full data (not just preview slice)
         # We rely on what's stored; for production you'd re-parse from storage.
         full_data = {k: preview_data[k] for k in ('tasks', 'wbs_items', 'resources', 'budgets')}
@@ -111,16 +112,19 @@ def preview(project_id: int):
             file_name=preview_data['file_name'],
             import_type=preview_data['import_type'],
             data=full_data,
+            lock_baseline=lock_baseline,
         )
         session.pop('import_preview', None)
         if error:
             flash(f'Erro na importação: {error}', 'error')
         else:
-            flash(
+            msg = (
                 f'Importação concluída: {log.total_tasks_imported} tarefa(s) e '
-                f'{log.total_items_imported} item(s) WBS importados.',
-                'success',
+                f'{log.total_items_imported} item(s) WBS importados.'
             )
+            if lock_baseline:
+                msg += ' Baseline travado.'
+            flash(msg, 'success')
         return redirect(url_for('import.log', project_id=project_id))
 
     return render_template('projects/import/preview.html', project=project, data=preview_data)

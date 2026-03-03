@@ -90,14 +90,29 @@
 {% endif %}
 
 <!-- Action buttons -->
-<form method="post" class="flex items-center gap-3">
-    <button type="submit" name="action" value="confirm"
-            class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors">
-        Confirmar Importação
-    </button>
-    <button type="submit" name="action" value="cancel"
-            class="inline-flex items-center gap-2 border border-gray-300 hover:border-gray-400 text-gray-600 hover:text-gray-800 text-sm font-medium px-5 py-2.5 rounded-lg transition-colors">
-        Cancelar
-    </button>
+<form method="post" class="flex flex-col gap-4">
+    <!-- Baseline lock option -->
+    {% if data.budgets %}
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+        <input type="checkbox" name="lock_baseline" value="1" id="lock_baseline"
+               class="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+        <label for="lock_baseline" class="text-sm text-amber-800 cursor-pointer">
+            <span class="font-semibold">Travar baseline após importação</span>
+            <span class="block text-amber-700 text-xs mt-0.5">
+                O orçamento baseline será criado com status <em>travado</em> (fechado), impedindo edições futuras.
+            </span>
+        </label>
+    </div>
+    {% endif %}
+    <div class="flex items-center gap-3">
+        <button type="submit" name="action" value="confirm"
+                class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors">
+            Confirmar Importação
+        </button>
+        <button type="submit" name="action" value="cancel"
+                class="inline-flex items-center gap-2 border border-gray-300 hover:border-gray-400 text-gray-600 hover:text-gray-800 text-sm font-medium px-5 py-2.5 rounded-lg transition-colors">
+            Cancelar
+        </button>
+    </div>
 </form>
 {% endblock %}

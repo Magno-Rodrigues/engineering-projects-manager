@@ -43,10 +43,12 @@ class ImportService:
         file_name: str,
         import_type: str,
         data: Dict[str, Any],
+        lock_baseline: bool = False,
     ) -> Tuple[Optional[ImportLog], Optional[str]]:
         """Persist parsed data into the database inside a transaction.
 
         Returns the ImportLog record on success or (None, error) on failure.
+        If lock_baseline is True, the created budget baseline is locked (status='closed').
         """
         log = ImportLog(
             project_id=project_id,
@@ -91,6 +93,7 @@ class ImportService:
                     baseline_date=datetime.now(timezone.utc),
                     created_by=created_by,
                     notes=f'Imported from {file_name}',
+                    status='closed' if lock_baseline else 'active',
                 )
                 db.session.add(budget)
                 db.session.flush()
