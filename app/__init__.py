@@ -84,6 +84,8 @@ def create_app(config_name: str = 'default') -> Flask:
     app.register_blueprint(pmbok_bp)
     app.register_blueprint(timeentry_bp)
     app.register_blueprint(financial_bp)
+    from app.routes.financial_api import financial_api_bp
+    app.register_blueprint(financial_api_bp)
     app.register_blueprint(import_bp)
 
     return app

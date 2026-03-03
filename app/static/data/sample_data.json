@@ -1,0 +1,15 @@
+{
+  "sample_project": {
+    "name": "Sample Project",
+    "transactions": [
+      {"type": "expense", "description": "Labor cost Q1", "amount": 50000, "category": "labor", "transaction_date": "2024-01-15", "payment_status": "completed"},
+      {"type": "revenue", "description": "Client payment Q1", "amount": 75000, "category": "service", "transaction_date": "2024-01-20", "payment_status": "completed"},
+      {"type": "expense", "description": "Material purchase", "amount": 20000, "category": "material", "transaction_date": "2024-02-10", "payment_status": "completed"},
+      {"type": "expense", "description": "Infrastructure setup", "amount": 15000, "category": "infrastructure", "transaction_date": "2024-02-15", "payment_status": "pending"}
+    ],
+    "evm_reports": [
+      {"report_date": "2024-01-31", "bac": 300000, "ac": 65000, "ev": 70000, "pv": 75000},
+      {"report_date": "2024-02-29", "bac": 300000, "ac": 100000, "ev": 105000, "pv": 110000}
+    ]
+  }
+}
