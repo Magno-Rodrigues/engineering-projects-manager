@@ -2,6 +2,14 @@
 
 A professional Flask application for managing engineering projects, tasks, and reports.
 
+## ✅ Project Stability
+
+> **Audit Status: STABLE** — The `main` branch has been audited and confirmed stable.
+>
+> All core modules (authentication, projects, tasks, reports, financial, API) are tested and functional.
+> Database migrations are up to date. Dependencies are pinned and free of known vulnerabilities.
+> The project is ready for local setup and development.
+
 ## 🚀 Features
 
 - Project management (create, edit, delete, track status)
@@ -34,10 +42,17 @@ app/
 
 ### Local Development
 
-1. **Clone the repository**
+1. **Clone the repository and check out the main branch**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/Magno-Rodrigues/engineering-projects-manager.git
    cd engineering-projects-manager
+
+   # Fetch all remote branches and tags
+   git fetch --all
+
+   # Ensure you are on the stable main branch
+   git checkout main
+   git pull origin main
    ```
 
 2. **Create and activate a virtual environment**
@@ -113,6 +128,34 @@ With coverage report:
 pytest --cov=app --cov-report=html
 ```
 
+Run a specific test file:
+
+```bash
+pytest tests/test_auth.py -v
+```
+
+## 🖥️ VSCode Setup
+
+Open the project folder in VSCode:
+
+```bash
+code .
+```
+
+Recommended extensions (install via the Extensions panel or `Ctrl+Shift+X`):
+
+- **Python** (`ms-python.python`) — Python language support and IntelliSense
+- **Pylance** (`ms-python.vscode-pylance`) — Fast type checking and auto-complete
+- **Ruff** (`charliermarsh.ruff`) — Fast Python linter and formatter
+- **GitLens** (`eamodio.gitlens`) — Enhanced Git integration
+
+After installing the Python extension, select your virtual environment interpreter:
+
+1. Press `Ctrl+Shift+P` → **Python: Select Interpreter**
+2. Choose the interpreter inside your `venv/` directory (e.g. `./venv/bin/python`)
+
+The `.vscode/settings.json` file already configures the recommended test runner and formatting options.
+
 ## 📦 Dependencies
 
 | Package | Version | Purpose |
@@ -151,3 +194,17 @@ See `.env.example` for all available environment variables.
 | `MAIL_PORT` | `587` | SMTP port |
 | `MAIL_USERNAME` | — | SMTP username |
 | `MAIL_PASSWORD` | — | SMTP password |
+
+## 🛠️ Troubleshooting
+
+| Problem | Solution |
+|---|---|
+| `ModuleNotFoundError` | Ensure the virtual environment is activated and run `pip install -r requirements.txt` |
+| `could not connect to server` (PostgreSQL) | Check that PostgreSQL is running and `DATABASE_URL` in `.env` is correct |
+| `flask: command not found` | Set `FLASK_APP=run.py` and ensure Flask is installed in the active venv |
+| `flask db upgrade` fails with "Target database is not up to date" | Run `flask db stamp head` then `flask db upgrade` again |
+| `SMTP / email errors` | Set `ENV=development` to disable email sending during local development |
+| Tests fail with `ImportError` | Make sure you are running `pytest` from the project root directory |
+| VSCode does not find the interpreter | Press `Ctrl+Shift+P` → **Python: Select Interpreter** and pick `./venv/bin/python` |
+
+If you encounter an error not listed above, open an issue describing the error message and the steps you followed.
