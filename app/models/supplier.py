@@ -1,5 +1,5 @@
 """Supplier model for financial module."""
-from datetime import datetime
+from datetime import datetime, timezone
 from app import db
 
 
@@ -18,7 +18,7 @@ class Supplier(db.Model):
     city: str = db.Column(db.String(100), nullable=True)
     state: str = db.Column(db.String(2), nullable=True)
     status: str = db.Column(db.String(20), default='active', nullable=False)
-    created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     def __repr__(self) -> str:
         return f'<Supplier name={self.name}>'

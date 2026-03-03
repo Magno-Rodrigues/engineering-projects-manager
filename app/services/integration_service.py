@@ -55,7 +55,7 @@ class ProjectIntegrationService:
         Returns:
             A tuple of (ProjectCharter, None) on success or (None, error_message) on failure.
         """
-        if not Project.query.get(project_id):
+        if not db.session.get(Project, project_id):
             return None, 'Project not found.'
 
         budget_val, err = _parse_decimal(approved_budget)
@@ -106,7 +106,7 @@ class ProjectIntegrationService:
         Returns:
             A tuple of (ProjectCharter, None) on success or (None, error_message) on failure.
         """
-        charter = ProjectCharter.query.get(charter_id)
+        charter = db.session.get(ProjectCharter, charter_id)
         if not charter:
             return None, 'Charter not found.'
         if charter.status != 'draft':
@@ -138,7 +138,7 @@ class ProjectIntegrationService:
         Returns:
             A tuple of (ProjectClosure, None) on success or (None, error_message) on failure.
         """
-        if not Project.query.get(project_id):
+        if not db.session.get(Project, project_id):
             return None, 'Project not found.'
 
         cost_val, err = _parse_decimal(actual_final_cost)
@@ -170,7 +170,7 @@ class ProjectIntegrationService:
         Returns:
             A tuple of (ProjectClosure, None) on success or (None, error_message) on failure.
         """
-        closure = ProjectClosure.query.get(closure_id)
+        closure = db.session.get(ProjectClosure, closure_id)
         if not closure:
             return None, 'Closure not found.'
         if closure.closure_status != 'draft':

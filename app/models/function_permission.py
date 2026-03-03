@@ -1,5 +1,5 @@
 """FunctionPermission model."""
-from datetime import datetime
+from datetime import datetime, timezone
 from app import db
 
 
@@ -13,8 +13,8 @@ class FunctionPermission(db.Model):
     module_name: str = db.Column(db.String(64), nullable=False)
     function_name: str = db.Column(db.String(64), nullable=False)
     has_permission: bool = db.Column(db.Boolean, default=False, nullable=False)
-    created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationship
     user = db.relationship('User', backref='function_permissions')

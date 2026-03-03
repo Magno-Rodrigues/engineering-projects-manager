@@ -1,5 +1,5 @@
 """WBSItem model for PMBOK Scope Knowledge Area."""
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from app import db
 
@@ -23,8 +23,8 @@ class WBSItem(db.Model):
     estimated_effort: Decimal = db.Column(db.Numeric(10, 2), nullable=True)
     actual_effort: Decimal = db.Column(db.Numeric(10, 2), nullable=True)
 
-    created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     project = db.relationship('Project', backref=db.backref('wbs_items', lazy='dynamic'))

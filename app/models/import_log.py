@@ -1,5 +1,5 @@
 """ImportLog model for auditing project plan imports."""
-from datetime import datetime
+from datetime import datetime, timezone
 from app import db
 
 IMPORT_TYPES = ('ms_project', 'primavera')
@@ -22,8 +22,8 @@ class ImportLog(db.Model):
     total_items_imported: int = db.Column(db.Integer, default=0)
     error_message: str = db.Column(db.Text, nullable=True)
 
-    created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     project = db.relationship('Project', backref=db.backref('import_logs', lazy='dynamic'))

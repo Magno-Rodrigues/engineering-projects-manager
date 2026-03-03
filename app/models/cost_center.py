@@ -1,5 +1,5 @@
 """Cost center model for financial module."""
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from app import db
 
@@ -16,7 +16,7 @@ class CostCenter(db.Model):
     manager_id: int = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     budget_allocation: Decimal = db.Column(db.Numeric(12, 2), nullable=True)
     status: str = db.Column(db.String(20), default='active', nullable=False)
-    created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     # Relationships
     project = db.relationship('Project', backref=db.backref('cost_centers', lazy='dynamic'))

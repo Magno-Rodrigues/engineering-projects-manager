@@ -20,7 +20,7 @@ def scope_user(app, db):
         db.session.commit()
         uid = user.id
         yield uid
-        db.session.delete(User.query.get(uid))
+        db.session.delete(db.session.get(User, uid))
         db.session.commit()
 
 
@@ -33,7 +33,7 @@ def scope_project(app, db, scope_user):
         db.session.commit()
         pid = project.id
         yield pid
-        db.session.delete(Project.query.get(pid))
+        db.session.delete(db.session.get(Project, pid))
         db.session.commit()
 
 
@@ -246,7 +246,7 @@ class TestScopeService:
             ScopeService.approve_requirement(req.id)
             _, error = ScopeService.approve_requirement(req.id)
             assert error is not None
-            db.session.delete(Requirement.query.get(req.id))
+            db.session.delete(db.session.get(Requirement, req.id))
             db.session.commit()
 
     def test_get_project_requirements(self, app, db, scope_project, scope_user):

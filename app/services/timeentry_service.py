@@ -23,7 +23,7 @@ class TimeEntryService:
     @staticmethod
     def get_cycle(cycle_id: int) -> Optional[MeasurementCycle]:
         """Return a measurement cycle by ID."""
-        return MeasurementCycle.query.get(cycle_id)
+        return db.session.get(MeasurementCycle, cycle_id)
 
     @staticmethod
     def create_cycle(
@@ -77,7 +77,7 @@ class TimeEntryService:
         Returns:
             A tuple of (MeasurementCycle, None) on success or (None, error) on failure.
         """
-        cycle = MeasurementCycle.query.get(cycle_id)
+        cycle = db.session.get(MeasurementCycle, cycle_id)
         if not cycle:
             return None, 'Ciclo de medição não encontrado.'
 
@@ -132,7 +132,7 @@ class TimeEntryService:
     @staticmethod
     def get_time_entry(entry_id: int) -> Optional[TimeEntry]:
         """Return a time entry by ID."""
-        return TimeEntry.query.get(entry_id)
+        return db.session.get(TimeEntry, entry_id)
 
     @staticmethod
     def create_time_entry(
@@ -202,7 +202,7 @@ class TimeEntryService:
         Returns:
             A tuple of (TimeEntry, None) on success or (None, error) on failure.
         """
-        entry = TimeEntry.query.get(entry_id)
+        entry = db.session.get(TimeEntry, entry_id)
         if not entry:
             return None, 'Apontamento não encontrado.'
 
@@ -255,7 +255,7 @@ class TimeEntryService:
         Returns:
             A tuple of (True, None) on success or (False, error) on failure.
         """
-        entry = TimeEntry.query.get(entry_id)
+        entry = db.session.get(TimeEntry, entry_id)
         if not entry:
             return False, 'Apontamento não encontrado.'
 

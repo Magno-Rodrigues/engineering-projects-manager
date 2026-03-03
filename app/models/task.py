@@ -1,5 +1,5 @@
 """Task model."""
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from app import db
 #from app.models.wbs import WBSItem
@@ -41,8 +41,8 @@ class Task(db.Model):
     due_date: datetime = db.Column(db.Date)
     project_id: int = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
     assignee_id: int = db.Column(db.Integer, db.ForeignKey('users.id'))
-    created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # PMBOK fields
     pmbok_knowledge_area: str = db.Column(db.String(32), nullable=True)

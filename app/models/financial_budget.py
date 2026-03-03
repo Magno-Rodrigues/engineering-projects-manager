@@ -1,5 +1,5 @@
 """Financial budget models for the financial module."""
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from app import db
 
@@ -18,8 +18,8 @@ class FinancialBudget(db.Model):
     currency: str = db.Column(db.String(3), default='BRL', nullable=False)
     baseline_date: datetime = db.Column(db.DateTime, nullable=False)
     status: str = db.Column(db.String(20), default='active', nullable=False)
-    created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     created_by: int = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     notes: str = db.Column(db.Text, nullable=True)
 
@@ -46,7 +46,7 @@ class FinancialBudgetItem(db.Model):
     category: str = db.Column(db.String(50), nullable=False, default='other')
     planned_date_start: datetime = db.Column(db.Date, nullable=True)
     planned_date_end: datetime = db.Column(db.Date, nullable=True)
-    created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     # Relationships
     cost_center = db.relationship('CostCenter', foreign_keys=[cost_center_id])

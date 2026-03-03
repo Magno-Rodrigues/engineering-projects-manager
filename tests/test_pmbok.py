@@ -1,5 +1,6 @@
 """Tests for PMBOK Phase 1: Stakeholder and CommunicationPlan models and services."""
 import pytest
+from app import db
 from app.models.stakeholder import Stakeholder
 from app.models.communication_plan import CommunicationPlan
 from app.models.project import Project
@@ -18,7 +19,7 @@ def pmbok_user(app, db):
         db.session.commit()
         uid = user.id
         yield uid
-        db.session.delete(User.query.get(uid))
+        db.session.delete(db.session.get(User, uid))
         db.session.commit()
 
 
@@ -31,7 +32,7 @@ def pmbok_project(app, db, pmbok_user):
         db.session.commit()
         pid = project.id
         yield pid
-        db.session.delete(Project.query.get(pid))
+        db.session.delete(db.session.get(Project, pid))
         db.session.commit()
 
 
@@ -176,7 +177,7 @@ class TestStakeholderService:
             success, error = StakeholderService.delete_stakeholder(sid)
             assert success is True
             assert error is None
-            assert Stakeholder.query.get(sid) is None
+            assert db.session.get(Stakeholder, sid) is None
 
     def test_delete_stakeholder_not_found(self, app, db):
         """Test deleting a non-existent stakeholder returns an error."""
@@ -281,7 +282,7 @@ class TestCommunicationPlanService:
             success, error = CommunicationPlanService.delete_communication_plan(pid)
             assert success is True
             assert error is None
-            assert CommunicationPlan.query.get(pid) is None
+            assert db.session.get(CommunicationPlan, pid) is None
 
     def test_delete_communication_plan_not_found(self, app, db):
         """Test deleting a non-existent communication plan entry returns an error."""

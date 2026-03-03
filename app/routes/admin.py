@@ -33,13 +33,13 @@ def dashboard():
     from app.models.user import User
     from app.models.project import Project
     from app.models.time_entry import TimeEntry
-    from datetime import datetime, timedelta
+    from datetime import datetime, timezone, timedelta
 
     total_users = User.query.count()
     total_projects = Project.query.count()
     total_time_entries = TimeEntry.query.count()
 
-    one_month_ago = datetime.utcnow() - timedelta(days=30)
+    one_month_ago = datetime.now(timezone.utc) - timedelta(days=30)
     active_users_month = User.query.filter(
         User.last_login.isnot(None),
         User.last_login >= one_month_ago,

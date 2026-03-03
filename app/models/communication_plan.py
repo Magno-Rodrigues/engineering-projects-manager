@@ -1,5 +1,5 @@
 """CommunicationPlan model for PMBOK Communication Knowledge Area."""
-from datetime import datetime
+from datetime import datetime, timezone
 from app import db
 
 FREQUENCIES = ('daily', 'weekly', 'monthly', 'as_needed')
@@ -24,8 +24,8 @@ class CommunicationPlan(db.Model):
     distribution_method: str = db.Column(db.String(32), default='direct', nullable=False)
     notes: str = db.Column(db.Text, nullable=True)
 
-    created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     project = db.relationship('Project', backref=db.backref('communication_plans', lazy='dynamic'))

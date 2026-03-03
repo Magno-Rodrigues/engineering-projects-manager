@@ -1,5 +1,5 @@
 """Financial earned value (EVM) model for the financial module."""
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from app import db
 
@@ -24,7 +24,7 @@ class FinancialEarnedValue(db.Model):
     etc: Decimal = db.Column(db.Numeric(12, 2), nullable=True)   # Estimate to Complete
 
     notes: str = db.Column(db.Text, nullable=True)
-    created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     __table_args__ = (
         db.UniqueConstraint('project_id', 'report_date', name='uq_evm_project_report_date'),

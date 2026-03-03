@@ -1,6 +1,6 @@
 """Reporting service for generating financial reports."""
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional, Tuple
 
 from app import db
@@ -40,7 +40,7 @@ class ReportingService:
             return None, 'Project not found.'
 
         os.makedirs(REPORTS_DIR, exist_ok=True)
-        timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+        timestamp = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')
         filename = f'report_{project_id}_{report_type}_{timestamp}.xlsx'
         file_path = os.path.join(REPORTS_DIR, filename)
 

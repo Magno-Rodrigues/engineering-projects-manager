@@ -1,5 +1,5 @@
 """Requirement model for PMBOK Scope Knowledge Area."""
-from datetime import datetime
+from datetime import datetime, timezone
 from app import db
 
 
@@ -22,8 +22,8 @@ class Requirement(db.Model):
     source: str = db.Column(db.String(256), nullable=True)
     trace_to_wbs_items: list = db.Column(db.JSON, nullable=True)
 
-    created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     project = db.relationship('Project', backref=db.backref('requirements', lazy='dynamic'))

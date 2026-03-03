@@ -1,5 +1,5 @@
 """UserModulePermission model."""
-from datetime import datetime
+from datetime import datetime, timezone
 from app import db
 
 
@@ -16,7 +16,7 @@ class UserModulePermission(db.Model):
     can_update: bool = db.Column(db.Boolean, default=False)
     can_delete: bool = db.Column(db.Boolean, default=False)
     granted_by_id: int = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
-    granted_at: datetime = db.Column(db.DateTime, default=datetime.utcnow)
+    granted_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     # Relationships
     user = db.relationship('User', foreign_keys=[user_id], backref='module_permissions')

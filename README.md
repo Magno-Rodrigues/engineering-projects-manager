@@ -57,14 +57,26 @@ app/
    # Edit .env with your settings
    ```
 
-5. **Initialize the database**
+   The `.env.example` file is pre-configured for local development (`ENV=development`).
+   Update `DATABASE_URL` to point to your local PostgreSQL instance, for example:
+   ```
+   DATABASE_URL=postgresql://postgres:postgres@localhost:5432/engineering_projects
+   ```
+
+5. **Create the PostgreSQL database**
    ```bash
-   flask db init
-   flask db migrate -m "Initial migration"
+   psql -U postgres -c "CREATE DATABASE engineering_projects;"
+   ```
+
+6. **Apply database migrations**
+   ```bash
    flask db upgrade
    ```
 
-6. **Run the application**
+   > **Note:** The `migrations/` folder already contains all migrations.
+   > Run `flask db upgrade` (not `flask db init`) to apply them to your database.
+
+7. **Run the application**
    ```bash
    flask run
    ```
@@ -73,13 +85,23 @@ app/
 
 ### Docker
 
-Run the full stack with Docker Compose:
+Run the full stack with Docker Compose (no local PostgreSQL required):
 
 ```bash
 docker-compose up --build
 ```
 
+After the containers start, apply the migrations:
+
+```bash
+docker-compose exec web flask db upgrade
+```
+
+The application will be available at `http://localhost:5000`.
+
 ## 🧪 Running Tests
+
+Tests use an in-memory SQLite database and require no external services:
 
 ```bash
 pytest
@@ -95,14 +117,17 @@ pytest --cov=app --cov-report=html
 
 | Package | Version | Purpose |
 |---|---|---|
-| Flask | 2.3.0 | Web framework |
+| Flask | 2.3.2 | Web framework |
 | Flask-SQLAlchemy | 3.0.5 | ORM |
 | Flask-Migrate | 4.0.5 | Database migrations |
 | Flask-Login | 0.6.3 | Authentication |
-| psycopg2-binary | 2.9.9 | PostgreSQL adapter |
+| Flask-Mail | 0.10.0 | Email support |
+| psycopg | 3.2.13 | PostgreSQL adapter |
 | python-dotenv | 1.0.0 | Environment variables |
 | pytest | 7.4.0 | Testing |
 | Werkzeug | 2.3.7 | WSGI utilities |
+| openpyxl | 3.1.0+ | Excel file import |
+| defusedxml | 0.7.1+ | Safe XML parsing |
 
 ## 🌐 API Endpoints
 
@@ -114,3 +139,15 @@ pytest --cov=app --cov-report=html
 ## 📝 Environment Variables
 
 See `.env.example` for all available environment variables.
+
+| Variable | Default | Description |
+|---|---|---|
+| `FLASK_APP` | `run.py` | Flask application entry point |
+| `FLASK_ENV` | `development` | Flask environment |
+| `ENV` | `development` | Application environment |
+| `SECRET_KEY` | *(required)* | Flask secret key |
+| `DATABASE_URL` | `postgresql://postgres:postgres@localhost:5432/engineering_projects` | PostgreSQL connection URL |
+| `MAIL_SERVER` | — | SMTP server (optional) |
+| `MAIL_PORT` | `587` | SMTP port |
+| `MAIL_USERNAME` | — | SMTP username |
+| `MAIL_PASSWORD` | — | SMTP password |

@@ -1,6 +1,6 @@
 """Time entry and measurement cycle models."""
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from app import db
 
 HOUR_TYPES = ['Normal', 'Extra']
@@ -17,8 +17,8 @@ class MeasurementCycle(db.Model):
     end_date: datetime = db.Column(db.Date, nullable=False)
     is_active: bool = db.Column(db.Boolean, default=False, nullable=False)
     created_by: int = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     time_entries = db.relationship('TimeEntry', backref='measurement_cycle', lazy='dynamic',
@@ -45,8 +45,8 @@ class TimeEntry(db.Model):
     hour_type: str = db.Column(db.String(16), nullable=False, default='Normal')
     observation: str = db.Column(db.Text, nullable=True)
     measurement_cycle_id: int = db.Column(db.Integer, db.ForeignKey('measurement_cycles.id'), nullable=True)
-    created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     project = db.relationship('Project', foreign_keys=[project_id])

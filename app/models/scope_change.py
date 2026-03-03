@@ -1,5 +1,5 @@
 """ScopeChange model for PMBOK Scope Knowledge Area."""
-from datetime import datetime, date
+from datetime import datetime, timezone, date
 from app import db
 
 
@@ -24,8 +24,8 @@ class ScopeChange(db.Model):
     affected_wbs_items: list = db.Column(db.JSON, nullable=True)
     approval_date: date = db.Column(db.Date, nullable=True)
 
-    created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     project = db.relationship('Project', backref=db.backref('scope_changes', lazy='dynamic'))

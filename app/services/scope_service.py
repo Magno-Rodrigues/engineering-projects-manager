@@ -60,7 +60,7 @@ class ScopeService:
         Returns:
             A tuple of (Requirement, None) on success or (None, error_message) on failure.
         """
-        if not Project.query.get(project_id):
+        if not db.session.get(Project, project_id):
             return None, 'Project not found.'
         if not title:
             return None, 'Requirement title is required.'
@@ -99,7 +99,7 @@ class ScopeService:
         Returns:
             A tuple of (Requirement, None) on success or (None, error_message) on failure.
         """
-        requirement = Requirement.query.get(requirement_id)
+        requirement = db.session.get(Requirement, requirement_id)
         if not requirement:
             return None, 'Requirement not found.'
         if requirement.status != 'draft':
@@ -135,7 +135,7 @@ class ScopeService:
         Returns:
             A tuple of (WBSItem, None) on success or (None, error_message) on failure.
         """
-        if not Project.query.get(project_id):
+        if not db.session.get(Project, project_id):
             return None, 'Project not found.'
         if not title:
             return None, 'WBS item title is required.'
@@ -149,7 +149,7 @@ class ScopeService:
         if err:
             return None, f'Actual effort: {err}'
 
-        if parent_id is not None and not WBSItem.query.get(parent_id):
+        if parent_id is not None and not db.session.get(WBSItem, parent_id):
             return None, 'Parent WBS item not found.'
 
         item = WBSItem(
@@ -211,7 +211,7 @@ class ScopeService:
         Returns:
             A tuple of (ScopeChange, None) on success or (None, error_message) on failure.
         """
-        if not Project.query.get(project_id):
+        if not db.session.get(Project, project_id):
             return None, 'Project not found.'
         if not title:
             return None, 'Scope change title is required.'
@@ -251,7 +251,7 @@ class ScopeService:
         Returns:
             A tuple of (ScopeChange, None) on success or (None, error_message) on failure.
         """
-        scope_change = ScopeChange.query.get(scope_change_id)
+        scope_change = db.session.get(ScopeChange, scope_change_id)
         if not scope_change:
             return None, 'Scope change not found.'
         if scope_change.status not in ('draft', 'submitted'):
@@ -269,7 +269,7 @@ class ScopeService:
         Returns:
             A dict with impact analysis details or None if not found.
         """
-        scope_change = ScopeChange.query.get(scope_change_id)
+        scope_change = db.session.get(ScopeChange, scope_change_id)
         if not scope_change:
             return None
         return {

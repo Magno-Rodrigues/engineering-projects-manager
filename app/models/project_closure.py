@@ -1,5 +1,5 @@
 """ProjectClosure model for project closing and lessons learned."""
-from datetime import datetime, date
+from datetime import datetime, timezone, date
 from decimal import Decimal
 from app import db
 
@@ -24,8 +24,8 @@ class ProjectClosure(db.Model):
 
     closure_status: str = db.Column(db.String(16), default='draft', nullable=False)
 
-    created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     project = db.relationship('Project', backref=db.backref('closures', lazy='dynamic'))

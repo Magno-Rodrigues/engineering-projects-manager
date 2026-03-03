@@ -28,7 +28,7 @@ class StakeholderService:
         Returns:
             A tuple of (Stakeholder, None) on success or (None, error_message) on failure.
         """
-        if not Project.query.get(project_id):
+        if not db.session.get(Project, project_id):
             return None, 'Project not found.'
         if not name:
             return None, 'Stakeholder name is required.'
@@ -65,7 +65,7 @@ class StakeholderService:
     @staticmethod
     def get_stakeholder(stakeholder_id: int) -> Optional[Stakeholder]:
         """Return a stakeholder by ID."""
-        return Stakeholder.query.get(stakeholder_id)
+        return db.session.get(Stakeholder, stakeholder_id)
 
     @staticmethod
     def delete_stakeholder(stakeholder_id: int) -> Tuple[bool, Optional[str]]:
@@ -74,7 +74,7 @@ class StakeholderService:
         Returns:
             A tuple of (True, None) on success or (False, error_message) on failure.
         """
-        stakeholder = Stakeholder.query.get(stakeholder_id)
+        stakeholder = db.session.get(Stakeholder, stakeholder_id)
         if not stakeholder:
             return False, 'Stakeholder not found.'
         db.session.delete(stakeholder)

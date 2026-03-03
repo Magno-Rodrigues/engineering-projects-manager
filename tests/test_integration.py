@@ -19,7 +19,7 @@ def integration_user(app, db):
         db.session.commit()
         uid = user.id
         yield uid
-        db.session.delete(User.query.get(uid))
+        db.session.delete(db.session.get(User, uid))
         db.session.commit()
 
 
@@ -32,7 +32,7 @@ def integration_project(app, db, integration_user):
         db.session.commit()
         pid = project.id
         yield pid
-        db.session.delete(Project.query.get(pid))
+        db.session.delete(db.session.get(Project, pid))
         db.session.commit()
 
 
@@ -195,7 +195,7 @@ class TestProjectIntegrationService:
                 charter_id=charter.id, authorized_by=integration_user
             )
             assert error is not None
-            db.session.delete(ProjectCharter.query.get(charter.id))
+            db.session.delete(db.session.get(ProjectCharter, charter.id))
             db.session.commit()
 
     def test_create_closure_success(self, app, db, integration_project, integration_user):
