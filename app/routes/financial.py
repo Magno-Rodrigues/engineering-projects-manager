@@ -477,6 +477,21 @@ def comparison(project_id: int):
     )
 
 
+@financial_bp.route('/<int:project_id>/financial/schedule-comparison')
+@login_required
+def schedule_comparison(project_id: int):
+    """Show planned vs actual schedule progress for project tasks."""
+    project = _get_project_or_abort(project_id)
+    if project is None:
+        return redirect(url_for('projects.index'))
+    tasks_data = EVMAnalysisService.get_schedule_comparison(project_id)
+    return render_template(
+        'projects/financial/schedule_comparison.html',
+        project=project,
+        tasks_data=tasks_data,
+    )
+
+
 @financial_bp.route('/<int:project_id>/financial/evm-dashboard')
 @login_required
 def evm_dashboard(project_id: int):

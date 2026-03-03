@@ -1,9 +1,10 @@
 """Tests for EVMAnalysisService."""
 import pytest
-from datetime import date
+from datetime import date, timedelta
 from app.models.project import Project
 from app.models.user import User
 from app.models.financial_earned_value import FinancialEarnedValue
+from app.models.task import Task
 from app.services.evm_analysis_service import EVMAnalysisService
 
 
@@ -164,4 +165,141 @@ class TestEVMAnalysisService:
             # ETC = EAC - AC
             assert result['etc'] == pytest.approx(result['eac'] - 60000.0, rel=1e-3)
             db.session.delete(r)
+            db.session.commit()
+
+    # ------------------------------------------------------------------
+    # get_schedule_comparison tests
+    # ------------------------------------------------------------------
+
+    def test_get_schedule_comparison_empty(self, app, db, evm_project):
+        """Returns empty list when project has no tasks with planned dates."""
+        with app.app_context():
+            result = EVMAnalysisService.get_schedule_comparison(evm_project)
+            assert result == []
+
+    def test_get_schedule_comparison_task_not_started(self, app, db, evm_project):
+        """Task whose start date is in the future has expected_progress == 0."""
+        with app.app_context():
+            future_start = date.today() + timedelta(days=10)
+            future_end = date.today() + timedelta(days=20)
+            task = Task(
+                title='Future Task',
+                project_id=evm_project,
+                start_date=future_start,
+                due_date=future_end,
+                progress=0,
+            )
+            db.session.add(task)
+            db.session.commit()
+            result = EVMAnalysisService.get_schedule_comparison(evm_project)
+            assert len(result) == 1
+            assert result[0]['expected_progress'] == 0.0
+            assert result[0]['actual_progress'] == 0
+            assert result[0]['variance'] == 0.0
+            db.session.delete(task)
+            db.session.commit()
+
+    def test_get_schedule_comparison_task_overdue(self, app, db, evm_project):
+        """Task past its due date has expected_progress == 100."""
+        with app.app_context():
+            past_start = date.today() - timedelta(days=20)
+            past_end = date.today() - timedelta(days=5)
+            task = Task(
+                title='Overdue Task',
+                project_id=evm_project,
+                start_date=past_start,
+                due_date=past_end,
+                progress=80,
+            )
+            db.session.add(task)
+            db.session.commit()
+            result = EVMAnalysisService.get_schedule_comparison(evm_project)
+            assert len(result) == 1
+            assert result[0]['expected_progress'] == 100.0
+            assert result[0]['actual_progress'] == 80
+            assert result[0]['variance'] == pytest.approx(-20.0)
+            db.session.delete(task)
+            db.session.commit()
+
+    def test_get_schedule_comparison_in_progress(self, app, db, evm_project):
+        """Task in progress: expected_progress interpolated between 0 and 100."""
+        with app.app_context():
+            # Place today exactly at the midpoint of a 10-day window
+            start = date.today() - timedelta(days=5)
+            end = date.today() + timedelta(days=5)
+            task = Task(
+                title='In-Progress Task',
+                project_id=evm_project,
+                start_date=start,
+                due_date=end,
+                progress=60,
+            )
+            db.session.add(task)
+            db.session.commit()
+            result = EVMAnalysisService.get_schedule_comparison(evm_project)
+            assert len(result) == 1
+            row = result[0]
+            assert row['expected_progress'] == pytest.approx(50.0)
+            assert row['actual_progress'] == 60
+            assert row['variance'] == pytest.approx(10.0)
+            db.session.delete(task)
+            db.session.commit()
+
+    def test_get_schedule_comparison_excludes_tasks_without_dates(self, app, db, evm_project):
+        """Tasks without start_date or due_date are excluded from results."""
+        with app.app_context():
+            task_no_dates = Task(
+                title='No Dates Task',
+                project_id=evm_project,
+                progress=50,
+            )
+            db.session.add(task_no_dates)
+            db.session.commit()
+            result = EVMAnalysisService.get_schedule_comparison(evm_project)
+            assert all(r['title'] != 'No Dates Task' for r in result)
+            db.session.delete(task_no_dates)
+            db.session.commit()
+
+    def test_get_schedule_comparison_skips_inverted_dates(self, app, db, evm_project):
+        """Tasks with end <= start are silently skipped (invalid configuration)."""
+        with app.app_context():
+            task_inverted = Task(
+                title='Inverted Dates Task',
+                project_id=evm_project,
+                start_date=date.today() + timedelta(days=5),
+                due_date=date.today(),  # end before start
+                progress=0,
+            )
+            db.session.add(task_inverted)
+            db.session.commit()
+            result = EVMAnalysisService.get_schedule_comparison(evm_project)
+            assert all(r['title'] != 'Inverted Dates Task' for r in result)
+            db.session.delete(task_inverted)
+            db.session.commit()
+
+    def test_get_schedule_comparison_sorted_by_start_date(self, app, db, evm_project):
+        """Results are sorted by start_date ascending."""
+        with app.app_context():
+            t1 = Task(
+                title='Task B',
+                project_id=evm_project,
+                start_date=date.today() - timedelta(days=10),
+                due_date=date.today() + timedelta(days=10),
+                progress=30,
+            )
+            t2 = Task(
+                title='Task A',
+                project_id=evm_project,
+                start_date=date.today() - timedelta(days=20),
+                due_date=date.today() + timedelta(days=5),
+                progress=70,
+            )
+            db.session.add_all([t1, t2])
+            db.session.commit()
+            result = EVMAnalysisService.get_schedule_comparison(evm_project)
+            # only include the two tasks we added (filter by title to avoid leakage)
+            titles = [r['title'] for r in result if r['title'] in ('Task A', 'Task B')]
+            assert titles == ['Task A', 'Task B']
+            db.session.delete(t1)
+            db.session.delete(t2)
             db.session.commit()
