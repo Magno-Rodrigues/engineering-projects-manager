@@ -1,0 +1,33 @@
+/* Financial dashboard minimal CSS overrides */
+.financial-kpi-card {
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.financial-kpi-card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+    transform: translateY(-2px);
+}
+.financial-table th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6b7280;
+}
+.financial-table td {
+    vertical-align: middle;
+}
+.variance-badge-over {
+    background-color: #fee2e2;
+    color: #991b1b;
+    border-radius: 9999px;
+    padding: 0.125rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.variance-badge-under {
+    background-color: #d1fae5;
+    color: #065f46;
+    border-radius: 9999px;
+    padding: 0.125rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}

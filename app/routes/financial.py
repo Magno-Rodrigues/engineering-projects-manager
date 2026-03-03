@@ -12,6 +12,12 @@ from app.services.financial_service import (
 )
 from app.models.financial_budget import BUDGET_CATEGORIES, BUDGET_STATUSES
 from app.models.financial_transaction import TRANSACTION_TYPES, TRANSACTION_CATEGORIES, PAYMENT_STATUSES, PAYMENT_METHODS
+from app.services.cash_flow_service import CashFlowService
+from app.services.evm_analysis_service import EVMAnalysisService
+from app.services.reporting_service import ReportingService
+from app.models.financial_scenario import FinancialScenario
+from app.models.financial_report import REPORT_TYPES, REPORT_FORMATS
+from app import db
 
 financial_bp = Blueprint('financial', __name__, url_prefix='/projects')
 
@@ -376,3 +382,161 @@ def delete_supplier(supplier_id: int):
     else:
         flash(error, 'error')
     return redirect(url_for('financial.suppliers'))
+
+
+@financial_bp.route('/<int:project_id>/financial/cash-flow')
+@login_required
+def cash_flow(project_id: int):
+    project = _get_project_or_abort(project_id)
+    if project is None:
+        return redirect(url_for('projects.index'))
+    monthly_cash_flow = CashFlowService.get_monthly_cash_flow(project_id)
+    seasonal = CashFlowService.get_seasonal_analysis(project_id)
+    scenarios = FinancialScenario.query.filter_by(project_id=project_id).order_by(FinancialScenario.created_at.desc()).all()
+    return render_template(
+        'projects/financial/cash_flow.html',
+        project=project,
+        monthly_cash_flow=monthly_cash_flow,
+        seasonal=seasonal,
+        scenarios=scenarios,
+    )
+
+
+@financial_bp.route('/<int:project_id>/financial/comparison')
+@login_required
+def comparison(project_id: int):
+    project = _get_project_or_abort(project_id)
+    if project is None:
+        return redirect(url_for('projects.index'))
+    active_budget = FinancialBudgetService.get_active_budget(project_id)
+    transactions = FinancialTransactionService.get_project_transactions(project_id)
+    actual_by_category = {}
+    for cat in TRANSACTION_CATEGORIES:
+        actual_by_category[cat] = sum(
+            float(t.amount) for t in transactions
+            if t.category == cat and t.type in ('expense', 'payment') and t.payment_status != 'cancelled'
+        )
+    planned_by_category = {}
+    for cat in TRANSACTION_CATEGORIES:
+        planned_by_category[cat] = 0.0
+    if active_budget:
+        for item in active_budget.items.all():
+            if item.category in planned_by_category:
+                planned_by_category[item.category] += float(item.planned_amount)
+    categories_data = []
+    for cat in TRANSACTION_CATEGORIES:
+        planned = planned_by_category.get(cat, 0.0)
+        actual = actual_by_category.get(cat, 0.0)
+        variance = actual - planned
+        pct = (variance / planned * 100) if planned > 0 else 0.0
+        categories_data.append({
+            'category': cat,
+            'planned': planned,
+            'actual': actual,
+            'variance': variance,
+            'variance_pct': pct,
+        })
+    return render_template(
+        'projects/financial/comparison.html',
+        project=project,
+        categories_data=categories_data,
+        active_budget=active_budget,
+    )
+
+
+@financial_bp.route('/<int:project_id>/financial/evm-dashboard')
+@login_required
+def evm_dashboard(project_id: int):
+    project = _get_project_or_abort(project_id)
+    if project is None:
+        return redirect(url_for('projects.index'))
+    scurve = EVMAnalysisService.get_scurve_data(project_id)
+    evm_summary = EVMAnalysisService.get_evm_summary(project_id)
+    trend = EVMAnalysisService.get_performance_trend(project_id)
+    variance = EVMAnalysisService.get_variance_analysis(project_id)
+    return render_template(
+        'projects/financial/evm_dashboard.html',
+        project=project,
+        scurve=scurve,
+        evm_summary=evm_summary,
+        trend=trend,
+        variance=variance,
+    )
+
+
+@financial_bp.route('/<int:project_id>/financial/reports', methods=['GET', 'POST'])
+@login_required
+def reports(project_id: int):
+    project = _get_project_or_abort(project_id)
+    if project is None:
+        return redirect(url_for('projects.index'))
+    if request.method == 'POST':
+        report_type = request.form.get('report_type', 'executive')
+        report, error = ReportingService.generate_excel_report(
+            project_id=project_id,
+            report_type=report_type,
+            generated_by=current_user.id,
+        )
+        if report:
+            flash('Relatório gerado com sucesso.', 'success')
+        else:
+            flash(error, 'error')
+        return redirect(url_for('financial.reports', project_id=project_id))
+    report_list = ReportingService.get_project_reports(project_id)
+    return render_template(
+        'projects/financial/reports.html',
+        project=project,
+        reports=report_list,
+        report_types=REPORT_TYPES,
+        report_formats=REPORT_FORMATS,
+    )
+
+
+@financial_bp.route('/<int:project_id>/financial/scenarios', methods=['POST'])
+@login_required
+def create_scenario(project_id: int):
+    project = _get_project_or_abort(project_id)
+    if project is None:
+        return redirect(url_for('projects.index'))
+    from app.models.financial_scenario import SCENARIO_TYPES
+    name = request.form.get('name', '').strip()
+    if not name:
+        flash('Nome do cenário é obrigatório.', 'error')
+        return redirect(url_for('financial.cash_flow', project_id=project_id))
+    scenario_type = request.form.get('scenario_type', 'realistic')
+    if scenario_type not in SCENARIO_TYPES:
+        scenario_type = 'realistic'
+    try:
+        budget_variance = float(request.form.get('budget_variance', 0))
+        schedule_variance = float(request.form.get('schedule_variance', 0))
+    except (ValueError, TypeError):
+        budget_variance, schedule_variance = 0.0, 0.0
+    scenario = FinancialScenario(
+        project_id=project_id,
+        name=name,
+        description=request.form.get('description') or None,
+        scenario_type=scenario_type,
+        budget_variance=budget_variance,
+        schedule_variance=schedule_variance,
+        created_by=current_user.id,
+    )
+    db.session.add(scenario)
+    db.session.commit()
+    flash('Cenário criado com sucesso.', 'success')
+    return redirect(url_for('financial.cash_flow', project_id=project_id))
+
+
+@financial_bp.route('/<int:project_id>/financial/scenarios/<int:scenario_id>/delete', methods=['POST'])
+@login_required
+def delete_scenario(project_id: int, scenario_id: int):
+    project = _get_project_or_abort(project_id)
+    if project is None:
+        return redirect(url_for('projects.index'))
+    scenario = db.session.get(FinancialScenario, scenario_id)
+    if scenario and scenario.project_id == project_id:
+        db.session.delete(scenario)
+        db.session.commit()
+        flash('Cenário removido.', 'success')
+    else:
+        flash('Cenário não encontrado.', 'error')
+    return redirect(url_for('financial.cash_flow', project_id=project_id))

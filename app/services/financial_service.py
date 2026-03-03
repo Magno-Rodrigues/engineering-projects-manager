@@ -357,6 +357,31 @@ class FinancialTransactionService:
         return True, None
 
     @staticmethod
+    def update_transaction(transaction_id: int, **kwargs) -> Tuple[Optional['FinancialTransaction'], Optional[str]]:
+        """Update a transaction. Returns (transaction, error)."""
+        from datetime import datetime as _dt
+        txn = db.session.get(FinancialTransaction, transaction_id)
+        if not txn:
+            return None, 'Transaction not found.'
+        allowed = ('description', 'amount', 'category', 'transaction_date', 'cost_center_id',
+                   'payment_status', 'payment_method', 'supplier_id', 'invoice_number',
+                   'reference_document', 'notes')
+        for key, val in kwargs.items():
+            if key in allowed and val is not None:
+                if key == 'amount':
+                    val, err = _parse_decimal(val)
+                    if err:
+                        return None, f'Amount: {err}'
+                elif key == 'transaction_date' and isinstance(val, str):
+                    try:
+                        val = _dt.strptime(val, '%Y-%m-%d').date()
+                    except ValueError:
+                        return None, 'Invalid transaction date format.'
+                setattr(txn, key, val)
+        db.session.commit()
+        return txn, None
+
+    @staticmethod
     def get_project_summary(project_id: int) -> Dict[str, Any]:
         """Return a summary of revenues, expenses and net cash flow for a project."""
         transactions = FinancialTransaction.query.filter_by(project_id=project_id).all()

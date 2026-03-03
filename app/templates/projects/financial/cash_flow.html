@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}Fluxo de Caixa — {{ project.name }}{% endblock %}
+{% block content %}
+<nav class="flex items-center gap-2 text-sm text-gray-500 mb-6">
+    <a href="{{ url_for('projects.index') }}" class="hover:text-blue-600 transition-colors">Projetos</a>
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+    <a href="{{ url_for('financial.dashboard', project_id=project.id) }}" class="hover:text-blue-600 transition-colors">{{ project.name }}</a>
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+    <span class="text-gray-800 font-medium">Fluxo de Caixa</span>
+</nav>
+
+<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Fluxo de Caixa</h1>
+    <p class="text-gray-500 text-sm mt-1">{{ project.name }}</p>
+</div>
+
+<!-- Navigation links -->
+<div class="flex gap-3 mb-6 flex-wrap">
+    <a href="{{ url_for('financial.dashboard', project_id=project.id) }}" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors">Dashboard</a>
+    <a href="{{ url_for('financial.transactions', project_id=project.id) }}" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors">Transações</a>
+    <a href="{{ url_for('financial.comparison', project_id=project.id) }}" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors">Comparativo</a>
+    <a href="{{ url_for('financial.evm_dashboard', project_id=project.id) }}" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors">EVM Dashboard</a>
+    <a href="{{ url_for('financial.reports', project_id=project.id) }}" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors">Relatórios</a>
+</div>
+
+<!-- Monthly Cash Flow Table -->
+<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
+    <h2 class="text-lg font-semibold text-gray-800 mb-4">Fluxo de Caixa Mensal</h2>
+    {% if monthly_cash_flow %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-600">
+            <thead class="bg-gray-50 text-gray-700 uppercase text-xs">
+                <tr>
+                    <th class="px-4 py-3">Mês</th>
+                    <th class="px-4 py-3 text-right">Entradas</th>
+                    <th class="px-4 py-3 text-right">Saídas</th>
+                    <th class="px-4 py-3 text-right">Saldo</th>
+                    <th class="px-4 py-3 text-right">Acumulado</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for row in monthly_cash_flow %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 font-medium text-gray-800">{{ row.month }}</td>
+                    <td class="px-4 py-3 text-right text-green-600">R$ {{ "%.2f"|format(row.inflows) }}</td>
+                    <td class="px-4 py-3 text-right text-red-600">R$ {{ "%.2f"|format(row.outflows) }}</td>
+                    <td class="px-4 py-3 text-right {% if row.net_cash_flow >= 0 %}text-green-600{% else %}text-red-600{% endif %}">R$ {{ "%.2f"|format(row.net_cash_flow) }}</td>
+                    <td class="px-4 py-3 text-right {% if row.accumulated_cash_flow >= 0 %}text-blue-600{% else %}text-red-600{% endif %}">R$ {{ "%.2f"|format(row.accumulated_cash_flow) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-gray-500 text-sm">Nenhuma transação registrada.</p>
+    {% endif %}
+</div>
+
+<!-- Seasonal Analysis -->
+<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
+    <h2 class="text-lg font-semibold text-gray-800 mb-4">Análise Sazonal (Médias por Mês)</h2>
+    {% if seasonal %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-600">
+            <thead class="bg-gray-50 text-gray-700 uppercase text-xs">
+                <tr>
+                    <th class="px-4 py-3">Mês</th>
+                    <th class="px-4 py-3 text-right">Média Entradas</th>
+                    <th class="px-4 py-3 text-right">Média Saídas</th>
+                    <th class="px-4 py-3 text-right">Média Saldo</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for row in seasonal %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 font-medium text-gray-800">{{ row.month_number }}</td>
+                    <td class="px-4 py-3 text-right text-green-600">R$ {{ "%.2f"|format(row.avg_inflows) }}</td>
+                    <td class="px-4 py-3 text-right text-red-600">R$ {{ "%.2f"|format(row.avg_outflows) }}</td>
+                    <td class="px-4 py-3 text-right {% if row.avg_net >= 0 %}text-green-600{% else %}text-red-600{% endif %}">R$ {{ "%.2f"|format(row.avg_net) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Scenario Simulation -->
+<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-gray-800">Simulação de Cenários</h2>
+        <button type="button" onclick="document.getElementById('scenario-form').classList.toggle('hidden')" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">Novo Cenário</button>
+    </div>
+    <div id="scenario-form" class="hidden mb-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+        <form method="POST" action="{{ url_for('financial.create_scenario', project_id=project.id) }}">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+                    <input type="text" name="name" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+                    <select name="scenario_type" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="realistic">Realista</option>
+                        <option value="optimistic">Otimista</option>
+                        <option value="pessimistic">Pessimista</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Variação Orçamento (%)</label>
+                    <input type="number" name="budget_variance" value="0" step="0.1" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Variação Cronograma (%)</label>
+                    <input type="number" name="schedule_variance" value="0" step="0.1" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+                    <textarea name="description" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+                </div>
+            </div>
+            <div class="flex justify-end mt-4 gap-3">
+                <button type="button" onclick="document.getElementById('scenario-form').classList.add('hidden')" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors">Cancelar</button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">Criar Cenário</button>
+            </div>
+        </form>
+    </div>
+    {% if scenarios %}
+    <div class="space-y-3">
+        {% for s in scenarios %}
+        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+            <div>
+                <p class="font-medium text-gray-800">{{ s.name }}</p>
+                <p class="text-sm text-gray-500">{{ s.scenario_type }} | Orçamento: {{ s.budget_variance }}% | Cronograma: {{ s.schedule_variance }}%</p>
+            </div>
+            <form method="POST" action="{{ url_for('financial.delete_scenario', project_id=project.id, scenario_id=s.id) }}" onsubmit="return confirm('Remover cenário?')">
+                <button type="submit" class="text-red-600 hover:text-red-800 text-sm font-medium transition-colors">Remover</button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-gray-500 text-sm">Nenhum cenário criado.</p>
+    {% endif %}
+</div>
+{% endblock %}
