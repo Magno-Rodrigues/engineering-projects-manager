@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Preview da Importação — {{ project.name }}{% endblock %}
+{% block content %}
+<!-- Breadcrumb -->
+<nav class="flex items-center gap-2 text-sm text-gray-500 mb-6">
+    <a href="{{ url_for('projects.index') }}" class="hover:text-blue-600 transition-colors">Projetos</a>
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+    <a href="{{ url_for('projects.detail', project_id=project.id) }}" class="hover:text-blue-600 transition-colors">{{ project.name }}</a>
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+    <a href="{{ url_for('import.index', project_id=project.id) }}" class="hover:text-blue-600 transition-colors">Importar</a>
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+    <span class="text-gray-800 font-medium">Preview</span>
+</nav>
+
+<h1 class="text-2xl font-bold text-gray-900 mb-2">Preview da Importação</h1>
+<p class="text-gray-500 text-sm mb-6">
+    Arquivo: <strong>{{ data.file_name }}</strong> — Tipo: <strong>{{ data.import_type }}</strong>
+</p>
+
+<!-- Summary cards -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 text-center">
+        <div class="text-2xl font-bold text-blue-600">{{ data.tasks | length }}</div>
+        <div class="text-xs text-gray-500 mt-1">Tarefas</div>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 text-center">
+        <div class="text-2xl font-bold text-indigo-600">{{ data.wbs_items | length }}</div>
+        <div class="text-xs text-gray-500 mt-1">Itens WBS</div>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 text-center">
+        <div class="text-2xl font-bold text-emerald-600">{{ data.resources | length }}</div>
+        <div class="text-xs text-gray-500 mt-1">Recursos</div>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 text-center">
+        <div class="text-2xl font-bold text-orange-600">{{ data.budgets | length }}</div>
+        <div class="text-xs text-gray-500 mt-1">Itens de Orçamento</div>
+    </div>
+</div>
+
+{% if data.tasks %}
+<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6 overflow-x-auto">
+    <h2 class="text-base font-semibold text-gray-800 mb-4">Tarefas (primeiras {{ data.tasks | length }})</h2>
+    <table class="min-w-full text-sm">
+        <thead>
+            <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-100">
+                <th class="pb-2 pr-4">Nome</th>
+                <th class="pb-2 pr-4">Início</th>
+                <th class="pb-2 pr-4">Fim</th>
+                <th class="pb-2 pr-4">Duração</th>
+                <th class="pb-2">WBS</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50">
+            {% for task in data.tasks %}
+            <tr class="text-gray-700">
+                <td class="py-2 pr-4 font-medium">{{ task.name }}</td>
+                <td class="py-2 pr-4 text-gray-500">{{ task.start or '—' }}</td>
+                <td class="py-2 pr-4 text-gray-500">{{ task.finish or '—' }}</td>
+                <td class="py-2 pr-4 text-gray-500">{{ task.duration or '—' }}</td>
+                <td class="py-2 text-gray-500">{{ task.wbs or '—' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% if data.wbs_items %}
+<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6 overflow-x-auto">
+    <h2 class="text-base font-semibold text-gray-800 mb-4">Estrutura WBS</h2>
+    <table class="min-w-full text-sm">
+        <thead>
+            <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-100">
+                <th class="pb-2 pr-4">Código WBS</th>
+                <th class="pb-2 pr-4">Título</th>
+                <th class="pb-2">Nível</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50">
+            {% for item in data.wbs_items %}
+            <tr class="text-gray-700">
+                <td class="py-2 pr-4 font-mono text-xs">{{ item.wbs_code }}</td>
+                <td class="py-2 pr-4">{{ item.title }}</td>
+                <td class="py-2 text-gray-500">{{ item.level }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<!-- Action buttons -->
+<form method="post" class="flex items-center gap-3">
+    <button type="submit" name="action" value="confirm"
+            class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors">
+        Confirmar Importação
+    </button>
+    <button type="submit" name="action" value="cancel"
+            class="inline-flex items-center gap-2 border border-gray-300 hover:border-gray-400 text-gray-600 hover:text-gray-800 text-sm font-medium px-5 py-2.5 rounded-lg transition-colors">
+        Cancelar
+    </button>
+</form>
+{% endblock %}
