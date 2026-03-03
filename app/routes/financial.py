@@ -168,6 +168,39 @@ def delete_budget_item(project_id: int, budget_id: int, item_id: int):
     return redirect(url_for('financial.budget_detail', project_id=project_id, budget_id=budget_id))
 
 
+@financial_bp.route('/<int:project_id>/financial/budgets/<int:budget_id>/lock', methods=['POST'])
+@login_required
+def lock_baseline(project_id: int, budget_id: int):
+    """Lock (freeze) a budget baseline."""
+    project = _get_project_or_abort(project_id)
+    if project is None:
+        return redirect(url_for('projects.index'))
+
+    success, error = FinancialBudgetService.lock_baseline(budget_id)
+    if success:
+        flash('Baseline travado com sucesso. Nenhuma alteração será permitida.', 'success')
+    else:
+        flash(error, 'error')
+    return redirect(url_for('financial.budget_detail', project_id=project_id, budget_id=budget_id))
+
+
+@financial_bp.route('/<int:project_id>/financial/budgets/<int:budget_id>/revision', methods=['POST'])
+@login_required
+def create_budget_revision(project_id: int, budget_id: int):
+    """Create a new revision from a locked budget baseline."""
+    project = _get_project_or_abort(project_id)
+    if project is None:
+        return redirect(url_for('projects.index'))
+
+    notes = request.form.get('notes') or None
+    new_budget, error = FinancialBudgetService.create_revision(budget_id, created_by=current_user.id, notes=notes)
+    if new_budget:
+        flash('Nova revisão de baseline criada com sucesso.', 'success')
+        return redirect(url_for('financial.budget_detail', project_id=project_id, budget_id=new_budget.id))
+    flash(error, 'error')
+    return redirect(url_for('financial.budget_detail', project_id=project_id, budget_id=budget_id))
+
+
 # ---------------------------------------------------------------------------
 # Cost Center routes
 # ---------------------------------------------------------------------------

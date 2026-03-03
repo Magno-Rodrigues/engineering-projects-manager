@@ -14,31 +14,81 @@
     <span class="text-gray-800 font-medium">Detalhes</span>
 </nav>
 
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div class="mb-4 space-y-2">
+{% for category, message in messages %}
+<div class="px-4 py-3 rounded-lg text-sm {% if category == 'error' %}bg-red-50 text-red-700 border border-red-200{% elif category == 'success' %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}bg-blue-50 text-blue-700 border border-blue-200{% endif %}">{{ message }}</div>
+{% endfor %}
+</div>
+{% endif %}
+{% endwith %}
+
 <!-- Budget Header -->
 <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
     <div class="flex items-start justify-between">
         <div>
-            <h1 class="text-xl font-bold text-gray-900">Orçamento Baseline</h1>
+            <div class="flex items-center gap-3">
+                <h1 class="text-xl font-bold text-gray-900">Orçamento Baseline</h1>
+                {% if budget.is_locked %}
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                    Baseline Travado
+                </span>
+                {% elif budget.status == 'revised' %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">Revisado</span>
+                {% else %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">Ativo</span>
+                {% endif %}
+            </div>
             <p class="text-gray-500 text-sm mt-0.5">{{ budget.baseline_date.strftime('%d/%m/%Y') }} — {{ budget.currency }}</p>
             {% if budget.notes %}<p class="text-sm text-gray-600 mt-1">{{ budget.notes }}</p>{% endif %}
         </div>
-        <div class="text-right">
-            <p class="text-xs text-gray-500 mb-0.5">Total Planejado</p>
-            <p class="text-2xl font-bold text-blue-600">R$ {{ "%.2f"|format(budget.total_planned_budget|float) }}</p>
-            <p class="text-xs text-gray-500 mt-1">Itens: R$ {{ "%.2f"|format(total_items) }}</p>
+        <div class="flex flex-col items-end gap-3">
+            <div class="text-right">
+                <p class="text-xs text-gray-500 mb-0.5">Total Planejado</p>
+                <p class="text-2xl font-bold text-blue-600">R$ {{ "%.2f"|format(budget.total_planned_budget|float) }}</p>
+                <p class="text-xs text-gray-500 mt-1">Itens: R$ {{ "%.2f"|format(total_items) }}</p>
+            </div>
+            <!-- Lock / Revision actions -->
+            {% if not budget.is_locked and budget.status != 'revised' %}
+            <form method="POST" action="{{ url_for('financial.lock_baseline', project_id=project.id, budget_id=budget.id) }}"
+                  onsubmit="return confirm('Travar o baseline? Esta ação não pode ser desfeita sem criar uma nova revisão.')">
+                <button type="submit"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold rounded-lg transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                    Travar Baseline
+                </button>
+            </form>
+            {% endif %}
+            {% if budget.is_locked %}
+            <button onclick="document.getElementById('modal-revision').classList.remove('hidden')"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" /></svg>
+                Nova Revisão
+            </button>
+            {% endif %}
         </div>
     </div>
 </div>
+
+{% if budget.is_locked %}
+<div class="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-6">
+    <p class="text-orange-800 text-sm font-medium">🔒 Este baseline está travado. Nenhuma alteração pode ser feita. Para modificar, crie uma nova revisão.</p>
+</div>
+{% endif %}
 
 <!-- Items Table -->
 <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
     <div class="flex items-center justify-between mb-4">
         <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Itens do Orçamento</h2>
+        {% if not budget.is_locked %}
         <button onclick="document.getElementById('modal-new-item').classList.remove('hidden')"
             class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
             Adicionar Item
         </button>
+        {% endif %}
     </div>
     {% if items %}
     <div class="overflow-x-auto">
@@ -51,7 +101,7 @@
                     <th class="text-left py-2 pr-4">Início Planejado</th>
                     <th class="text-left py-2 pr-4">Fim Planejado</th>
                     <th class="text-right py-2 pr-4">Valor</th>
-                    <th class="py-2"></th>
+                    {% if not budget.is_locked %}<th class="py-2"></th>{% endif %}
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-50">
@@ -65,6 +115,7 @@
                     <td class="py-2 pr-4 text-gray-500">{{ item.planned_date_start.strftime('%d/%m/%Y') if item.planned_date_start else '—' }}</td>
                     <td class="py-2 pr-4 text-gray-500">{{ item.planned_date_end.strftime('%d/%m/%Y') if item.planned_date_end else '—' }}</td>
                     <td class="py-2 pr-4 text-right font-semibold text-blue-700">R$ {{ "%.2f"|format(item.planned_amount|float) }}</td>
+                    {% if not budget.is_locked %}
                     <td class="py-2 text-right">
                         <form method="POST" action="{{ url_for('financial.delete_budget_item', project_id=project.id, budget_id=budget.id, item_id=item.id) }}"
                             onsubmit="return confirm('Remover este item?')">
@@ -75,6 +126,7 @@
                             </button>
                         </form>
                     </td>
+                    {% endif %}
                 </tr>
                 {% endfor %}
             </tbody>
@@ -85,6 +137,7 @@
     {% endif %}
 </div>
 
+{% if not budget.is_locked %}
 <!-- Modal: New Budget Item -->
 <div id="modal-new-item" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 p-6">
@@ -146,4 +199,35 @@
         </form>
     </div>
 </div>
+{% endif %}
+
+<!-- Modal: New Revision -->
+{% if budget.is_locked %}
+<div id="modal-revision" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-bold text-gray-900">Nova Revisão de Baseline</h2>
+            <button onclick="document.getElementById('modal-revision').classList.add('hidden')" class="text-gray-400 hover:text-gray-600">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+        <p class="text-sm text-gray-500 mb-4">Uma cópia deste orçamento será criada como nova baseline ativa, preservando todos os itens atuais.</p>
+        <form method="POST" action="{{ url_for('financial.create_budget_revision', project_id=project.id, budget_id=budget.id) }}">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Observações (opcional)</label>
+                    <textarea name="notes" rows="3" placeholder="Motivo da revisão..."
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"></textarea>
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button type="submit" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">Criar Revisão</button>
+                <button type="button" onclick="document.getElementById('modal-revision').classList.add('hidden')"
+                    class="flex-1 border border-gray-300 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
+
