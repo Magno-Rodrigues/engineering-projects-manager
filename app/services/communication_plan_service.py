@@ -25,7 +25,7 @@ class CommunicationPlanService:
         Returns:
             A tuple of (CommunicationPlan, None) on success or (None, error_message) on failure.
         """
-        if not Project.query.get(project_id):
+        if not db.session.get(Project, project_id):
             return None, 'Project not found.'
         if not information:
             return None, 'Information to be communicated is required.'
@@ -63,7 +63,7 @@ class CommunicationPlanService:
         Returns:
             A tuple of (True, None) on success or (False, error_message) on failure.
         """
-        plan = CommunicationPlan.query.get(plan_id)
+        plan = db.session.get(CommunicationPlan, plan_id)
         if not plan:
             return False, 'Communication plan entry not found.'
         db.session.delete(plan)

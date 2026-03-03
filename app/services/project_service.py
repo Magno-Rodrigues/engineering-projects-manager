@@ -18,7 +18,7 @@ class ProjectService:
     @staticmethod
     def get_project(project_id: int) -> Optional[Project]:
         """Return a project by ID."""
-        return Project.query.get(project_id)
+        return db.session.get(Project, project_id)
 
     @staticmethod
     def _parse_decimal(value: Any) -> Tuple[Optional[Decimal], Optional[str]]:
@@ -116,7 +116,7 @@ class ProjectService:
         Returns:
             A tuple of (Project, None) on success or (None, error_message) on failure.
         """
-        project = Project.query.get(project_id)
+        project = db.session.get(Project, project_id)
         if not project:
             return None, 'Project not found.'
 
@@ -154,7 +154,7 @@ class ProjectService:
         Returns:
             A tuple of (True, None) on success or (False, error_message) on failure.
         """
-        project = Project.query.get(project_id)
+        project = db.session.get(Project, project_id)
         if not project:
             return False, 'Project not found.'
         db.session.delete(project)

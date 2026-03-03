@@ -1,5 +1,5 @@
 """Report model."""
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from app import db
 
@@ -23,8 +23,8 @@ class Report(db.Model):
     report_type: str = db.Column(db.String(32), default='progress')
     project_id: int = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
     author_id: int = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # PMBOK fields
     report_date: datetime = db.Column(db.Date, nullable=True)

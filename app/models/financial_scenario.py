@@ -1,5 +1,5 @@
 """Financial scenario model."""
-from datetime import datetime
+from datetime import datetime, timezone
 from app import db
 
 SCENARIO_TYPES = ('pessimistic', 'realistic', 'optimistic')
@@ -16,7 +16,7 @@ class FinancialScenario(db.Model):
     budget_variance = db.Column(db.Numeric(5, 2), nullable=False, default=0)
     schedule_variance = db.Column(db.Numeric(5, 2), nullable=False, default=0)
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     project = db.relationship('Project', backref=db.backref('financial_scenarios', lazy='dynamic'))
     creator = db.relationship('User', foreign_keys=[created_by])
 

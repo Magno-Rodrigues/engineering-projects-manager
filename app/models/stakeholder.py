@@ -1,5 +1,5 @@
 """Stakeholder model for PMBOK Stakeholder Knowledge Area."""
-from datetime import datetime
+from datetime import datetime, timezone
 from app import db
 
 INTEREST_LEVELS = ('high', 'medium', 'low')
@@ -29,8 +29,8 @@ class Stakeholder(db.Model):
     communication_preference: str = db.Column(db.String(128), nullable=True)
     notes: str = db.Column(db.Text, nullable=True)
 
-    created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     project = db.relationship('Project', backref=db.backref('stakeholders', lazy='dynamic'))

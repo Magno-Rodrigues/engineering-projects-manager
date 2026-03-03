@@ -43,7 +43,7 @@ class SupplierService:
     @staticmethod
     def get_supplier(supplier_id: int) -> Optional[Supplier]:
         """Return a supplier by ID."""
-        return Supplier.query.get(supplier_id)
+        return db.session.get(Supplier, supplier_id)
 
     @staticmethod
     def create_supplier(
@@ -78,7 +78,7 @@ class SupplierService:
     @staticmethod
     def delete_supplier(supplier_id: int) -> Tuple[bool, Optional[str]]:
         """Delete a supplier by ID."""
-        supplier = Supplier.query.get(supplier_id)
+        supplier = db.session.get(Supplier, supplier_id)
         if not supplier:
             return False, 'Supplier not found.'
         db.session.delete(supplier)
@@ -97,7 +97,7 @@ class CostCenterService:
     @staticmethod
     def get_cost_center(cost_center_id: int) -> Optional[CostCenter]:
         """Return a cost center by ID."""
-        return CostCenter.query.get(cost_center_id)
+        return db.session.get(CostCenter, cost_center_id)
 
     @staticmethod
     def create_cost_center(
@@ -108,7 +108,7 @@ class CostCenterService:
         budget_allocation: Any = None,
     ) -> Tuple[Optional[CostCenter], Optional[str]]:
         """Create a new cost center for a project."""
-        if not Project.query.get(project_id):
+        if not db.session.get(Project, project_id):
             return None, 'Project not found.'
         if not name or not name.strip():
             return None, 'Cost center name is required.'
@@ -129,7 +129,7 @@ class CostCenterService:
     @staticmethod
     def delete_cost_center(cost_center_id: int) -> Tuple[bool, Optional[str]]:
         """Delete a cost center by ID."""
-        cc = CostCenter.query.get(cost_center_id)
+        cc = db.session.get(CostCenter, cost_center_id)
         if not cc:
             return False, 'Cost center not found.'
         db.session.delete(cc)
@@ -157,7 +157,7 @@ class FinancialBudgetService:
     @staticmethod
     def get_budget(budget_id: int) -> Optional[FinancialBudget]:
         """Return a budget by ID."""
-        return FinancialBudget.query.get(budget_id)
+        return db.session.get(FinancialBudget, budget_id)
 
     @staticmethod
     def create_budget(
@@ -169,7 +169,7 @@ class FinancialBudgetService:
         notes: str = None,
     ) -> Tuple[Optional[FinancialBudget], Optional[str]]:
         """Create a new financial budget for a project."""
-        if not Project.query.get(project_id):
+        if not db.session.get(Project, project_id):
             return None, 'Project not found.'
         budget_val, err = _parse_decimal(total_planned_budget)
         if err:
@@ -206,7 +206,7 @@ class FinancialBudgetService:
         planned_date_end: Any = None,
     ) -> Tuple[Optional[FinancialBudgetItem], Optional[str]]:
         """Add a line item to an existing budget."""
-        budget = FinancialBudget.query.get(budget_id)
+        budget = db.session.get(FinancialBudget, budget_id)
         if not budget:
             return None, 'Budget not found.'
         if not description or not description.strip():
@@ -245,7 +245,7 @@ class FinancialBudgetService:
     @staticmethod
     def delete_budget_item(item_id: int) -> Tuple[bool, Optional[str]]:
         """Delete a budget item by ID."""
-        item = FinancialBudgetItem.query.get(item_id)
+        item = db.session.get(FinancialBudgetItem, item_id)
         if not item:
             return False, 'Budget item not found.'
         db.session.delete(item)
@@ -270,7 +270,7 @@ class FinancialTransactionService:
     @staticmethod
     def get_transaction(transaction_id: int) -> Optional[FinancialTransaction]:
         """Return a transaction by ID."""
-        return FinancialTransaction.query.get(transaction_id)
+        return db.session.get(FinancialTransaction, transaction_id)
 
     @staticmethod
     def create_transaction(
@@ -290,7 +290,7 @@ class FinancialTransactionService:
         notes: str = None,
     ) -> Tuple[Optional[FinancialTransaction], Optional[str]]:
         """Create a new financial transaction."""
-        if not Project.query.get(project_id):
+        if not db.session.get(Project, project_id):
             return None, 'Project not found.'
         if type not in TRANSACTION_TYPES:
             return None, f'Invalid type. Must be one of: {", ".join(TRANSACTION_TYPES)}.'
@@ -349,7 +349,7 @@ class FinancialTransactionService:
     @staticmethod
     def delete_transaction(transaction_id: int) -> Tuple[bool, Optional[str]]:
         """Delete a transaction by ID."""
-        txn = FinancialTransaction.query.get(transaction_id)
+        txn = db.session.get(FinancialTransaction, transaction_id)
         if not txn:
             return False, 'Transaction not found.'
         db.session.delete(txn)
@@ -446,7 +446,7 @@ class FinancialEVMService:
     @staticmethod
     def get_evm_report(report_id: int) -> Optional[FinancialEarnedValue]:
         """Return an EVM report by ID."""
-        return FinancialEarnedValue.query.get(report_id)
+        return db.session.get(FinancialEarnedValue, report_id)
 
     @staticmethod
     def create_evm_report(
@@ -461,7 +461,7 @@ class FinancialEVMService:
         notes: str = None,
     ) -> Tuple[Optional[FinancialEarnedValue], Optional[str]]:
         """Create a new EVM report for a project."""
-        if not Project.query.get(project_id):
+        if not db.session.get(Project, project_id):
             return None, 'Project not found.'
         if not report_date:
             return None, 'Report date is required.'
@@ -514,7 +514,7 @@ class FinancialEVMService:
     @staticmethod
     def delete_evm_report(report_id: int) -> Tuple[bool, Optional[str]]:
         """Delete an EVM report by ID."""
-        report = FinancialEarnedValue.query.get(report_id)
+        report = db.session.get(FinancialEarnedValue, report_id)
         if not report:
             return False, 'EVM report not found.'
         db.session.delete(report)

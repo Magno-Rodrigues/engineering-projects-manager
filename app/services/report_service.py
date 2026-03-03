@@ -17,7 +17,7 @@ class ReportService:
     @staticmethod
     def get_report(report_id: int) -> Optional[Report]:
         """Return a report by ID."""
-        return Report.query.get(report_id)
+        return db.session.get(Report, report_id)
 
     @staticmethod
     def create_report(

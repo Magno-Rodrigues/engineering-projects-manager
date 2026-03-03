@@ -10,6 +10,7 @@ from flask import (
 )
 from flask_login import current_user, login_required
 
+from app import db
 from app.models.project import Project
 from app.services.import_service import ImportService
 
@@ -25,7 +26,7 @@ def _allowed(filename: str) -> bool:
 
 def _get_project_or_abort(project_id: int):
     """Return project if current user is admin or owner, else return None."""
-    project = Project.query.get(project_id)
+    project = db.session.get(Project, project_id)
     if project is None:
         flash('Projeto não encontrado.', 'error')
         return None

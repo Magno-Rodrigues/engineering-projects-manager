@@ -1,5 +1,5 @@
 """Import service — orchestrates file parsing and database persistence."""
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -88,7 +88,7 @@ class ImportService:
                     project_id=project_id,
                     total_planned_budget=_sum_budgets(budgets),
                     currency='BRL',
-                    baseline_date=datetime.utcnow(),
+                    baseline_date=datetime.now(timezone.utc),
                     created_by=created_by,
                     notes=f'Imported from {file_name}',
                 )

@@ -2,6 +2,7 @@
 import pytest
 from decimal import Decimal
 from datetime import date
+from app import db
 from app.models.supplier import Supplier
 from app.models.cost_center import CostCenter
 from app.models.financial_budget import FinancialBudget, FinancialBudgetItem
@@ -28,7 +29,7 @@ def fin_user(app, db):
         db.session.commit()
         uid = user.id
         yield uid
-        u = User.query.get(uid)
+        u = db.session.get(User, uid)
         if u:
             db.session.delete(u)
             db.session.commit()
@@ -43,7 +44,7 @@ def fin_project(app, db, fin_user):
         db.session.commit()
         pid = project.id
         yield pid
-        p = Project.query.get(pid)
+        p = db.session.get(Project, pid)
         if p:
             db.session.delete(p)
             db.session.commit()
@@ -100,7 +101,7 @@ class TestSupplierService:
             success, error = SupplierService.delete_supplier(sid)
             assert success is True
             assert error is None
-            assert Supplier.query.get(sid) is None
+            assert db.session.get(Supplier, sid) is None
 
     def test_delete_supplier_not_found(self, app, db):
         """Test deleting a non-existent supplier returns an error."""
@@ -162,7 +163,7 @@ class TestCostCenterService:
             cc_id = cc.id
             success, error = CostCenterService.delete_cost_center(cc_id)
             assert success is True
-            assert CostCenter.query.get(cc_id) is None
+            assert db.session.get(CostCenter, cc_id) is None
 
     def test_delete_cost_center_not_found(self, app, db):
         """Test deleting a non-existent cost center returns an error."""
@@ -415,7 +416,7 @@ class TestFinancialTransactionService:
             tid = txn.id
             success, error = FinancialTransactionService.delete_transaction(tid)
             assert success is True
-            assert FinancialTransaction.query.get(tid) is None
+            assert db.session.get(FinancialTransaction, tid) is None
 
 
 class TestFinancialEVMService:
@@ -499,7 +500,7 @@ class TestFinancialEVMService:
             rid = report.id
             success, error = FinancialEVMService.delete_evm_report(rid)
             assert success is True
-            assert FinancialEarnedValue.query.get(rid) is None
+            assert db.session.get(FinancialEarnedValue, rid) is None
 
     def test_delete_evm_report_not_found(self, app, db):
         """Test deleting a non-existent EVM report returns an error."""

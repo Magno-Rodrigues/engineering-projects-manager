@@ -1,5 +1,5 @@
 """Financial transaction model for the financial module."""
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from app import db
 
@@ -28,8 +28,8 @@ class FinancialTransaction(db.Model):
     invoice_number: str = db.Column(db.String(50), nullable=True)
     reference_document: str = db.Column(db.String(100), nullable=True)
     notes: str = db.Column(db.Text, nullable=True)
-    created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     created_by: int = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
 
     __table_args__ = (

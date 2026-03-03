@@ -38,7 +38,7 @@ def regular_user(db, app):
 def test_project(db, app, admin_user):
     """Create a test project."""
     with app.app_context():
-        admin = User.query.get(admin_user.id)
+        admin = db.session.get(User, admin_user.id)
         project = Project(name='Test Project TE', owner_id=admin.id)
         db.session.add(project)
         db.session.commit()
@@ -122,7 +122,7 @@ class TestMeasurementCycleService:
             )
             assert error is None
             # Reload old cycle
-            old = MeasurementCycle.query.get(active_cycle.id)
+            old = db.session.get(MeasurementCycle, active_cycle.id)
             assert old.is_active is False
             db.session.delete(new_cycle)
             db.session.commit()

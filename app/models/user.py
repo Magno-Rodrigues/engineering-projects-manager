@@ -1,5 +1,5 @@
 """User model."""
-from datetime import datetime, date
+from datetime import datetime, timezone, date
 from typing import Optional
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -18,8 +18,8 @@ class User(UserMixin, db.Model):
     full_name: str = db.Column(db.String(128))
     role: str = db.Column(db.String(32), default='engineer')
     is_active: bool = db.Column(db.Boolean, default=True)
-    created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Extended profile fields
     key: str = db.Column(db.String(64), unique=True, nullable=True, index=True)
@@ -59,4 +59,4 @@ class User(UserMixin, db.Model):
 @login_manager.user_loader
 def load_user(user_id: str) -> Optional[User]:
     """Load user by ID for Flask-Login."""
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))

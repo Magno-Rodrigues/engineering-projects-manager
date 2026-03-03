@@ -1,5 +1,5 @@
 """Project model."""
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from app import db
 
@@ -16,8 +16,8 @@ class Project(db.Model):
     start_date: datetime = db.Column(db.Date)
     end_date: datetime = db.Column(db.Date)
     owner_id: int = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # New fields
     budget: Decimal = db.Column(db.Numeric(15, 2), nullable=True)
