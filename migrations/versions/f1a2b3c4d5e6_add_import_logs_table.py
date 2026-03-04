@@ -28,7 +28,7 @@ def upgrade():
         sa.Column('created_at', sa.DateTime(), nullable=True),
         sa.Column('updated_at', sa.DateTime(), nullable=True),
         sa.ForeignKeyConstraint(['created_by'], ['users.id']),
-        sa.ForeignKeyConstraint(['project_id'], ['projects.id'], ondelete='CASCADE'),
+        sa.ForeignKeyConstraint(['project_id'], ['projects.id'], ondelete='CASCADE', name='import_logs_project_id_fkey'),
         sa.PrimaryKeyConstraint('id'),
     )
 

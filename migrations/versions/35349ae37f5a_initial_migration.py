@@ -28,6 +28,20 @@ def upgrade():
     sa.Column('is_active', sa.Boolean(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('updated_at', sa.DateTime(), nullable=True),
+    sa.Column('key', sa.String(length=64), nullable=True),
+    sa.Column('phone', sa.String(length=20), nullable=True),
+    sa.Column('supervision', sa.String(length=64), nullable=True),
+    sa.Column('function', sa.String(length=128), nullable=True),
+    sa.Column('company', sa.String(length=64), nullable=True),
+    sa.Column('state', sa.String(length=2), nullable=True),
+    sa.Column('measurement_criteria', sa.String(length=64), nullable=True),
+    sa.Column('birth_date', sa.Date(), nullable=True),
+    sa.Column('start_appointment_date', sa.Date(), nullable=True),
+    sa.Column('status', sa.String(length=32), nullable=True, server_default='Ativo'),
+    sa.Column('permissions', sa.JSON(), nullable=True),
+    sa.Column('first_login', sa.Boolean(), nullable=True, server_default='true'),
+    sa.Column('password_reset_required', sa.Boolean(), nullable=True, server_default='true'),
+    sa.Column('last_login', sa.DateTime(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     with op.batch_alter_table('users', schema=None) as batch_op:

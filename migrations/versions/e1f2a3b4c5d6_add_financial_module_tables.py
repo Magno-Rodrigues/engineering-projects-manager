@@ -44,7 +44,7 @@ def upgrade():
         sa.Column('status', sa.String(length=20), nullable=False, server_default='active'),
         sa.Column('created_at', sa.DateTime(), nullable=True),
         sa.ForeignKeyConstraint(['manager_id'], ['users.id'], ),
-        sa.ForeignKeyConstraint(['project_id'], ['projects.id'], ondelete='CASCADE'),
+        sa.ForeignKeyConstraint(['project_id'], ['projects.id'], ondelete='CASCADE', name='cost_centers_project_id_fkey'),
         sa.PrimaryKeyConstraint('id')
     )
 
