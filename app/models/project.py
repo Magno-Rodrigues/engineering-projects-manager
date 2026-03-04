@@ -31,6 +31,7 @@ class Project(db.Model):
     # Relationships
     tasks = db.relationship('Task', backref='project', lazy='dynamic', cascade='all, delete-orphan')
     reports = db.relationship('Report', backref='project', lazy='dynamic', cascade='all, delete-orphan')
+    import_logs = db.relationship('ImportLog', backref='project', lazy='dynamic', cascade='all, delete-orphan')
     # Read-only convenience accessor for cost centers via the pivot table.
     # Manage associations through ProjectCostCenter or CostCenterService instead.
     cost_centers = db.relationship(
