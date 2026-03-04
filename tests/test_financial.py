@@ -5,6 +5,7 @@ from datetime import date
 from app import db
 from app.models.supplier import Supplier
 from app.models.cost_center import CostCenter
+from app.models.project_cost_center import ProjectCostCenter
 from app.models.financial_budget import FinancialBudget, FinancialBudgetItem
 from app.models.financial_transaction import FinancialTransaction
 from app.models.financial_earned_value import FinancialEarnedValue
@@ -171,6 +172,75 @@ class TestCostCenterService:
             success, error = CostCenterService.delete_cost_center(99999)
             assert success is False
             assert 'not found' in error.lower()
+
+    def test_cost_center_association_created(self, app, db, fin_project):
+        """Test that creating a cost center also creates the project association."""
+        with app.app_context():
+            cc, error = CostCenterService.create_cost_center(
+                project_id=fin_project,
+                name='AssocTest',
+            )
+            assert error is None
+            link = ProjectCostCenter.query.filter_by(
+                project_id=fin_project, cost_center_id=cc.id
+            ).first()
+            assert link is not None
+            db.session.delete(cc)
+            db.session.commit()
+
+    def test_cost_center_shared_across_projects(self, app, db, fin_user):
+        """Test that a cost center can be shared across multiple projects."""
+        with app.app_context():
+            p1 = Project(name='SharedCCProject1', owner_id=fin_user)
+            p2 = Project(name='SharedCCProject2', owner_id=fin_user)
+            db.session.add_all([p1, p2])
+            db.session.commit()
+
+            cc = CostCenter(name='Shared CC')
+            db.session.add(cc)
+            db.session.flush()
+
+            link1 = ProjectCostCenter(project_id=p1.id, cost_center_id=cc.id)
+            link2 = ProjectCostCenter(project_id=p2.id, cost_center_id=cc.id)
+            db.session.add_all([link1, link2])
+            db.session.commit()
+
+            ccs_p1 = CostCenterService.get_project_cost_centers(p1.id)
+            ccs_p2 = CostCenterService.get_project_cost_centers(p2.id)
+            assert any(c.id == cc.id for c in ccs_p1)
+            assert any(c.id == cc.id for c in ccs_p2)
+
+            cc_id = cc.id
+            db.session.delete(p1)
+            db.session.delete(p2)
+            db.session.delete(cc)
+            db.session.commit()
+            assert db.session.get(CostCenter, cc_id) is None
+
+    def test_cost_center_not_deleted_on_project_delete(self, app, db, fin_user):
+        """Test that deleting a project does not delete its cost centers."""
+        with app.app_context():
+            project = Project(name='DeleteProjectCC', owner_id=fin_user)
+            db.session.add(project)
+            db.session.commit()
+            pid = project.id
+
+            cc, _ = CostCenterService.create_cost_center(
+                project_id=pid, name='PersistentCC'
+            )
+            cc_id = cc.id
+
+            # Delete the project – the cost center must survive
+            p = db.session.get(Project, pid)
+            db.session.delete(p)
+            db.session.commit()
+
+            surviving_cc = db.session.get(CostCenter, cc_id)
+            assert surviving_cc is not None, 'Cost center must not be deleted when project is deleted'
+
+            # Clean up
+            db.session.delete(surviving_cc)
+            db.session.commit()
 
 
 class TestFinancialBudgetService:

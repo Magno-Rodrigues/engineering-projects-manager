@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from app import db
 from app.models.cost_center import CostCenter
+from app.models.project_cost_center import ProjectCostCenter
 from app.models.financial_budget import FinancialBudget, FinancialBudgetItem, BUDGET_CATEGORIES, BUDGET_STATUSES
 from app.models.financial_earned_value import FinancialEarnedValue
 from app.models.financial_transaction import (
@@ -91,8 +92,14 @@ class CostCenterService:
 
     @staticmethod
     def get_project_cost_centers(project_id: int) -> List[CostCenter]:
-        """Return all cost centers for a project."""
-        return CostCenter.query.filter_by(project_id=project_id).order_by(CostCenter.name).all()
+        """Return all cost centers associated with a project."""
+        return (
+            CostCenter.query
+            .join(ProjectCostCenter, ProjectCostCenter.cost_center_id == CostCenter.id)
+            .filter(ProjectCostCenter.project_id == project_id)
+            .order_by(CostCenter.name)
+            .all()
+        )
 
     @staticmethod
     def get_cost_center(cost_center_id: int) -> Optional[CostCenter]:
@@ -107,7 +114,7 @@ class CostCenterService:
         manager_id: int = None,
         budget_allocation: Any = None,
     ) -> Tuple[Optional[CostCenter], Optional[str]]:
-        """Create a new cost center for a project."""
+        """Create a new cost center and associate it with the given project."""
         if not db.session.get(Project, project_id):
             return None, 'Project not found.'
         if not name or not name.strip():
@@ -116,19 +123,21 @@ class CostCenterService:
         if err:
             return None, f'Budget allocation: {err}'
         cc = CostCenter(
-            project_id=project_id,
             name=name.strip(),
             description=description or None,
             manager_id=manager_id or None,
             budget_allocation=budget_val,
         )
         db.session.add(cc)
+        db.session.flush()  # populate cc.id before creating the association
+        link = ProjectCostCenter(project_id=project_id, cost_center_id=cc.id)
+        db.session.add(link)
         db.session.commit()
         return cc, None
 
     @staticmethod
     def delete_cost_center(cost_center_id: int) -> Tuple[bool, Optional[str]]:
-        """Delete a cost center by ID."""
+        """Delete a cost center and all its project associations."""
         cc = db.session.get(CostCenter, cost_center_id)
         if not cc:
             return False, 'Cost center not found.'
