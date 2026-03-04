@@ -44,11 +44,6 @@ def upgrade():
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('user_id', 'module_name', name='uq_user_module')
     )
-    with op.batch_alter_table('password_reset_tokens', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('idx_password_reset_tokens_token'))
-        batch_op.drop_index(batch_op.f('idx_password_reset_tokens_user_id'))
-        batch_op.drop_constraint(batch_op.f('password_reset_token_user_id_fkey'), type_='foreignkey')
-        batch_op.create_foreign_key(None, 'users', ['user_id'], ['id'])
 
     with op.batch_alter_table('users', schema=None) as batch_op:
         batch_op.alter_column('status',
@@ -92,12 +87,6 @@ def downgrade():
                existing_type=sa.VARCHAR(length=32),
                nullable=True,
                existing_server_default=sa.text("'Ativo'::character varying"))
-
-    with op.batch_alter_table('password_reset_tokens', schema=None) as batch_op:
-        batch_op.drop_constraint(None, type_='foreignkey')
-        batch_op.create_foreign_key(batch_op.f('password_reset_token_user_id_fkey'), 'users', ['user_id'], ['id'], ondelete='CASCADE')
-        batch_op.create_index(batch_op.f('idx_password_reset_tokens_user_id'), ['user_id'], unique=False)
-        batch_op.create_index(batch_op.f('idx_password_reset_tokens_token'), ['token'], unique=False)
 
     op.drop_table('user_module_permissions')
     op.drop_table('module_permissions')
