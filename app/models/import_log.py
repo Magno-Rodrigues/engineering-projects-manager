@@ -26,7 +26,6 @@ class ImportLog(db.Model):
     updated_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
-    project = db.relationship('Project', backref=db.backref('import_logs', lazy='dynamic'))
     creator = db.relationship('User', foreign_keys=[created_by])
 
     def __repr__(self) -> str:
