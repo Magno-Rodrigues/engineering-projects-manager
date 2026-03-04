@@ -54,6 +54,7 @@ class WBSService:
         project_id: int,
         created_by: int,
         items: List[Dict[str, Any]],
+        source: str = 'manual',
     ) -> List[WBSItem]:
         """Bulk-insert WBS items, resolving parent relationships by uid.
 
@@ -74,6 +75,7 @@ class WBSService:
                 parent_id=parent_id,
                 description=item.get('description'),
                 estimated_effort=item.get('estimated_effort'),
+                source=source,
             )
             db.session.add(wbs_item)
             db.session.flush()

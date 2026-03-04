@@ -192,6 +192,93 @@ def usuarios_deletar_selecionados():
     return redirect(url_for('admin.usuarios_index'))
 
 
+@admin_bp.route('/imports')
+@login_required
+@admin_required
+def imports_report():
+    """Admin report of all import logs across projects, with filtering."""
+    from app.models.user import User
+    from app.models.project import Project
+    from app.services.import_service import ImportService
+
+    user_id = request.args.get('user_id', type=int)
+    project_id = request.args.get('project_id', type=int)
+    start_date = request.args.get('start_date', '').strip() or None
+    end_date = request.args.get('end_date', '').strip() or None
+
+    logs = ImportService.get_logs_report(
+        user_id=user_id,
+        project_id=project_id,
+        start_date=start_date,
+        end_date=end_date,
+    )
+    users = User.query.order_by(User.username).all()
+    projects = Project.query.order_by(Project.name).all()
+
+    success_count = sum(1 for l in logs if l.status == 'success')
+    failed_count = sum(1 for l in logs if l.status == 'failed')
+
+    return render_template(
+        'admin/imports/report.html',
+        logs=logs,
+        users=users,
+        projects=projects,
+        selected_user_id=user_id,
+        selected_project_id=project_id,
+        start_date=start_date or '',
+        end_date=end_date or '',
+        success_count=success_count,
+        failed_count=failed_count,
+    )
+
+
+@admin_bp.route('/imports/export')
+@login_required
+@admin_required
+def imports_export():
+    """Export filtered import logs as a CSV file."""
+    import csv
+    import io
+    from flask import Response
+    from app.services.import_service import ImportService
+
+    user_id = request.args.get('user_id', type=int)
+    project_id = request.args.get('project_id', type=int)
+    start_date = request.args.get('start_date', '').strip() or None
+    end_date = request.args.get('end_date', '').strip() or None
+
+    logs = ImportService.get_logs_report(
+        user_id=user_id,
+        project_id=project_id,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['ID', 'Projeto', 'Usuário', 'Tipo', 'Arquivo', 'Status',
+                     'Tarefas', 'Itens WBS', 'Data'])
+    for log in logs:
+        writer.writerow([
+            log.id,
+            log.project.name if log.project else '',
+            log.creator.username if log.creator else '',
+            log.import_type,
+            log.file_name,
+            log.status,
+            log.total_tasks_imported,
+            log.total_items_imported,
+            log.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+        ])
+
+    output.seek(0)
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=import_report.csv'},
+    )
+
+
 @admin_bp.route('/usuarios/<int:user_id>/permissoes', methods=['GET', 'POST'])
 @login_required
 @admin_required

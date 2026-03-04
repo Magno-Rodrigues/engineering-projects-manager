@@ -22,6 +22,7 @@ class WBSItem(db.Model):
     status: str = db.Column(db.String(16), nullable=False, default='planning')
     estimated_effort: Decimal = db.Column(db.Numeric(10, 2), nullable=True)
     actual_effort: Decimal = db.Column(db.Numeric(10, 2), nullable=True)
+    source: str = db.Column(db.String(32), nullable=False, default='manual', server_default='manual')
 
     created_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))

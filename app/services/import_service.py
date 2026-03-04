@@ -1,5 +1,5 @@
 """Import service — orchestrates file parsing and database persistence."""
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -7,6 +7,7 @@ from app import db
 from app.models.financial_budget import FinancialBudget, FinancialBudgetItem
 from app.models.import_log import ImportLog
 from app.models.task import Task
+from app.models.wbs_item import WBSItem
 from app.services.importers.ms_project_importer import MSProjectImporter
 from app.services.importers.primavera_importer import PrimaveraImporter
 from app.services.wbs_service import WBSService
@@ -37,6 +38,35 @@ class ImportService:
         return data, errors
 
     @staticmethod
+    def _clear_previous_import_data(project_id: int) -> None:
+        """Delete all previously imported tasks, WBS items, and budgets for a project.
+
+        This ensures each new import replaces the previous plan data.
+        """
+        # Delete imported tasks
+        Task.query.filter_by(project_id=project_id, source='import').delete(
+            synchronize_session=False
+        )
+        db.session.flush()
+
+        # Nullify self-referential parent_id first to avoid FK constraint violations,
+        # then delete all imported WBS items.
+        WBSItem.query.filter_by(project_id=project_id, source='import').update(
+            {'parent_id': None}, synchronize_session=False
+        )
+        db.session.flush()
+        WBSItem.query.filter_by(project_id=project_id, source='import').delete(
+            synchronize_session=False
+        )
+        db.session.flush()
+
+        # Delete previously imported budget baselines
+        FinancialBudget.query.filter_by(
+            project_id=project_id, source='import'
+        ).delete(synchronize_session=False)
+        db.session.flush()
+
+    @staticmethod
     def import_data(
         project_id: int,
         created_by: int,
@@ -48,6 +78,7 @@ class ImportService:
         """Persist parsed data into the database inside a transaction.
 
         Returns the ImportLog record on success or (None, error) on failure.
+        Each import replaces the previous imported plan data for the project.
         If lock_baseline is True, the created budget baseline is locked (status='closed').
         """
         log = ImportLog(
@@ -61,9 +92,12 @@ class ImportService:
         db.session.flush()
 
         try:
+            # Replace previous imported data before inserting fresh data
+            ImportService._clear_previous_import_data(project_id)
+
             # WBS items
             wbs_items = data.get('wbs_items', [])
-            WBSService.bulk_create_wbs_items(project_id, created_by, wbs_items)
+            WBSService.bulk_create_wbs_items(project_id, created_by, wbs_items, source='import')
 
             # Tasks
             tasks_imported = 0
@@ -79,6 +113,7 @@ class ImportService:
                     due_date=_parse_date(t.get('finish')),
                     estimated_effort=t.get('estimated_effort'),
                     progress=int(t.get('percent_complete') or 0),
+                    source='import',
                 )
                 db.session.add(task)
                 tasks_imported += 1
@@ -94,6 +129,7 @@ class ImportService:
                     created_by=created_by,
                     notes=f'Imported from {file_name}',
                     status='closed' if lock_baseline else 'active',
+                    source='import',
                 )
                 db.session.add(budget)
                 db.session.flush()
@@ -133,6 +169,42 @@ class ImportService:
             .order_by(ImportLog.created_at.desc())
             .all()
         )
+
+    @staticmethod
+    def get_logs_report(
+        user_id: Optional[int] = None,
+        project_id: Optional[int] = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+    ) -> List[ImportLog]:
+        """Return import logs with optional filters, newest first.
+
+        Supports filtering by user, project, and submission date range.
+        Used for admin reporting and data analysis.
+        """
+        from sqlalchemy.orm import joinedload
+
+        query = ImportLog.query.options(
+            joinedload(ImportLog.creator),
+            joinedload(ImportLog.project),
+        )
+        if user_id:
+            query = query.filter(ImportLog.created_by == user_id)
+        if project_id:
+            query = query.filter(ImportLog.project_id == project_id)
+        if start_date:
+            try:
+                start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+                query = query.filter(ImportLog.created_at >= start_dt)
+            except (ValueError, TypeError):
+                pass
+        if end_date:
+            try:
+                end_dt = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+                query = query.filter(ImportLog.created_at < end_dt)
+            except (ValueError, TypeError):
+                pass
+        return query.order_by(ImportLog.created_at.desc()).all()
 
     @staticmethod
     def rollback_import(log_id: int) -> Tuple[bool, Optional[str]]:

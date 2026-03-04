@@ -161,3 +161,86 @@ class TestImportService:
             ok, err = ImportService.rollback_import(log.id)
             assert ok is False
             assert err is not None
+
+    def test_import_data_replaces_previous_tasks(self, app, db, svc_project, svc_user):
+        """A second import should replace tasks created by the first import."""
+        from app.models.task import Task
+        with app.app_context():
+            # First import
+            data, _ = ImportService.parse_file(
+                MINIMAL_MS_XML.encode(), 'first.xml', 'ms_project'
+            )
+            ImportService.import_data(
+                project_id=svc_project,
+                created_by=svc_user,
+                file_name='first.xml',
+                import_type='ms_project',
+                data=data,
+            )
+            count_after_first = Task.query.filter_by(project_id=svc_project, source='import').count()
+            assert count_after_first >= 1
+
+            # Second import
+            data2, _ = ImportService.parse_file(
+                MINIMAL_MS_XML.encode(), 'second.xml', 'ms_project'
+            )
+            ImportService.import_data(
+                project_id=svc_project,
+                created_by=svc_user,
+                file_name='second.xml',
+                import_type='ms_project',
+                data=data2,
+            )
+            count_after_second = Task.query.filter_by(project_id=svc_project, source='import').count()
+            # Number of imported tasks should equal one import's worth, not accumulate
+            assert count_after_second == count_after_first
+
+    def test_import_data_sets_source_import_on_tasks(self, app, db, svc_project, svc_user):
+        """Tasks created by import should have source='import'."""
+        from app.models.task import Task
+        with app.app_context():
+            data, _ = ImportService.parse_file(
+                MINIMAL_MS_XML.encode(), 'src.xml', 'ms_project'
+            )
+            ImportService.import_data(
+                project_id=svc_project,
+                created_by=svc_user,
+                file_name='src.xml',
+                import_type='ms_project',
+                data=data,
+            )
+            tasks = Task.query.filter_by(project_id=svc_project, source='import').all()
+            assert len(tasks) >= 1
+
+    def test_get_logs_report_no_filters(self, app, db, svc_project, svc_user):
+        with app.app_context():
+            logs = ImportService.get_logs_report()
+            assert isinstance(logs, list)
+
+    def test_get_logs_report_filter_by_user(self, app, db, svc_project, svc_user):
+        with app.app_context():
+            data, _ = ImportService.parse_file(
+                MINIMAL_MS_XML.encode(), 'report.xml', 'ms_project'
+            )
+            ImportService.import_data(
+                project_id=svc_project,
+                created_by=svc_user,
+                file_name='report.xml',
+                import_type='ms_project',
+                data=data,
+            )
+            logs = ImportService.get_logs_report(user_id=svc_user)
+            assert all(l.created_by == svc_user for l in logs)
+
+    def test_get_logs_report_filter_by_project(self, app, db, svc_project, svc_user):
+        with app.app_context():
+            logs = ImportService.get_logs_report(project_id=svc_project)
+            assert all(l.project_id == svc_project for l in logs)
+
+    def test_get_logs_report_filter_by_date(self, app, db, svc_project, svc_user):
+        with app.app_context():
+            from datetime import datetime, timezone, timedelta
+            future = (datetime.now(timezone.utc) + timedelta(days=1)).strftime('%Y-%m-%d')
+            logs = ImportService.get_logs_report(end_date=future)
+            assert isinstance(logs, list)
+

@@ -13,6 +13,7 @@ from flask_login import current_user, login_required
 from app import db
 from app.models.project import Project
 from app.services.import_service import ImportService
+from app.utils.decorators import admin_required
 
 import_bp = Blueprint('import', __name__, url_prefix='/projects')
 
@@ -144,8 +145,9 @@ def log(project_id: int):
 
 @import_bp.route('/<int:project_id>/import/log/<int:log_id>/rollback', methods=['POST'])
 @login_required
+@admin_required
 def rollback(project_id: int, log_id: int):
-    """Rollback (mark as failed) a specific import log."""
+    """Rollback (mark as failed) a specific import log. Admin-only."""
     project = _get_project_or_abort(project_id)
     if project is None:
         return redirect(url_for('projects.index'))
