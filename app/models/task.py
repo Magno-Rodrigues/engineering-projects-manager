@@ -52,6 +52,7 @@ class Task(db.Model):
     estimated_effort: Decimal = db.Column(db.Numeric(10, 2), nullable=True)
     progress: int = db.Column(db.Integer, default=0)
     dependencies: str = db.Column(db.Text, nullable=True)
+    source: str = db.Column(db.String(32), nullable=False, default='manual', server_default='manual')
 
     # Relationships
     #wbs_item = db.relationship('WBSItem', foreign_keys='Task.wbs_item_id', backref=db.backref('tasks', lazy='dynamic'))

@@ -46,6 +46,17 @@ def route_user(db, app):
 
 
 @pytest.fixture(scope='module')
+def route_non_admin_user(db, app):
+    """Non-admin engineer user for access restriction tests."""
+    with app.app_context():
+        user = User(username='route_engineer', email='route_engineer@example.com', role='engineer')
+        user.set_password('engineerpass')
+        db.session.add(user)
+        db.session.commit()
+        yield user.id
+
+
+@pytest.fixture(scope='module')
 def route_project(db, app, route_user):
     with app.app_context():
         project = Project(name='Route Test Project', owner_id=route_user, status='planning')
@@ -61,6 +72,16 @@ def logged_client(client, app, db, route_user):
         user = db.session.get(User, route_user)
         username = user.username
     client.post('/login', data={'username': username, 'password': 'routepass'})
+    return client
+
+
+@pytest.fixture()
+def engineer_client(client, app, db, route_non_admin_user):
+    """Return a test client logged in as a non-admin engineer user."""
+    with app.app_context():
+        user = db.session.get(User, route_non_admin_user)
+        username = user.username
+    client.post('/login', data={'username': username, 'password': 'engineerpass'})
     return client
 
 
@@ -251,3 +272,22 @@ class TestImportLogRoute:
         with app.app_context():
             refreshed = db.session.get(ImportLog, log_id)
             assert refreshed.status == 'failed'
+
+    def test_rollback_denied_for_non_admin(self, engineer_client, app, db, route_project, route_user):
+        """Non-admin user should be denied access (403) to the rollback endpoint."""
+        with app.app_context():
+            log = ImportLog(
+                project_id=route_project,
+                created_by=route_user,
+                import_type='ms_project',
+                file_name='restricted.xml',
+                status='success',
+            )
+            db.session.add(log)
+            db.session.commit()
+            log_id = log.id
+
+        response = engineer_client.post(
+            f'/projects/{route_project}/import/log/{log_id}/rollback',
+        )
+        assert response.status_code == 403

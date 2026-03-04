@@ -22,6 +22,7 @@ class FinancialBudget(db.Model):
     updated_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     created_by: int = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     notes: str = db.Column(db.Text, nullable=True)
+    source: str = db.Column(db.String(32), nullable=False, default='manual', server_default='manual')
 
     # Relationships
     project = db.relationship('Project', backref=db.backref('financial_budgets', lazy='dynamic'))
