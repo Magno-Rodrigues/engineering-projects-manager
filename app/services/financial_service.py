@@ -91,18 +91,20 @@ class CostCenterService:
     """Service class for cost center operations."""
 
     @staticmethod
-    def get_project_cost_centers(project_id: int) -> List[CostCenter]:
-        """Return all cost centers for a project."""
+    def get_all_cost_centers() -> List[CostCenter]:
+        """Return all cost centers ordered by name."""
+        return CostCenter.query.order_by(CostCenter.name).all()
+
     @staticmethod
     def get_project_cost_centers(project_id: int) -> List[CostCenter]:
         """Return all cost centers associated with a project."""
         return (
-        CostCenter.query
-        .join(ProjectCostCenter, ProjectCostCenter.cost_center_id == CostCenter.id)
-        .filter(ProjectCostCenter.project_id == project_id)
-        .order_by(CostCenter.name)
-        .all()
-    )    
+            CostCenter.query
+            .join(ProjectCostCenter, ProjectCostCenter.cost_center_id == CostCenter.id)
+            .filter(ProjectCostCenter.project_id == project_id)
+            .order_by(CostCenter.name)
+            .all()
+        )
 
     @staticmethod
     def get_cost_center(cost_center_id: int) -> Optional[CostCenter]:
@@ -110,38 +112,109 @@ class CostCenterService:
         return db.session.get(CostCenter, cost_center_id)
 
     @staticmethod
+    def is_blocked(cost_center_id: int) -> bool:
+        """Return True if the cost center status is 'blocked'."""
+        cc = db.session.get(CostCenter, cost_center_id)
+        return cc is not None and cc.status == 'blocked'
+
+    @staticmethod
     def create_cost_center(
-        project_id: int,
         name: str,
         description: str = None,
         manager_id: int = None,
         budget_allocation: Any = None,
+        status: str = 'active',
     ) -> Tuple[Optional[CostCenter], Optional[str]]:
-        """Create a new cost center for a project."""
-        if not db.session.get(Project, project_id):
-            return None, 'Project not found.'
+        """Create a new global cost center (not tied to any project)."""
         if not name or not name.strip():
             return None, 'Cost center name is required.'
         budget_val, err = _parse_decimal(budget_allocation)
         if err:
             return None, f'Budget allocation: {err}'
         cc = CostCenter(
-            project_id=project_id,
             name=name.strip(),
             description=description or None,
             manager_id=manager_id or None,
             budget_allocation=budget_val,
+            status=status or 'active',
         )
         db.session.add(cc)
         db.session.commit()
         return cc, None
 
     @staticmethod
+    def update_cost_center(
+        cost_center_id: int,
+        name: str = None,
+        description: str = None,
+        manager_id: int = None,
+        budget_allocation: Any = None,
+        status: str = None,
+    ) -> Tuple[Optional[CostCenter], Optional[str]]:
+        """Update an existing cost center."""
+        cc = db.session.get(CostCenter, cost_center_id)
+        if not cc:
+            return None, 'Cost center not found.'
+        if name is not None:
+            if not name.strip():
+                return None, 'Cost center name is required.'
+            cc.name = name.strip()
+        if description is not None:
+            cc.description = description or None
+        if manager_id is not None:
+            cc.manager_id = manager_id or None
+        if budget_allocation is not None:
+            budget_val, err = _parse_decimal(budget_allocation)
+            if err:
+                return None, f'Budget allocation: {err}'
+            cc.budget_allocation = budget_val
+        if status is not None:
+            cc.status = status
+        db.session.commit()
+        return cc, None
+
+    @staticmethod
+    def associate_with_project(cost_center_id: int, project_id: int) -> Tuple[bool, Optional[str]]:
+        """Associate a cost center with a project (creates ProjectCostCenter)."""
+        if not db.session.get(CostCenter, cost_center_id):
+            return False, 'Cost center not found.'
+        if not db.session.get(Project, project_id):
+            return False, 'Project not found.'
+        existing = ProjectCostCenter.query.filter_by(
+            project_id=project_id, cost_center_id=cost_center_id
+        ).first()
+        if existing:
+            return False, 'Cost center is already associated with this project.'
+        pcc = ProjectCostCenter(project_id=project_id, cost_center_id=cost_center_id)
+        db.session.add(pcc)
+        db.session.commit()
+        return True, None
+
+    @staticmethod
+    def dissociate_from_project(cost_center_id: int, project_id: int) -> Tuple[bool, Optional[str]]:
+        """Remove the association between a cost center and a project."""
+        pcc = ProjectCostCenter.query.filter_by(
+            project_id=project_id, cost_center_id=cost_center_id
+        ).first()
+        if not pcc:
+            return False, 'Association not found.'
+        db.session.delete(pcc)
+        db.session.commit()
+        return True, None
+
+    @staticmethod
     def delete_cost_center(cost_center_id: int) -> Tuple[bool, Optional[str]]:
-        """Delete a cost center by ID."""
+        """Delete a cost center by ID.
+
+        Deletion is blocked when there are financial transactions referencing the cost center.
+        """
+        from app.models.financial_transaction import FinancialTransaction
         cc = db.session.get(CostCenter, cost_center_id)
         if not cc:
             return False, 'Cost center not found.'
+        has_transactions = FinancialTransaction.query.filter_by(cost_center_id=cost_center_id).first()
+        if has_transactions:
+            return False, 'Cannot delete a cost center that has financial transactions.'
         db.session.delete(cc)
         db.session.commit()
         return True, None

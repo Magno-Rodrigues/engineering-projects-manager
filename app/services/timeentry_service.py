@@ -171,6 +171,25 @@ class TimeEntryService:
                 f'({active_cycle.start_date} a {active_cycle.end_date}).'
             )
 
+        # Validate project and cost center blocking status
+        from app.models.project import Project
+        from app.models.cost_center import CostCenter
+        from app.models.project_cost_center import ProjectCostCenter
+        project = db.session.get(Project, project_id)
+        if project and project.status == 'blocked':
+            return None, 'Este projeto está bloqueado e não aceita novos apontamentos.'
+        blocked_cc = (
+            CostCenter.query
+            .join(ProjectCostCenter, ProjectCostCenter.cost_center_id == CostCenter.id)
+            .filter(ProjectCostCenter.project_id == project_id, CostCenter.status == 'blocked')
+            .first()
+        )
+        if blocked_cc:
+            return None, (
+                f'O centro de custo "{blocked_cc.name}" associado a este projeto está bloqueado. '
+                'Nenhum apontamento pode ser registrado.'
+            )
+
         entry = TimeEntry(
             project_id=project_id,
             user_id=user_id,

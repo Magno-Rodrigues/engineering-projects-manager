@@ -14,11 +14,20 @@
 
 <div class="flex items-center justify-between mb-6">
     <h1 class="text-2xl font-bold text-gray-900">Centros de Custo</h1>
-    <button onclick="document.getElementById('modal-new-cc').classList.remove('hidden')"
-        class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
-        Novo Centro de Custo
-    </button>
+    <div class="flex gap-2">
+        {% if all_cost_centers %}
+        <button onclick="document.getElementById('modal-associate-cc').classList.remove('hidden')"
+            class="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101" /><path stroke-linecap="round" stroke-linejoin="round" d="M10.172 13.828a4 4 0 015.656 0l4-4a4 4 0 10-5.656-5.656l-1.102 1.101" /></svg>
+            Associar Existente
+        </button>
+        {% endif %}
+        <button onclick="document.getElementById('modal-new-cc').classList.remove('hidden')"
+            class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
+            Novo Centro de Custo
+        </button>
+    </div>
 </div>
 
 {% if cost_centers %}
@@ -30,7 +39,7 @@
                 <th class="text-left px-6 py-3">Descrição</th>
                 <th class="text-right px-6 py-3">Orçamento Alocado</th>
                 <th class="text-left px-6 py-3">Status</th>
-                <th class="px-6 py-3"></th>
+                <th class="px-6 py-3 text-right">Ações</th>
             </tr>
         </thead>
         <tbody class="divide-y divide-gray-100">
@@ -45,18 +54,52 @@
                     {% if cc.status == 'active' %}
                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Ativo</span>
                     {% else %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">Inativo</span>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Bloqueado</span>
                     {% endif %}
                 </td>
                 <td class="px-6 py-3 text-right">
-                    <form method="POST" action="{{ url_for('financial.delete_cost_center', project_id=project.id, cc_id=cc.id) }}"
-                        onsubmit="return confirm('Remover este centro de custo?')">
-                        <button type="submit" class="text-red-400 hover:text-red-600 transition-colors">
+                    <div class="flex items-center justify-end gap-2">
+                        <!-- Edit button -->
+                        <button onclick="openEditModal({{ cc.id }}, '{{ cc.name|e }}', '{{ cc.description|e if cc.description else '' }}', '{{ cc.budget_allocation|e if cc.budget_allocation else '' }}', '{{ cc.status|e }}')"
+                            class="text-blue-400 hover:text-blue-600 transition-colors" title="Editar">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
                         </button>
-                    </form>
+                        <!-- Toggle status button -->
+                        <form method="POST" action="{{ url_for('financial.toggle_cost_center_status', project_id=project.id, cc_id=cc.id) }}">
+                            <button type="submit" class="transition-colors {% if cc.status == 'active' %}text-yellow-500 hover:text-yellow-700{% else %}text-green-500 hover:text-green-700{% endif %}"
+                                title="{% if cc.status == 'active' %}Bloquear{% else %}Ativar{% endif %}">
+                                {% if cc.status == 'active' %}
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                </svg>
+                                {% else %}
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                                </svg>
+                                {% endif %}
+                            </button>
+                        </form>
+                        <!-- Dissociate button -->
+                        <form method="POST" action="{{ url_for('financial.dissociate_cost_center', project_id=project.id, cc_id=cc.id) }}"
+                            onsubmit="return confirm('Desassociar este centro de custo do projeto?')">
+                            <button type="submit" class="text-orange-400 hover:text-orange-600 transition-colors" title="Desassociar">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m3.656-3.656a4 4 0 015.656 0l4-4a4 4 0 00-5.656-5.656l-1.102 1.101M7 17l4-4m6-6l-4 4" />
+                                </svg>
+                            </button>
+                        </form>
+                        <!-- Delete button -->
+                        <form method="POST" action="{{ url_for('financial.delete_cost_center', project_id=project.id, cc_id=cc.id) }}"
+                            onsubmit="return confirm('Deletar permanentemente este centro de custo?')">
+                            <button type="submit" class="text-red-400 hover:text-red-600 transition-colors" title="Deletar">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        </form>
+                    </div>
                 </td>
             </tr>
             {% endfor %}
@@ -68,8 +111,8 @@
     <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
     </svg>
-    <p class="text-gray-500 font-medium">Nenhum centro de custo criado</p>
-    <p class="text-sm text-gray-400 mt-1">Crie centros de custo para alocar recursos do projeto.</p>
+    <p class="text-gray-500 font-medium">Nenhum centro de custo associado</p>
+    <p class="text-sm text-gray-400 mt-1">Crie ou associe centros de custo para alocar recursos do projeto.</p>
 </div>
 {% endif %}
 
@@ -99,6 +142,13 @@
                     <input type="number" name="budget_allocation" step="0.01" min="0"
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
                 </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select name="status" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                        <option value="active">Ativo</option>
+                        <option value="blocked">Bloqueado</option>
+                    </select>
+                </div>
             </div>
             <div class="flex gap-3 mt-6">
                 <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">Criar</button>
@@ -108,4 +158,98 @@
         </form>
     </div>
 </div>
+
+<!-- Modal: Edit Cost Center -->
+<div id="modal-edit-cc" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-bold text-gray-900">Editar Centro de Custo</h2>
+            <button onclick="document.getElementById('modal-edit-cc').classList.add('hidden')" class="text-gray-400 hover:text-gray-600">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+        <form id="form-edit-cc" method="POST" action="">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nome *</label>
+                    <input type="text" id="edit-cc-name" name="name" required maxlength="100"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+                    <textarea id="edit-cc-description" name="description" rows="2"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Orçamento Alocado (R$)</label>
+                    <input type="number" id="edit-cc-budget" name="budget_allocation" step="0.01" min="0"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select id="edit-cc-status" name="status" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                        <option value="active">Ativo</option>
+                        <option value="blocked">Bloqueado</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">Salvar</button>
+                <button type="button" onclick="document.getElementById('modal-edit-cc').classList.add('hidden')"
+                    class="flex-1 border border-gray-300 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Associate Existing Cost Center -->
+{% if all_cost_centers %}
+<div id="modal-associate-cc" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-bold text-gray-900">Associar Centro de Custo</h2>
+            <button onclick="document.getElementById('modal-associate-cc').classList.add('hidden')" class="text-gray-400 hover:text-gray-600">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+        <form id="form-associate-cc" method="POST" action="">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Centro de Custo *</label>
+                    <select id="associate-cc-select" name="cc_id" required
+                        onchange="var v = parseInt(this.value, 10); if (v > 0) { document.getElementById('form-associate-cc').action = '{{ url_for('financial.associate_cost_center', project_id=project.id, cc_id=0) }}'.replace('/0/', '/' + v + '/'); }"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                        <option value="">Selecione...</option>
+                        {% for cc in all_cost_centers %}
+                        {% set already_associated = cost_centers | selectattr('id', 'equalto', cc.id) | list %}
+                        {% if not already_associated %}
+                        <option value="{{ cc.id }}">{{ cc.name }} {% if cc.status == 'blocked' %}(Bloqueado){% endif %}</option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">Associar</button>
+                <button type="button" onclick="document.getElementById('modal-associate-cc').classList.add('hidden')"
+                    class="flex-1 border border-gray-300 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<script>
+function openEditModal(ccId, name, description, budget, status) {
+    var id = parseInt(ccId, 10);
+    if (!id || id <= 0) { return; }
+    document.getElementById('edit-cc-name').value = name;
+    document.getElementById('edit-cc-description').value = description;
+    document.getElementById('edit-cc-budget').value = budget;
+    document.getElementById('edit-cc-status').value = status;
+    document.getElementById('form-edit-cc').action =
+        '{{ url_for('financial.edit_cost_center', project_id=project.id, cc_id=0) }}'.replace('/0/', '/' + id + '/');
+    document.getElementById('modal-edit-cc').classList.remove('hidden');
+}
+</script>
 {% endblock %}
