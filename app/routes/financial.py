@@ -10,7 +10,7 @@ from app.services.financial_service import (
     FinancialEVMService,
     SupplierService,
 )
-from app.models.financial_budget import BUDGET_CATEGORIES, BUDGET_STATUSES
+from app.models.financial_budget import BUDGET_CATEGORIES
 from app.models.financial_transaction import TRANSACTION_TYPES, TRANSACTION_CATEGORIES, PAYMENT_STATUSES, PAYMENT_METHODS
 from app.services.cash_flow_service import CashFlowService
 from app.services.evm_analysis_service import EVMAnalysisService

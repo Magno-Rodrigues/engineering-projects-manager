@@ -1,5 +1,6 @@
 """Task routes."""
 from datetime import datetime
+from decimal import Decimal, InvalidOperation
 from flask import Blueprint, render_template, redirect, url_for, flash, request, abort
 from flask_login import login_required, current_user
 from app import db
@@ -18,6 +19,16 @@ def _parse_date(date_str):
     try:
         return datetime.strptime(date_str, '%Y-%m-%d').date()
     except (ValueError, TypeError):
+        return None
+
+
+def _parse_effort(effort_str):
+    """Parse an effort string into a Decimal or return None."""
+    if not effort_str:
+        return None
+    try:
+        return Decimal(effort_str)
+    except (InvalidOperation, TypeError, ValueError):
         return None
 
 
@@ -56,7 +67,7 @@ def create(project_id: int):
             wbs_item_id=request.form.get('wbs_item_id') or None,
             start_date=_parse_date(request.form.get('start_date')),
             due_date=_parse_date(request.form.get('due_date')),
-            estimated_effort=effort_str if effort_str else None,
+            estimated_effort=_parse_effort(effort_str),
             progress=int(progress_str) if progress_str else 0,
             dependencies=request.form.get('dependencies') or None,
         )
@@ -98,7 +109,7 @@ def edit(task_id: int):
         task.wbs_item_id = request.form.get('wbs_item_id') or None
         task.start_date = _parse_date(request.form.get('start_date'))
         task.due_date = _parse_date(request.form.get('due_date'))
-        task.estimated_effort = effort_str if effort_str else None
+        task.estimated_effort = _parse_effort(effort_str)
         task.progress = int(progress_str) if progress_str else 0
         task.dependencies = request.form.get('dependencies') or None
         db.session.commit()

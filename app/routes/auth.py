@@ -79,6 +79,9 @@ def reset_password(token):
 
         # Mark token as used and update password
         token_obj = PasswordResetToken.query.filter_by(token=token).first()
+        if not token_obj:
+            flash('Token inválido ou não encontrado.', 'error')
+            return redirect(url_for('auth.login'))
         token_obj.used = True
         user.set_password(password)
         user.password_reset_required = False
@@ -116,4 +119,3 @@ def reset_password_first_login():
         return redirect(url_for('main.dashboard'))
 
     return render_template('auth/reset_password.html', token=None, first_login=True)
-

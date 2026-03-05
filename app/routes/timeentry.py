@@ -187,8 +187,8 @@ def edit(entry_id: int):
 
     # Block non-admin from editing entries whose work_date is outside the active cycle
     if not is_admin and (
-        not active_cycle or
-        not (active_cycle.start_date <= entry.work_date <= active_cycle.end_date)
+        not active_cycle
+        or not (active_cycle.start_date <= entry.work_date <= active_cycle.end_date)
     ):
         flash('Apenas o administrador pode editar apontamentos de ciclos anteriores.', 'error')
         return redirect(url_for('timeentry.index'))

@@ -7,7 +7,6 @@ from app.services.project_service import ProjectService
 from app.services.financial_service import (
     FinancialTransactionService,
     FinancialBudgetService,
-    FinancialEVMService,
 )
 from app.services.cash_flow_service import CashFlowService
 from app.services.evm_analysis_service import EVMAnalysisService

@@ -11,10 +11,10 @@ projects_bp = Blueprint('projects', __name__, url_prefix='/projects')
 
 def _parse_date(date_str):
     """Parse a date string into a date object.
-    
+
     Args:
         date_str: Date string in format YYYY-MM-DD or None
-        
+
     Returns:
         datetime.date object or None
     """
@@ -146,7 +146,7 @@ def delete(project_id: int):
     if not project:
         flash('Project not found.', 'error')
         return redirect(url_for('projects.index'))
-    
+
     ProjectService.delete_project(project_id)
     flash('Project deleted successfully.', 'success')
     return redirect(url_for('projects.index'))

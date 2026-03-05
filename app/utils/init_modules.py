@@ -10,12 +10,12 @@ def init_default_modules():
     try:
         from app import db
         from app.models.module_permission import ModulePermission
-        
+
         # Verificar se a tabela existe
         if not inspect(db.engine).has_table('module_permissions'):
             logger.debug("module_permissions table does not exist yet, skipping initialization")
             return
-            
+
         modules = [
             {
                 'module_name': 'projects',
@@ -25,13 +25,13 @@ def init_default_modules():
                 'is_active': True,
             },
         ]
-        
+
         for module_data in modules:
             # Verifica se já existe
             existing = ModulePermission.query.filter_by(
                 module_name=module_data['module_name']
             ).first()
-            
+
             if not existing:
                 try:
                     module = ModulePermission(**module_data)
