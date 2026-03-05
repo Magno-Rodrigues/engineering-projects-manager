@@ -118,6 +118,7 @@ class TestCostCenterService:
         """Test creating a global cost center and associating it with a project."""
         with app.app_context():
             cc, error = CostCenterService.create_cost_center(
+                project_id=fin_project,
                 name='Engineering',
                 budget_allocation='50000',
             )
@@ -134,14 +135,14 @@ class TestCostCenterService:
     def test_create_cost_center_missing_name(self, app, db):
         """Test that missing name returns an error."""
         with app.app_context():
-            cc, error = CostCenterService.create_cost_center(name='')
+            cc, error = CostCenterService.create_cost_center(project_id=1, name='')
             assert cc is None
             assert error is not None
 
     def test_associate_with_invalid_project(self, app, db):
         """Test associating a cost center with a non-existent project."""
         with app.app_context():
-            cc, _ = CostCenterService.create_cost_center(name='TestCC')
+            cc, _ = CostCenterService.create_cost_center(project_id=1, name='TestCC')
             success, error = CostCenterService.associate_with_project(cc.id, 99999)
             assert success is False
             assert 'not found' in error.lower()
@@ -151,7 +152,7 @@ class TestCostCenterService:
     def test_associate_duplicate(self, app, db, fin_project):
         """Test that duplicate association returns an error."""
         with app.app_context():
-            cc, _ = CostCenterService.create_cost_center(name='DupCC')
+            cc, _ = CostCenterService.create_cost_center(project_id=fin_project, name='DupCC')
             CostCenterService.associate_with_project(cc.id, fin_project)
             success, error = CostCenterService.associate_with_project(cc.id, fin_project)
             assert success is False
@@ -162,7 +163,7 @@ class TestCostCenterService:
     def test_dissociate_from_project(self, app, db, fin_project):
         """Test dissociating a cost center from a project."""
         with app.app_context():
-            cc, _ = CostCenterService.create_cost_center(name='DissociateCC')
+            cc, _ = CostCenterService.create_cost_center(project_id=fin_project, name='DissociateCC')
             CostCenterService.associate_with_project(cc.id, fin_project)
             success, error = CostCenterService.dissociate_from_project(cc.id, fin_project)
             assert success is True
@@ -175,8 +176,8 @@ class TestCostCenterService:
     def test_get_project_cost_centers(self, app, db, fin_project):
         """Test listing cost centers for a project."""
         with app.app_context():
-            cc1, _ = CostCenterService.create_cost_center(name='CC1')
-            cc2, _ = CostCenterService.create_cost_center(name='CC2')
+            cc1, _ = CostCenterService.create_cost_center(project_id=fin_project, name='CC1')
+            cc2, _ = CostCenterService.create_cost_center(project_id=fin_project, name='CC2')
             CostCenterService.associate_with_project(cc1.id, fin_project)
             CostCenterService.associate_with_project(cc2.id, fin_project)
             ccs = CostCenterService.get_project_cost_centers(fin_project)
@@ -190,7 +191,7 @@ class TestCostCenterService:
     def test_update_cost_center(self, app, db):
         """Test updating a cost center."""
         with app.app_context():
-            cc, _ = CostCenterService.create_cost_center(name='OldName')
+            cc, _ = CostCenterService.create_cost_center(project_id=1, name='OldName')
             updated, error = CostCenterService.update_cost_center(
                 cc.id, name='NewName', status='blocked'
             )
@@ -203,7 +204,7 @@ class TestCostCenterService:
     def test_is_blocked(self, app, db):
         """Test is_blocked returns correct value."""
         with app.app_context():
-            cc, _ = CostCenterService.create_cost_center(name='BlockCC', status='blocked')
+            cc, _ = CostCenterService.create_cost_center(project_id=1, name='BlockCC')
             assert CostCenterService.is_blocked(cc.id) is True
             CostCenterService.update_cost_center(cc.id, status='active')
             assert CostCenterService.is_blocked(cc.id) is False
@@ -213,7 +214,7 @@ class TestCostCenterService:
     def test_delete_cost_center_success(self, app, db):
         """Test deleting a cost center with no transactions."""
         with app.app_context():
-            cc, _ = CostCenterService.create_cost_center(name='ToDelete')
+            cc, _ = CostCenterService.create_cost_center(project_id=1, name='ToDelete')
             cc_id = cc.id
             success, error = CostCenterService.delete_cost_center(cc_id)
             assert success is True
