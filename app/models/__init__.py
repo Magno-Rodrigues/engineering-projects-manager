@@ -13,6 +13,7 @@ from app.models.communication_plan import CommunicationPlan
 from app.models.time_entry import MeasurementCycle, TimeEntry
 from app.models.supplier import Supplier
 from app.models.cost_center import CostCenter
+from app.models.project_cost_center import ProjectCostCenter
 from app.models.financial_budget import FinancialBudget, FinancialBudgetItem
 from app.models.financial_transaction import FinancialTransaction
 from app.models.financial_earned_value import FinancialEarnedValue
@@ -23,7 +24,7 @@ __all__ = [
     'ProjectCharter', 'ProjectClosure',
     'Stakeholder', 'CommunicationPlan',
     'MeasurementCycle', 'TimeEntry',
-    'Supplier', 'CostCenter',
+    'Supplier', 'CostCenter', 'ProjectCostCenter',
     'FinancialBudget', 'FinancialBudgetItem',
     'FinancialTransaction', 'FinancialEarnedValue',
 ]
