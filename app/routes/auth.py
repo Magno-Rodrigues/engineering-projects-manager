@@ -79,6 +79,9 @@ def reset_password(token):
 
         # Mark token as used and update password
         token_obj = PasswordResetToken.query.filter_by(token=token).first()
+        if not token_obj:
+            flash('Link de redefinição inválido ou já utilizado.', 'error')
+            return redirect(url_for('auth.login'))
         token_obj.used = True
         user.set_password(password)
         user.password_reset_required = False

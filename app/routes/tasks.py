@@ -45,19 +45,27 @@ def create(project_id: int):
         effort_str = request.form.get('estimated_effort')
         progress_str = request.form.get('progress', '0')
         assignee_id_str = request.form.get('assignee_id')
+        try:
+            assignee_id = int(assignee_id_str) if assignee_id_str else current_user.id
+        except (ValueError, TypeError):
+            assignee_id = current_user.id
+        try:
+            progress = int(progress_str) if progress_str else 0
+        except (ValueError, TypeError):
+            progress = 0
         task = Task(
             title=request.form.get('title'),
             description=request.form.get('description'),
             priority=request.form.get('priority', 'medium'),
             project_id=project_id,
-            assignee_id=int(assignee_id_str) if assignee_id_str else current_user.id,
+            assignee_id=assignee_id,
             pmbok_knowledge_area=request.form.get('pmbok_knowledge_area') or None,
             pmbok_process_group=request.form.get('pmbok_process_group') or None,
             wbs_item_id=request.form.get('wbs_item_id') or None,
             start_date=_parse_date(request.form.get('start_date')),
             due_date=_parse_date(request.form.get('due_date')),
             estimated_effort=effort_str if effort_str else None,
-            progress=int(progress_str) if progress_str else 0,
+            progress=progress,
             dependencies=request.form.get('dependencies') or None,
         )
         db.session.add(task)
@@ -92,14 +100,20 @@ def edit(task_id: int):
         task.description = request.form.get('description', task.description)
         task.status = request.form.get('status', task.status)
         task.priority = request.form.get('priority', task.priority)
-        task.assignee_id = int(assignee_id_str) if assignee_id_str else None
+        try:
+            task.assignee_id = int(assignee_id_str) if assignee_id_str else None
+        except (ValueError, TypeError):
+            task.assignee_id = None
         task.pmbok_knowledge_area = request.form.get('pmbok_knowledge_area') or None
         task.pmbok_process_group = request.form.get('pmbok_process_group') or None
         task.wbs_item_id = request.form.get('wbs_item_id') or None
         task.start_date = _parse_date(request.form.get('start_date'))
         task.due_date = _parse_date(request.form.get('due_date'))
         task.estimated_effort = effort_str if effort_str else None
-        task.progress = int(progress_str) if progress_str else 0
+        try:
+            task.progress = int(progress_str) if progress_str else 0
+        except (ValueError, TypeError):
+            task.progress = 0
         task.dependencies = request.form.get('dependencies') or None
         db.session.commit()
         flash('Task updated successfully.', 'success')
