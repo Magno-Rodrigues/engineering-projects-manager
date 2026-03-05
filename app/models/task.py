@@ -2,7 +2,7 @@
 from datetime import datetime, timezone
 from decimal import Decimal
 from app import db
-#from app.models.wbs import WBSItem
+# from app.models.wbs import WBSItem
 
 # PMBOK Knowledge Areas (10 knowledge areas)
 PMBOK_KNOWLEDGE_AREAS = [
@@ -55,7 +55,7 @@ class Task(db.Model):
     source: str = db.Column(db.String(32), nullable=False, default='manual', server_default='manual')
 
     # Relationships
-    #wbs_item = db.relationship('WBSItem', foreign_keys='Task.wbs_item_id', backref=db.backref('tasks', lazy='dynamic'))
+    # wbs_item = db.relationship('WBSItem', foreign_keys='Task.wbs_item_id', backref=db.backref('tasks', lazy='dynamic'))
 
     def __init__(self, **kwargs) -> None:
         """Initialize Task with default status and priority."""

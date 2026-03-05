@@ -1,5 +1,4 @@
 """MS Project XML importer."""
-import io
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 

@@ -18,8 +18,6 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Optional, Tuple
 
-from flask import url_for
-
 from app import db
 from app.models.reset_token import PasswordResetToken
 

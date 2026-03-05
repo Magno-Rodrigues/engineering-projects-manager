@@ -21,8 +21,7 @@ class PasswordResetToken(db.Model):
         expires = self.expires_at
         # Support both naive and aware datetimes stored in the DB
         if expires.tzinfo is None:
-            from datetime import timezone as _tz
-            expires = expires.replace(tzinfo=_tz.utc)
+            expires = expires.replace(tzinfo=timezone.utc)
         return not self.used and now < expires
 
     def __repr__(self) -> str:

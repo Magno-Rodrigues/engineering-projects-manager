@@ -1,5 +1,4 @@
 """Time entry service."""
-from datetime import datetime
 from typing import List, Optional, Tuple, Any, Dict
 from app import db
 from app.models.time_entry import MeasurementCycle, TimeEntry

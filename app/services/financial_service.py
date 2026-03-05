@@ -6,11 +6,11 @@ from typing import Any, Dict, List, Optional, Tuple
 from app import db
 from app.models.cost_center import CostCenter
 from app.models.project_cost_center import ProjectCostCenter
-from app.models.financial_budget import FinancialBudget, FinancialBudgetItem, BUDGET_CATEGORIES, BUDGET_STATUSES
+from app.models.financial_budget import FinancialBudget, FinancialBudgetItem, BUDGET_CATEGORIES
 from app.models.financial_earned_value import FinancialEarnedValue
 from app.models.financial_transaction import (
     FinancialTransaction, TRANSACTION_TYPES, TRANSACTION_CATEGORIES,
-    PAYMENT_STATUSES, PAYMENT_METHODS,
+    PAYMENT_STATUSES,
 )
 from app.models.project import Project
 from app.models.supplier import Supplier

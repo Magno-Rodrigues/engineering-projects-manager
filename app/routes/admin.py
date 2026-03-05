@@ -1,5 +1,5 @@
 """Admin routes for user management."""
-from flask import Blueprint, render_template, redirect, url_for, flash, request, abort
+from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from app.utils.decorators import admin_required
 from app.services.admin_service import AdminService
@@ -215,8 +215,8 @@ def imports_report():
     users = User.query.order_by(User.username).all()
     projects = Project.query.order_by(Project.name).all()
 
-    success_count = sum(1 for l in logs if l.status == 'success')
-    failed_count = sum(1 for l in logs if l.status == 'failed')
+    success_count = sum(1 for log in logs if log.status == 'success')
+    failed_count = sum(1 for log in logs if log.status == 'failed')
 
     return render_template(
         'admin/imports/report.html',

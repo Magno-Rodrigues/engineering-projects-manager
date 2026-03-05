@@ -1,6 +1,6 @@
 """Permission service for module-based access control."""
 import logging
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from app import db
 from app.models.module_permission import ModulePermission
@@ -291,4 +291,3 @@ class PermissionService:
             user_id=user_id, module_name=module_name, has_permission=True
         ).first()
         return perm is not None
-

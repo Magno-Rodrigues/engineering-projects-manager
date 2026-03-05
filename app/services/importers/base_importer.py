@@ -1,6 +1,6 @@
 """Abstract base class for project plan importers."""
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 
 class BaseImporter(ABC):
