@@ -36,7 +36,6 @@ def upgrade():
     # cost_centers table
     op.create_table('cost_centers',
         sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('project_id', sa.Integer(), nullable=False),
         sa.Column('name', sa.String(length=100), nullable=False),
         sa.Column('description', sa.Text(), nullable=True),
         sa.Column('manager_id', sa.Integer(), nullable=True),
@@ -44,8 +43,18 @@ def upgrade():
         sa.Column('status', sa.String(length=20), nullable=False, server_default='active'),
         sa.Column('created_at', sa.DateTime(), nullable=True),
         sa.ForeignKeyConstraint(['manager_id'], ['users.id'], ),
-        sa.ForeignKeyConstraint(['project_id'], ['projects.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id')
+    )
+
+    # project_cost_centers association table (many-to-many)
+    op.create_table('project_cost_centers',
+        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('project_id', sa.Integer(), nullable=False),
+        sa.Column('cost_center_id', sa.Integer(), nullable=False),
+        sa.ForeignKeyConstraint(['cost_center_id'], ['cost_centers.id'], ondelete='CASCADE'),
+        sa.ForeignKeyConstraint(['project_id'], ['projects.id'], ondelete='CASCADE'),
+        sa.PrimaryKeyConstraint('id'),
+        sa.UniqueConstraint('project_id', 'cost_center_id', name='uq_project_cost_center')
     )
 
     # financial_budgets table
@@ -132,5 +141,6 @@ def downgrade():
     op.drop_table('financial_transactions')
     op.drop_table('financial_budget_items')
     op.drop_table('financial_budgets')
+    op.drop_table('project_cost_centers')
     op.drop_table('cost_centers')
     op.drop_table('suppliers')

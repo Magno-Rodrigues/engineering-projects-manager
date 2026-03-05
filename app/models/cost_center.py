@@ -5,12 +5,15 @@ from app import db
 
 
 class CostCenter(db.Model):
-    """Represents a cost center for budget allocation within a project."""
+    """Represents a cost center for budget allocation.
+
+    Projects are associated with cost centers via the ``project_cost_centers``
+    association table (many-to-many relationship).
+    """
 
     __tablename__ = 'cost_centers'
 
     id: int = db.Column(db.Integer, primary_key=True)
-    project_id: int = db.Column(db.Integer, db.ForeignKey('projects.id', ondelete='CASCADE'), nullable=False)
     name: str = db.Column(db.String(100), nullable=False)
     description: str = db.Column(db.Text, nullable=True)
     manager_id: int = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
@@ -19,8 +22,7 @@ class CostCenter(db.Model):
     created_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     # Relationships
-    project = db.relationship('Project', backref=db.backref('cost_centers', lazy='dynamic'))
     manager = db.relationship('User', foreign_keys=[manager_id])
 
     def __repr__(self) -> str:
-        return f'<CostCenter name={self.name} project_id={self.project_id}>'
+        return f'<CostCenter name={self.name}>'
