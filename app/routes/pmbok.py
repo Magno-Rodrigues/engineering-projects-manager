@@ -1,5 +1,4 @@
 """PMBOK HTML routes for Charter, Stakeholders, and Communication Plan."""
-from datetime import datetime
 from decimal import Decimal
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
@@ -9,18 +8,9 @@ from app.services.communication_plan_service import CommunicationPlanService
 from app.services.project_service import ProjectService
 from app.models.communication_plan import FREQUENCIES, COMMUNICATION_METHODS, DISTRIBUTION_METHODS
 from app.models.stakeholder import INTEREST_LEVELS, INFLUENCE_LEVELS, STAKEHOLDER_CATEGORIES
+from app.utils.parse_helpers import parse_date
 
 pmbok_bp = Blueprint('pmbok', __name__, url_prefix='/projects')
-
-
-def _parse_date(date_str):
-    """Parse a date string (YYYY-MM-DD) into a date object or return None."""
-    if not date_str:
-        return None
-    try:
-        return datetime.strptime(date_str, '%Y-%m-%d').date()
-    except (ValueError, TypeError):
-        return None
 
 
 def _get_project_or_abort(project_id: int):
@@ -61,8 +51,8 @@ def charter(project_id: int):
             assumptions=request.form.get('assumptions'),
             constraints=request.form.get('constraints'),
             approved_budget=request.form.get('approved_budget') or None,
-            scheduled_start_date=_parse_date(request.form.get('scheduled_start_date')),
-            scheduled_end_date=_parse_date(request.form.get('scheduled_end_date')),
+            scheduled_start_date=parse_date(request.form.get('scheduled_start_date')),
+            scheduled_end_date=parse_date(request.form.get('scheduled_end_date')),
         )
         if charter_obj:
             flash('TAP criado com sucesso.', 'success')
@@ -89,7 +79,7 @@ def approve_charter(project_id: int, charter_id: int):
         charter_id=charter_id,
         authorized_by=current_user.id,
         approved=approved,
-        approval_date=_parse_date(request.form.get('approval_date')),
+        approval_date=parse_date(request.form.get('approval_date')),
     )
     if error:
         flash(error, 'error')

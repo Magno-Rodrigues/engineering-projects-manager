@@ -1,5 +1,4 @@
 """Financial module routes."""
-from datetime import datetime
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from app.services.project_service import ProjectService
@@ -18,18 +17,9 @@ from app.services.reporting_service import ReportingService
 from app.models.financial_scenario import FinancialScenario
 from app.models.financial_report import REPORT_TYPES, REPORT_FORMATS
 from app import db
+from app.utils.parse_helpers import parse_date, parse_decimal
 
 financial_bp = Blueprint('financial', __name__, url_prefix='/projects')
-
-
-def _parse_date(date_str):
-    """Parse a date string (YYYY-MM-DD) into a date object or return None."""
-    if not date_str:
-        return None
-    try:
-        return datetime.strptime(date_str, '%Y-%m-%d').date()
-    except (ValueError, TypeError):
-        return None
 
 
 def _get_project_or_abort(project_id: int):
@@ -129,8 +119,8 @@ def budget_detail(project_id: int, budget_id: int):
             planned_amount=request.form.get('planned_amount'),
             category=request.form.get('category', 'other'),
             cost_center_id=request.form.get('cost_center_id') or None,
-            planned_date_start=_parse_date(request.form.get('planned_date_start')),
-            planned_date_end=_parse_date(request.form.get('planned_date_end')),
+            planned_date_start=parse_date(request.form.get('planned_date_start')),
+            planned_date_end=parse_date(request.form.get('planned_date_end')),
         )
         if item:
             flash('Item adicionado ao orçamento.', 'success')
@@ -554,11 +544,8 @@ def create_scenario(project_id: int):
     scenario_type = request.form.get('scenario_type', 'realistic')
     if scenario_type not in SCENARIO_TYPES:
         scenario_type = 'realistic'
-    try:
-        budget_variance = float(request.form.get('budget_variance', 0))
-        schedule_variance = float(request.form.get('schedule_variance', 0))
-    except (ValueError, TypeError):
-        budget_variance, schedule_variance = 0.0, 0.0
+    budget_variance = parse_decimal(request.form.get('budget_variance'), default=0)
+    schedule_variance = parse_decimal(request.form.get('schedule_variance'), default=0)
     scenario = FinancialScenario(
         project_id=project_id,
         name=name,
