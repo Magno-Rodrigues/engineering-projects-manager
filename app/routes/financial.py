@@ -215,23 +215,103 @@ def cost_centers(project_id: int):
 
     if request.method == 'POST':
         cc, error = CostCenterService.create_cost_center(
-            project_id=project_id,
             name=request.form.get('name', '').strip(),
             description=request.form.get('description') or None,
             budget_allocation=request.form.get('budget_allocation') or None,
+            status=request.form.get('status', 'active'),
         )
         if cc:
+            CostCenterService.associate_with_project(cc.id, project_id)
             flash('Centro de custo criado com sucesso.', 'success')
         else:
             flash(error, 'error')
         return redirect(url_for('financial.cost_centers', project_id=project_id))
 
     cc_list = CostCenterService.get_project_cost_centers(project_id)
+    all_cost_centers = CostCenterService.get_all_cost_centers()
     return render_template(
         'projects/financial/cost_centers.html',
         project=project,
         cost_centers=cc_list,
+        all_cost_centers=all_cost_centers,
     )
+
+
+@financial_bp.route('/<int:project_id>/financial/cost-centers/<int:cc_id>/edit', methods=['POST'])
+@login_required
+def edit_cost_center(project_id: int, cc_id: int):
+    """Edit a cost center."""
+    project = _get_project_or_abort(project_id)
+    if project is None:
+        return redirect(url_for('projects.index'))
+
+    cc, error = CostCenterService.update_cost_center(
+        cost_center_id=cc_id,
+        name=request.form.get('name', '').strip() or None,
+        description=request.form.get('description') or None,
+        budget_allocation=request.form.get('budget_allocation') or None,
+        status=request.form.get('status') or None,
+    )
+    if cc:
+        flash('Centro de custo atualizado.', 'success')
+    else:
+        flash(error, 'error')
+    return redirect(url_for('financial.cost_centers', project_id=project_id))
+
+
+@financial_bp.route('/<int:project_id>/financial/cost-centers/<int:cc_id>/associate', methods=['POST'])
+@login_required
+def associate_cost_center(project_id: int, cc_id: int):
+    """Associate an existing cost center with the project."""
+    project = _get_project_or_abort(project_id)
+    if project is None:
+        return redirect(url_for('projects.index'))
+
+    success, error = CostCenterService.associate_with_project(cc_id, project_id)
+    if success:
+        flash('Centro de custo associado ao projeto.', 'success')
+    else:
+        flash(error, 'error')
+    return redirect(url_for('financial.cost_centers', project_id=project_id))
+
+
+@financial_bp.route('/<int:project_id>/financial/cost-centers/<int:cc_id>/dissociate', methods=['POST'])
+@login_required
+def dissociate_cost_center(project_id: int, cc_id: int):
+    """Remove the association between a cost center and the project."""
+    project = _get_project_or_abort(project_id)
+    if project is None:
+        return redirect(url_for('projects.index'))
+
+    success, error = CostCenterService.dissociate_from_project(cc_id, project_id)
+    if success:
+        flash('Centro de custo desassociado do projeto.', 'success')
+    else:
+        flash(error, 'error')
+    return redirect(url_for('financial.cost_centers', project_id=project_id))
+
+
+@financial_bp.route('/<int:project_id>/financial/cost-centers/<int:cc_id>/toggle-status', methods=['POST'])
+@login_required
+def toggle_cost_center_status(project_id: int, cc_id: int):
+    """Toggle a cost center's status between active and blocked."""
+    project = _get_project_or_abort(project_id)
+    if project is None:
+        return redirect(url_for('projects.index'))
+
+    cc = CostCenterService.get_cost_center(cc_id)
+    if not cc:
+        flash('Centro de custo não encontrado.', 'error')
+        return redirect(url_for('financial.cost_centers', project_id=project_id))
+
+    new_status = 'blocked' if cc.status == 'active' else 'active'
+    updated_cc, error = CostCenterService.update_cost_center(cost_center_id=cc_id, status=new_status)
+    if updated_cc:
+        label = 'bloqueado' if new_status == 'blocked' else 'ativado'
+        flash(f'Centro de custo {label}.', 'success')
+    else:
+        flash(error, 'error')
+    return redirect(url_for('financial.cost_centers', project_id=project_id))
 
 
 @financial_bp.route('/<int:project_id>/financial/cost-centers/<int:cc_id>/delete', methods=['POST'])

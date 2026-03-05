@@ -12,8 +12,8 @@ class ProjectCostCenter(db.Model):
     cost_center_id: int = db.Column(db.Integer, db.ForeignKey('cost_centers.id', ondelete='CASCADE'), nullable=False)
 
     # Relationships
-    project = db.relationship('Project', backref=db.backref('project_cost_centers', lazy='dynamic'))
-    cost_center = db.relationship('CostCenter', backref=db.backref('project_cost_centers', lazy='dynamic'))
+    project = db.relationship('Project', backref=db.backref('project_cost_centers', lazy='dynamic', passive_deletes=True))
+    cost_center = db.relationship('CostCenter', backref=db.backref('project_cost_centers', lazy='dynamic', passive_deletes=True))
 
     def __repr__(self) -> str:
         return f'<ProjectCostCenter project_id={self.project_id} cost_center_id={self.cost_center_id}>'
