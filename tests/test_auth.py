@@ -122,3 +122,64 @@ class TestAuthRoutes:
         """Test that logout redirects unauthenticated users."""
         response = client.get('/logout')
         assert response.status_code == 302
+
+    def test_login_redirects_to_reset_when_password_reset_required(self, client, app, db):
+        """Test that users with password_reset_required=True are redirected to reset-password."""
+        user = User(username='resetuser', email='reset@example.com', password_reset_required=True)
+        user.set_password('pass123')
+        db.session.add(user)
+        db.session.commit()
+
+        response = client.post('/login', data={'username': 'resetuser', 'password': 'pass123'})
+        assert response.status_code == 302
+        assert '/reset-password' in response.headers['Location']
+
+        db.session.delete(user)
+        db.session.commit()
+
+    def test_login_redirects_to_dashboard_when_no_reset_required(self, client, app, db):
+        """Test that normal users are redirected to dashboard after login."""
+        user = User(username='normallogin', email='normallogin@example.com', password_reset_required=False)
+        user.set_password('pass123')
+        db.session.add(user)
+        db.session.commit()
+
+        response = client.post('/login', data={'username': 'normallogin', 'password': 'pass123'})
+        assert response.status_code == 302
+        assert '/dashboard' in response.headers['Location']
+
+        db.session.delete(user)
+        db.session.commit()
+
+    def test_login_respects_safe_next_url(self, client, app, db):
+        """Test that a safe relative next URL is used after login."""
+        user = User(username='nextuser', email='nextuser@example.com', password_reset_required=False)
+        user.set_password('pass123')
+        db.session.add(user)
+        db.session.commit()
+
+        response = client.post('/login?next=/projects/', data={'username': 'nextuser', 'password': 'pass123'})
+        assert response.status_code == 302
+        assert '/projects/' in response.headers['Location']
+
+        db.session.delete(user)
+        db.session.commit()
+
+    def test_login_ignores_unsafe_next_url(self, client, app, db):
+        """Test that an absolute next URL with a netloc is ignored to prevent open redirect."""
+        user = User(username='nextuser2', email='nextuser2@example.com', password_reset_required=False)
+        user.set_password('pass123')
+        db.session.add(user)
+        db.session.commit()
+
+        response = client.post(
+            '/login?next=http://evil.example.com/',
+            data={'username': 'nextuser2', 'password': 'pass123'},
+        )
+        assert response.status_code == 302
+        location = response.headers['Location']
+        assert 'evil.example.com' not in location
+        assert '/dashboard' in location
+
+        db.session.delete(user)
+        db.session.commit()

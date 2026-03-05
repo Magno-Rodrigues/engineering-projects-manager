@@ -1,4 +1,5 @@
 """Authentication routes."""
+from urllib.parse import urlparse
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
 from app.services.auth_service import AuthService
@@ -22,7 +23,14 @@ def login():
             user.last_login = datetime.now(timezone.utc)
             db.session.commit()
             login_user(user)
-            return redirect(url_for('main.dashboard'))
+            if user.password_reset_required:
+                return redirect(url_for('auth.reset_password_first_login'))
+            next_url = request.args.get('next')
+            if next_url:
+                parsed = urlparse(next_url)
+                if parsed.netloc:
+                    next_url = None
+            return redirect(next_url or url_for('main.dashboard'))
         flash('Invalid username or password.', 'error')
     return render_template('auth/login.html')
 
