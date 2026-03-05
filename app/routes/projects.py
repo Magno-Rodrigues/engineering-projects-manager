@@ -36,7 +36,7 @@ def index():
     from app.models.task import Task
     projects = ProjectService.get_user_projects(current_user.id, include_all=(current_user.role == 'admin'))
     recent_projects = Project.query.order_by(Project.created_at.desc()).limit(5).all()
-    pending_tasks = Task.query.filter_by(status='pending').count()
+    pending_tasks = Task.query.filter_by(status='todo').count()
     return render_template(
         'projects/index.html',
         projects=projects,
