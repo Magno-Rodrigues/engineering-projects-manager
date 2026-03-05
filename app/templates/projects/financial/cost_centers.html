@@ -67,7 +67,7 @@
                             </svg>
                         </button>
                         <!-- Toggle status button -->
-                        <form method="POST" action="{{ url_for('financial.toggle_cost_center_status', project_id=project.id, cc_id=cc.id) }}">
+                        <form method="POST" action="{{ url_for('financial.toggle_cost_center_status', project_id=project.id, cc_id=cc.id) }}" class="inline">
                             <button type="submit" class="transition-colors {% if cc.status == 'active' %}text-yellow-500 hover:text-yellow-700{% else %}text-green-500 hover:text-green-700{% endif %}"
                                 title="{% if cc.status == 'active' %}Bloquear{% else %}Ativar{% endif %}">
                                 {% if cc.status == 'active' %}
@@ -83,7 +83,7 @@
                         </form>
                         <!-- Dissociate button -->
                         <form method="POST" action="{{ url_for('financial.dissociate_cost_center', project_id=project.id, cc_id=cc.id) }}"
-                            onsubmit="return confirm('Desassociar este centro de custo do projeto?')">
+                            onsubmit="return confirm('Desassociar este centro de custo do projeto?')" class="inline">
                             <button type="submit" class="text-orange-400 hover:text-orange-600 transition-colors" title="Desassociar">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m3.656-3.656a4 4 0 015.656 0l4-4a4 4 0 00-5.656-5.656l-1.102 1.101M7 17l4-4m6-6l-4 4" />
@@ -92,7 +92,7 @@
                         </form>
                         <!-- Delete button -->
                         <form method="POST" action="{{ url_for('financial.delete_cost_center', project_id=project.id, cc_id=cc.id) }}"
-                            onsubmit="return confirm('Deletar permanentemente este centro de custo?')">
+                            onsubmit="return confirm('Deletar permanentemente este centro de custo?')" class="inline">
                             <button type="submit" class="text-red-400 hover:text-red-600 transition-colors" title="Deletar">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -126,6 +126,7 @@
             </button>
         </div>
         <form method="POST" action="{{ url_for('financial.cost_centers', project_id=project.id) }}">
+            <input type="hidden" name="action" value="create">
             <div class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Nome *</label>
@@ -141,13 +142,6 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">Orçamento Alocado (R$)</label>
                     <input type="number" name="budget_allocation" step="0.01" min="0"
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                    <select name="status" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
-                        <option value="active">Ativo</option>
-                        <option value="blocked">Bloqueado</option>
-                    </select>
                 </div>
             </div>
             <div class="flex gap-3 mt-6">
@@ -217,7 +211,7 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Centro de Custo *</label>
                     <select id="associate-cc-select" name="cc_id" required
-                        onchange="var v = parseInt(this.value, 10); if (v > 0) { document.getElementById('form-associate-cc').action = '{{ url_for('financial.associate_cost_center', project_id=project.id, cc_id=0) }}'.replace('/0/', '/' + v + '/'); }"
+                        onchange="updateAssociateAction(this.value, '{{ project.id }}')"
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
                         <option value="">Selecione...</option>
                         {% for cc in all_cost_centers %}
@@ -250,6 +244,17 @@ function openEditModal(ccId, name, description, budget, status) {
     document.getElementById('form-edit-cc').action =
         '{{ url_for('financial.edit_cost_center', project_id=project.id, cc_id=0) }}'.replace('/0/', '/' + id + '/');
     document.getElementById('modal-edit-cc').classList.remove('hidden');
+}
+
+function updateAssociateAction(ccId, projectId) {
+    var id = parseInt(ccId, 10);
+    if (!id || id <= 0) { 
+        document.getElementById('form-associate-cc').action = '';
+        return; 
+    }
+    document.getElementById('form-associate-cc').action =
+        '{{ url_for('financial.associate_cost_center', project_id=0, cc_id=0) }}'
+            .replace('/0/0', '/' + projectId + '/' + id);
 }
 </script>
 {% endblock %}

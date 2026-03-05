@@ -119,27 +119,38 @@ class CostCenterService:
 
     @staticmethod
     def create_cost_center(
+        project_id: int,
         name: str,
         description: str = None,
         manager_id: int = None,
         budget_allocation: Any = None,
-        status: str = 'active',
     ) -> Tuple[Optional[CostCenter], Optional[str]]:
-        """Create a new global cost center (not tied to any project)."""
+        """Create a new cost center and associate it with the given project."""
+        if not db.session.get(Project, project_id):
+            return None, 'Project not found.'
         if not name or not name.strip():
             return None, 'Cost center name is required.'
+        
         budget_val, err = _parse_decimal(budget_allocation)
         if err:
             return None, f'Budget allocation: {err}'
+        
+        # Create the cost center WITHOUT project_id (it's many-to-many)
         cc = CostCenter(
             name=name.strip(),
             description=description or None,
             manager_id=manager_id or None,
             budget_allocation=budget_val,
-            status=status or 'active',
+            status='active',
         )
         db.session.add(cc)
+        db.session.flush()  # Populate cc.id before creating the association
+        
+        # Create the many-to-many association
+        link = ProjectCostCenter(project_id=project_id, cost_center_id=cc.id)
+        db.session.add(link)
         db.session.commit()
+        
         return cc, None
 
     @staticmethod
@@ -174,32 +185,47 @@ class CostCenterService:
         return cc, None
 
     @staticmethod
-    def associate_with_project(cost_center_id: int, project_id: int) -> Tuple[bool, Optional[str]]:
-        """Associate a cost center with a project (creates ProjectCostCenter)."""
-        if not db.session.get(CostCenter, cost_center_id):
-            return False, 'Cost center not found.'
+    def associate_cost_center_to_project(
+        project_id: int,
+        cost_center_id: int,
+    ) -> Tuple[bool, Optional[str]]:
+        """Associate an existing cost center with a project (many-to-many)."""
         if not db.session.get(Project, project_id):
             return False, 'Project not found.'
+        if not db.session.get(CostCenter, cost_center_id):
+            return False, 'Cost center not found.'
+        
+        # Check if already associated
         existing = ProjectCostCenter.query.filter_by(
-            project_id=project_id, cost_center_id=cost_center_id
+            project_id=project_id,
+            cost_center_id=cost_center_id
         ).first()
         if existing:
             return False, 'Cost center is already associated with this project.'
-        pcc = ProjectCostCenter(project_id=project_id, cost_center_id=cost_center_id)
-        db.session.add(pcc)
+        
+        link = ProjectCostCenter(project_id=project_id, cost_center_id=cost_center_id)
+        db.session.add(link)
         db.session.commit()
+        
         return True, None
 
     @staticmethod
-    def dissociate_from_project(cost_center_id: int, project_id: int) -> Tuple[bool, Optional[str]]:
-        """Remove the association between a cost center and a project."""
-        pcc = ProjectCostCenter.query.filter_by(
-            project_id=project_id, cost_center_id=cost_center_id
+    def dissociate_cost_center_from_project(
+        project_id: int,
+        cost_center_id: int,
+    ) -> Tuple[bool, Optional[str]]:
+        """Dissociate a cost center from a project (remove many-to-many link)."""
+        link = ProjectCostCenter.query.filter_by(
+            project_id=project_id,
+            cost_center_id=cost_center_id
         ).first()
-        if not pcc:
-            return False, 'Association not found.'
-        db.session.delete(pcc)
+        
+        if not link:
+            return False, 'Cost center is not associated with this project.'
+        
+        db.session.delete(link)
         db.session.commit()
+        
         return True, None
 
     @staticmethod
@@ -215,8 +241,14 @@ class CostCenterService:
         has_transactions = FinancialTransaction.query.filter_by(cost_center_id=cost_center_id).first()
         if has_transactions:
             return False, 'Cannot delete a cost center that has financial transactions.'
+        
+        # Delete all project associations first
+        ProjectCostCenter.query.filter_by(cost_center_id=cost_center_id).delete()
+        
+        # Now delete the cost center
         db.session.delete(cc)
         db.session.commit()
+        
         return True, None
 
 
