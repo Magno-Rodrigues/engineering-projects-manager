@@ -25,7 +25,7 @@ class FinancialBudget(db.Model):
 
     # Relationships
     project = db.relationship('Project', backref=db.backref('financial_budgets', lazy='dynamic'))
-    creator = db.relationship('User', foreign_keys=[created_by])
+    creator = db.relationship('User', foreign_keys=[created_by], lazy='joined')
     items = db.relationship('FinancialBudgetItem', backref='budget', lazy='dynamic',
                             cascade='all, delete-orphan')
 

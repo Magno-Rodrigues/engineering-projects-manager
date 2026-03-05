@@ -3,6 +3,7 @@ from app.models.cost_center import CostCenter
 from datetime import datetime
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
+from sqlalchemy.orm import joinedload
 from app.services.project_service import ProjectService
 from app.services.financial_service import (
     CostCenterService,
@@ -233,7 +234,12 @@ def cost_centers(project_id: int):
         return redirect(url_for('financial.cost_centers', project_id=project_id))
 
     cc_list = CostCenterService.get_project_cost_centers(project_id)
-    all_cost_centers = CostCenter.query.order_by(CostCenter.name).all()
+    all_cost_centers = (
+        CostCenter.query
+        .options(joinedload(CostCenter.manager))
+        .order_by(CostCenter.name)
+        .all()
+    )
     
     return render_template(
         'projects/financial/cost_centers.html',

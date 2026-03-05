@@ -1,7 +1,8 @@
 """Financial service for the financial module."""
 from datetime import datetime, date, timezone
 from decimal import Decimal, InvalidOperation
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
+from sqlalchemy.orm import joinedload
 
 from app import db
 from app.models.cost_center import CostCenter
@@ -256,11 +257,26 @@ class FinancialBudgetService:
     """Service class for financial budget operations."""
 
     @staticmethod
-    def get_project_budgets(project_id: int) -> List[FinancialBudget]:
-        """Return all budgets for a project."""
-        return FinancialBudget.query.filter_by(project_id=project_id).order_by(
-            FinancialBudget.baseline_date.desc()
-        ).all()
+    def get_project_budgets(
+        project_id: int,
+        page: Optional[int] = None,
+        per_page: Optional[int] = None,
+    ) -> Union[List[FinancialBudget], Any]:
+        """Return budgets for a project.
+
+        When *page* and *per_page* are provided a Flask-SQLAlchemy
+        ``Pagination`` object is returned; otherwise all matching rows are
+        returned as a list.
+        """
+        query = (
+            FinancialBudget.query
+            .filter_by(project_id=project_id)
+            .options(joinedload(FinancialBudget.creator))
+            .order_by(FinancialBudget.baseline_date.desc())
+        )
+        if page is not None and per_page is not None:
+            return query.paginate(page=page, per_page=per_page, error_out=False)
+        return query.all()
 
     @staticmethod
     def get_active_budget(project_id: int) -> Optional[FinancialBudget]:
@@ -445,12 +461,30 @@ class FinancialTransactionService:
     def get_project_transactions(
         project_id: int,
         transaction_type: str = None,
-    ) -> List[FinancialTransaction]:
-        """Return all transactions for a project, optionally filtered by type."""
-        query = FinancialTransaction.query.filter_by(project_id=project_id)
+        page: Optional[int] = None,
+        per_page: Optional[int] = None,
+    ) -> Union[List[FinancialTransaction], Any]:
+        """Return transactions for a project, optionally filtered by type.
+
+        When *page* and *per_page* are provided a Flask-SQLAlchemy
+        ``Pagination`` object is returned; otherwise all matching rows are
+        returned as a list.
+        """
+        query = (
+            FinancialTransaction.query
+            .filter_by(project_id=project_id)
+            .options(
+                joinedload(FinancialTransaction.cost_center),
+                joinedload(FinancialTransaction.supplier),
+                joinedload(FinancialTransaction.creator),
+            )
+        )
         if transaction_type:
             query = query.filter_by(type=transaction_type)
-        return query.order_by(FinancialTransaction.transaction_date.desc()).all()
+        query = query.order_by(FinancialTransaction.transaction_date.desc())
+        if page is not None and per_page is not None:
+            return query.paginate(page=page, per_page=per_page, error_out=False)
+        return query.all()
 
     @staticmethod
     def get_transaction(transaction_id: int) -> Optional[FinancialTransaction]:
