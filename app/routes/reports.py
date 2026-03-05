@@ -139,7 +139,10 @@ def edit(report_id: int):
         report.corrective_actions = request.form.get('corrective_actions') or None
         report.attention_points = request.form.get('attention_points') or None
         approved_by_id_str = request.form.get('approved_by_id')
-        report.approved_by_id = int(approved_by_id_str) if approved_by_id_str else None
+        try:
+            report.approved_by_id = int(approved_by_id_str) if approved_by_id_str else None
+        except (ValueError, TypeError):
+            report.approved_by_id = None
         db.session.commit()
         flash('Report updated successfully.', 'success')
         return redirect(url_for('reports.detail', report_id=report.id))
