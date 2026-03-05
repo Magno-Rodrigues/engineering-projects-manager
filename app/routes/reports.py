@@ -1,5 +1,4 @@
 """Report routes."""
-from datetime import datetime
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from app import db
@@ -7,18 +6,9 @@ from app.services.report_service import ReportService
 from app.services.project_service import ProjectService
 from app.models.report import REPORT_TYPES
 from app.models.user import User
+from app.utils.parse_helpers import parse_date
 
 reports_bp = Blueprint('reports', __name__, url_prefix='/reports')
-
-
-def _parse_date(date_str):
-    """Parse a date string (YYYY-MM-DD) into a date object or return None."""
-    if not date_str:
-        return None
-    try:
-        return datetime.strptime(date_str, '%Y-%m-%d').date()
-    except (ValueError, TypeError):
-        return None
 
 
 def _parse_decimal(value_str):
@@ -64,9 +54,9 @@ def create(project_id: int):
             report_type=request.form.get('report_type', 'progress'),
             project_id=project_id,
             author_id=current_user.id,
-            report_date=_parse_date(request.form.get('report_date')),
-            period_start=_parse_date(request.form.get('period_start')),
-            period_end=_parse_date(request.form.get('period_end')),
+            report_date=parse_date(request.form.get('report_date')),
+            period_start=parse_date(request.form.get('period_start')),
+            period_end=parse_date(request.form.get('period_end')),
             executive_summary=request.form.get('executive_summary') or None,
             scope_complete_pct=_parse_decimal(request.form.get('scope_complete_pct')),
             schedule_variance=_parse_decimal(request.form.get('schedule_variance')),
@@ -124,9 +114,9 @@ def edit(report_id: int):
         report.title = request.form.get('title', report.title)
         report.content = request.form.get('content', report.content)
         report.report_type = request.form.get('report_type', report.report_type)
-        report.report_date = _parse_date(request.form.get('report_date'))
-        report.period_start = _parse_date(request.form.get('period_start'))
-        report.period_end = _parse_date(request.form.get('period_end'))
+        report.report_date = parse_date(request.form.get('report_date'))
+        report.period_start = parse_date(request.form.get('period_start'))
+        report.period_end = parse_date(request.form.get('period_end'))
         report.executive_summary = request.form.get('executive_summary') or None
         report.scope_complete_pct = _parse_decimal(request.form.get('scope_complete_pct'))
         report.schedule_variance = _parse_decimal(request.form.get('schedule_variance'))

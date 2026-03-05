@@ -1,23 +1,13 @@
 """Time entry (apontamentos) routes."""
-from datetime import datetime
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from app.utils.decorators import admin_required
 from app.services.timeentry_service import TimeEntryService
 from app.services.project_service import ProjectService
 from app.models.time_entry import HOUR_TYPES
+from app.utils.parse_helpers import parse_date
 
 timeentry_bp = Blueprint('timeentry', __name__, url_prefix='/apontamentos')
-
-
-def _parse_date(date_str):
-    """Parse a date string (YYYY-MM-DD) into a date object or return None."""
-    if not date_str:
-        return None
-    try:
-        return datetime.strptime(date_str, '%Y-%m-%d').date()
-    except (ValueError, TypeError):
-        return None
 
 
 def _parse_int(value):
@@ -53,8 +43,8 @@ def cycles_create():
     """Create a new measurement cycle (admin only)."""
     if request.method == 'POST':
         start_day = _parse_int(request.form.get('start_day'))
-        start_date = _parse_date(request.form.get('start_date'))
-        end_date = _parse_date(request.form.get('end_date'))
+        start_date = parse_date(request.form.get('start_date'))
+        end_date = parse_date(request.form.get('end_date'))
         is_active = bool(request.form.get('is_active'))
 
         cycle, error = TimeEntryService.create_cycle(
@@ -83,8 +73,8 @@ def cycles_edit(cycle_id: int):
 
     if request.method == 'POST':
         start_day = _parse_int(request.form.get('start_day'))
-        start_date = _parse_date(request.form.get('start_date'))
-        end_date = _parse_date(request.form.get('end_date'))
+        start_date = parse_date(request.form.get('start_date'))
+        end_date = parse_date(request.form.get('end_date'))
         is_active = bool(request.form.get('is_active'))
 
         updated, error = TimeEntryService.update_cycle(cycle_id, {
@@ -109,7 +99,7 @@ def index():
     is_admin = current_user.role == 'admin'
     project_id = _parse_int(request.args.get('project_id'))
     cycle_id = _parse_int(request.args.get('cycle_id'))
-    work_date = _parse_date(request.args.get('work_date'))
+    work_date = parse_date(request.args.get('work_date'))
 
     entries = TimeEntryService.get_time_entries(
         user_id=current_user.id,
@@ -141,7 +131,7 @@ def create():
     active_cycle = TimeEntryService.get_active_cycle()
 
     if request.method == 'POST':
-        work_date = _parse_date(request.form.get('work_date'))
+        work_date = parse_date(request.form.get('work_date'))
         entry, error = TimeEntryService.create_time_entry(
             project_id=_parse_int(request.form.get('project_id')),
             user_id=current_user.id,
@@ -194,7 +184,7 @@ def edit(entry_id: int):
         return redirect(url_for('timeentry.index'))
 
     if request.method == 'POST':
-        work_date = _parse_date(request.form.get('work_date'))
+        work_date = parse_date(request.form.get('work_date'))
         data = {
             'project_id': _parse_int(request.form.get('project_id')),
             'discipline': request.form.get('discipline'),

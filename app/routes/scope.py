@@ -1,20 +1,10 @@
 """Scope routes for PMBOK Scope Knowledge Area."""
-from datetime import datetime
 from flask import Blueprint, jsonify, request
 from flask_login import login_required, current_user
 from app.services.scope_service import ScopeService
+from app.utils.parse_helpers import parse_date
 
 scope_bp = Blueprint('scope', __name__, url_prefix='/projects')
-
-
-def _parse_date(date_str):
-    """Parse a date string (YYYY-MM-DD) into a date object or return None."""
-    if not date_str:
-        return None
-    try:
-        return datetime.strptime(date_str, '%Y-%m-%d').date()
-    except (ValueError, TypeError):
-        return None
 
 
 # ---------------------------------------------------------------------------
@@ -205,7 +195,7 @@ def approve_scope_change(project_id: int, change_id: int):
         scope_change_id=change_id,
         approved_by=current_user.id,
         approved=bool(approved),
-        approval_date=_parse_date(data.get('approval_date')),
+        approval_date=parse_date(data.get('approval_date')),
     )
     if error:
         return jsonify({'error': error}), 400

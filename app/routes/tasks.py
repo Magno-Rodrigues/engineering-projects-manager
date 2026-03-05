@@ -1,5 +1,4 @@
 """Task routes."""
-from datetime import datetime
 from flask import Blueprint, render_template, redirect, url_for, flash, request, abort
 from flask_login import login_required, current_user
 from app import db
@@ -7,18 +6,9 @@ from app.models.task import Task, PMBOK_KNOWLEDGE_AREAS, PMBOK_PROCESS_GROUPS
 from app.models.project import Project
 from app.models.wbs_item import WBSItem
 from app.models.user import User
+from app.utils.parse_helpers import parse_date
 
 tasks_bp = Blueprint('tasks', __name__, url_prefix='/tasks')
-
-
-def _parse_date(date_str):
-    """Parse a date string (YYYY-MM-DD) into a date object or return None."""
-    if not date_str:
-        return None
-    try:
-        return datetime.strptime(date_str, '%Y-%m-%d').date()
-    except (ValueError, TypeError):
-        return None
 
 
 @tasks_bp.route('/project/<int:project_id>')
@@ -54,8 +44,8 @@ def create(project_id: int):
             pmbok_knowledge_area=request.form.get('pmbok_knowledge_area') or None,
             pmbok_process_group=request.form.get('pmbok_process_group') or None,
             wbs_item_id=request.form.get('wbs_item_id') or None,
-            start_date=_parse_date(request.form.get('start_date')),
-            due_date=_parse_date(request.form.get('due_date')),
+            start_date=parse_date(request.form.get('start_date')),
+            due_date=parse_date(request.form.get('due_date')),
             estimated_effort=effort_str if effort_str else None,
             progress=int(progress_str) if progress_str else 0,
             dependencies=request.form.get('dependencies') or None,
@@ -96,8 +86,8 @@ def edit(task_id: int):
         task.pmbok_knowledge_area = request.form.get('pmbok_knowledge_area') or None
         task.pmbok_process_group = request.form.get('pmbok_process_group') or None
         task.wbs_item_id = request.form.get('wbs_item_id') or None
-        task.start_date = _parse_date(request.form.get('start_date'))
-        task.due_date = _parse_date(request.form.get('due_date'))
+        task.start_date = parse_date(request.form.get('start_date'))
+        task.due_date = parse_date(request.form.get('due_date'))
         task.estimated_effort = effort_str if effort_str else None
         task.progress = int(progress_str) if progress_str else 0
         task.dependencies = request.form.get('dependencies') or None

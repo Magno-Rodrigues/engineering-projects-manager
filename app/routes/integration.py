@@ -1,20 +1,10 @@
 """Project Integration routes (PMBOK Integration Knowledge Area)."""
-from datetime import datetime
 from flask import Blueprint, jsonify, request
 from flask_login import login_required, current_user
 from app.services.integration_service import ProjectIntegrationService
+from app.utils.parse_helpers import parse_date
 
 integration_bp = Blueprint('integration', __name__, url_prefix='/api/projects')
-
-
-def _parse_date(date_str):
-    """Parse a date string (YYYY-MM-DD) into a date object or return None."""
-    if not date_str:
-        return None
-    try:
-        return datetime.strptime(date_str, '%Y-%m-%d').date()
-    except (ValueError, TypeError):
-        return None
 
 
 # ---------------------------------------------------------------------------
@@ -66,8 +56,8 @@ def create_charter(project_id: int):
         assumptions=data.get('assumptions'),
         constraints=data.get('constraints'),
         approved_budget=data.get('approved_budget'),
-        scheduled_start_date=_parse_date(data.get('scheduled_start_date')),
-        scheduled_end_date=_parse_date(data.get('scheduled_end_date')),
+        scheduled_start_date=parse_date(data.get('scheduled_start_date')),
+        scheduled_end_date=parse_date(data.get('scheduled_end_date')),
     )
     if error:
         return jsonify({'error': error}), 400
@@ -84,7 +74,7 @@ def approve_charter(project_id: int, charter_id: int):
         charter_id=charter_id,
         authorized_by=current_user.id,
         approved=bool(approved),
-        approval_date=_parse_date(data.get('approval_date')),
+        approval_date=parse_date(data.get('approval_date')),
     )
     if error:
         return jsonify({'error': error}), 400
@@ -103,7 +93,7 @@ def create_closure(project_id: int):
     closure, error = ProjectIntegrationService.create_closure(
         project_id=project_id,
         created_by=current_user.id,
-        actual_end_date=_parse_date(data.get('actual_end_date')),
+        actual_end_date=parse_date(data.get('actual_end_date')),
         actual_final_cost=data.get('actual_final_cost'),
         project_results_summary=data.get('project_results_summary'),
         deliverables_status=data.get('deliverables_status'),
