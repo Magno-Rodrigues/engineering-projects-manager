@@ -75,7 +75,7 @@ app/
    The `.env.example` file is pre-configured for local development (`ENV=development`).
    Update `DATABASE_URL` to point to your local PostgreSQL instance, for example:
    ```
-   DATABASE_URL=postgresql://postgres:postgres@localhost:5432/engineering_projects
+   DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/engineering_projects
    ```
 
 5. **Create the PostgreSQL database**
@@ -189,7 +189,7 @@ See `.env.example` for all available environment variables.
 | `FLASK_ENV` | `development` | Flask environment |
 | `ENV` | `development` | Application environment |
 | `SECRET_KEY` | *(required)* | Flask secret key |
-| `DATABASE_URL` | `postgresql://postgres:postgres@localhost:5432/engineering_projects` | PostgreSQL connection URL |
+| `DATABASE_URL` | `postgresql+psycopg://postgres:postgres@localhost:5432/engineering_projects` | PostgreSQL connection URL |
 | `MAIL_SERVER` | — | SMTP server (optional) |
 | `MAIL_PORT` | `587` | SMTP port |
 | `MAIL_USERNAME` | — | SMTP username |

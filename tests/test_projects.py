@@ -1,7 +1,10 @@
 """Tests for project functionality."""
 import pytest
+from decimal import Decimal
+from app import db as _db
 from app.models.project import Project
 from app.models.import_log import ImportLog
+from app.models.user import User
 from app.services.project_service import ProjectService
 
 
@@ -66,3 +69,77 @@ class TestProjectModel:
         with app.app_context():
             project = Project(name='Test Project', owner_id=1)
             assert 'Test Project' in repr(project)
+
+
+@pytest.fixture(scope='function')
+def projects_admin_user(app, db):
+    """Create an admin user for projects route tests."""
+    with app.app_context():
+        user = User(username='proj_admin', email='proj_admin@example.com', role='admin')
+        user.set_password('adminpass')
+        _db.session.add(user)
+        _db.session.commit()
+        yield user
+        u = _db.session.get(User, user.id)
+        if u:
+            _db.session.delete(u)
+            _db.session.commit()
+
+
+@pytest.fixture(scope='function')
+def projects_logged_in_client(app, db, projects_admin_user):
+    """Create an authenticated test client for projects route tests."""
+    with app.test_client() as client:
+        client.post('/login', data={
+            'username': projects_admin_user.username,
+            'password': 'adminpass',
+        })
+        yield client
+
+
+@pytest.fixture(scope='function')
+def index_project(app, db, projects_admin_user):
+    """Create a project for index route tests and clean up afterwards."""
+    with app.app_context():
+        project = Project(
+            name='Test Index Project',
+            owner_id=projects_admin_user.id,
+            status='planning',
+            budget=Decimal('5000.00'),
+        )
+        _db.session.add(project)
+        _db.session.commit()
+        pid = project.id
+    yield pid
+    with app.app_context():
+        p = _db.session.get(Project, pid)
+        if p:
+            _db.session.delete(p)
+            _db.session.commit()
+
+
+class TestProjectsIndexRoute:
+    """Tests for the /projects/ listing route."""
+
+    def test_projects_index_requires_auth(self, client):
+        """Test that /projects/ redirects unauthenticated users."""
+        response = client.get('/projects/')
+        assert response.status_code == 302
+
+    def test_projects_index_returns_200_for_admin(self, projects_logged_in_client):
+        """Test that /projects/ returns 200 for an authenticated admin user."""
+        response = projects_logged_in_client.get('/projects/')
+        assert response.status_code == 200
+
+    def test_projects_index_shows_project_list(self, projects_logged_in_client, index_project):
+        """Test that /projects/ renders the project list without errors."""
+        response = projects_logged_in_client.get('/projects/')
+        assert response.status_code == 200
+        assert b'Test Index Project' in response.data
+
+    def test_projects_index_empty_state(self, projects_logged_in_client):
+        """Test that /projects/ renders without errors (regardless of project count)."""
+        response = projects_logged_in_client.get('/projects/')
+        assert response.status_code == 200
+        # The page title should always be present
+        assert b'Meus Projetos' in response.data
