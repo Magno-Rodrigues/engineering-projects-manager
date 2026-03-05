@@ -1,5 +1,4 @@
 """Report routes."""
-from datetime import datetime
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from app import db
@@ -7,18 +6,9 @@ from app.services.report_service import ReportService
 from app.services.project_service import ProjectService
 from app.models.report import REPORT_TYPES
 from app.models.user import User
+from app.utils.parse_helpers import parse_date as _parse_date
 
 reports_bp = Blueprint('reports', __name__, url_prefix='/reports')
-
-
-def _parse_date(date_str):
-    """Parse a date string (YYYY-MM-DD) into a date object or return None."""
-    if not date_str:
-        return None
-    try:
-        return datetime.strptime(date_str, '%Y-%m-%d').date()
-    except (ValueError, TypeError):
-        return None
 
 
 def _parse_decimal(value_str):

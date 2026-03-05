@@ -1,23 +1,13 @@
 """Time entry (apontamentos) routes."""
-from datetime import datetime
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from app.utils.decorators import admin_required
 from app.services.timeentry_service import TimeEntryService
 from app.services.project_service import ProjectService
 from app.models.time_entry import HOUR_TYPES
+from app.utils.parse_helpers import parse_date as _parse_date
 
 timeentry_bp = Blueprint('timeentry', __name__, url_prefix='/apontamentos')
-
-
-def _parse_date(date_str):
-    """Parse a date string (YYYY-MM-DD) into a date object or return None."""
-    if not date_str:
-        return None
-    try:
-        return datetime.strptime(date_str, '%Y-%m-%d').date()
-    except (ValueError, TypeError):
-        return None
 
 
 def _parse_int(value):

@@ -1,29 +1,12 @@
 """Project routes."""
-from datetime import datetime
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from app.services.project_service import ProjectService
 from app.utils.permission_decorators import module_required, action_required, admin_or_owner_required
+from app.utils.parse_helpers import parse_date as _parse_date
 from app.constants import PROJECT_STATUS, PROJECT_PRIORITY, PROJECT_CATEGORIES
 
 projects_bp = Blueprint('projects', __name__, url_prefix='/projects')
-
-
-def _parse_date(date_str):
-    """Parse a date string into a date object.
-    
-    Args:
-        date_str: Date string in format YYYY-MM-DD or None
-        
-    Returns:
-        datetime.date object or None
-    """
-    if not date_str:
-        return None
-    try:
-        return datetime.strptime(date_str, '%Y-%m-%d').date()
-    except (ValueError, TypeError):
-        return None
 
 
 @projects_bp.route('/')

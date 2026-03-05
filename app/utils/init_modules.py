@@ -1,6 +1,7 @@
 """Initialize default modules in the database."""
 import logging
 from sqlalchemy import inspect
+from sqlalchemy.exc import SQLAlchemyError
 
 logger = logging.getLogger(__name__)
 
@@ -38,10 +39,15 @@ def init_default_modules():
                     db.session.add(module)
                     db.session.commit()
                     logger.info(f"Module '{module_data['display_name']}' initialized successfully.")
-                except Exception as e:
-                    logger.error(f"Error initializing module '{module_data['module_name']}': {str(e)}")
+                except SQLAlchemyError as e:
+                    logger.error(
+                        f"Database error initializing module '{module_data['module_name']}': {str(e)}",
+                        exc_info=True,
+                    )
                     db.session.rollback()
             else:
                 logger.debug(f"Module '{module_data['module_name']}' already exists.")
+    except SQLAlchemyError as e:
+        logger.error(f"Database error in init_default_modules: {str(e)}", exc_info=True)
     except Exception as e:
-        logger.error(f"Error in init_default_modules: {str(e)}")
+        logger.error(f"Unexpected error in init_default_modules: {str(e)}", exc_info=True)

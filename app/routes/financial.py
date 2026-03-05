@@ -1,5 +1,4 @@
 """Financial module routes."""
-from datetime import datetime
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from app.services.project_service import ProjectService
@@ -18,18 +17,9 @@ from app.services.reporting_service import ReportingService
 from app.models.financial_scenario import FinancialScenario
 from app.models.financial_report import REPORT_TYPES, REPORT_FORMATS
 from app import db
+from app.utils.parse_helpers import parse_date as _parse_date
 
 financial_bp = Blueprint('financial', __name__, url_prefix='/projects')
-
-
-def _parse_date(date_str):
-    """Parse a date string (YYYY-MM-DD) into a date object or return None."""
-    if not date_str:
-        return None
-    try:
-        return datetime.strptime(date_str, '%Y-%m-%d').date()
-    except (ValueError, TypeError):
-        return None
 
 
 def _get_project_or_abort(project_id: int):

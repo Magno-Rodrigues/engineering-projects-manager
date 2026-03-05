@@ -1,5 +1,4 @@
 """Task routes."""
-from datetime import datetime
 from flask import Blueprint, render_template, redirect, url_for, flash, request, abort
 from flask_login import login_required, current_user
 from app import db
@@ -7,18 +6,9 @@ from app.models.task import Task, PMBOK_KNOWLEDGE_AREAS, PMBOK_PROCESS_GROUPS
 from app.models.project import Project
 from app.models.wbs_item import WBSItem
 from app.models.user import User
+from app.utils.parse_helpers import parse_date as _parse_date
 
 tasks_bp = Blueprint('tasks', __name__, url_prefix='/tasks')
-
-
-def _parse_date(date_str):
-    """Parse a date string (YYYY-MM-DD) into a date object or return None."""
-    if not date_str:
-        return None
-    try:
-        return datetime.strptime(date_str, '%Y-%m-%d').date()
-    except (ValueError, TypeError):
-        return None
 
 
 @tasks_bp.route('/project/<int:project_id>')

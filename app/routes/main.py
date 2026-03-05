@@ -1,9 +1,14 @@
 """Main routes module."""
+import logging
 from datetime import datetime
-from flask import Blueprint, redirect, url_for, render_template
+from flask import Blueprint, redirect, url_for, render_template, jsonify
 from flask_login import current_user, login_required
+from app import db
 from app.constants import VALID_MODULES, MODULES_METADATA
 from app.services.permission_service import PermissionService
+from sqlalchemy.exc import SQLAlchemyError
+
+logger = logging.getLogger(__name__)
 
 main_bp = Blueprint('main', __name__)
 
@@ -74,7 +79,11 @@ def dashboard():
 @login_required
 def close_welcome():
     """Mark first login as complete."""
-    from app import db
-    current_user.first_login = False
-    db.session.commit()
-    return {'status': 'ok'}
+    try:
+        current_user.first_login = False
+        db.session.commit()
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        logger.error("Database error in close_welcome: %s", str(e), exc_info=True)
+        return jsonify({'status': 'error'}), 500
+    return jsonify({'status': 'ok'})

@@ -1,20 +1,10 @@
 """Project Integration routes (PMBOK Integration Knowledge Area)."""
-from datetime import datetime
 from flask import Blueprint, jsonify, request
 from flask_login import login_required, current_user
 from app.services.integration_service import ProjectIntegrationService
+from app.utils.parse_helpers import parse_date as _parse_date
 
 integration_bp = Blueprint('integration', __name__, url_prefix='/api/projects')
-
-
-def _parse_date(date_str):
-    """Parse a date string (YYYY-MM-DD) into a date object or return None."""
-    if not date_str:
-        return None
-    try:
-        return datetime.strptime(date_str, '%Y-%m-%d').date()
-    except (ValueError, TypeError):
-        return None
 
 
 # ---------------------------------------------------------------------------
