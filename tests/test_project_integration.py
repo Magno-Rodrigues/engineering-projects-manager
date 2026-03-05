@@ -1,6 +1,29 @@
-"""Tests for ProjectCharter and ProjectClosure model integration."""
+"""Tests for ProjectCharter, ProjectClosure model integration, and migrations."""
 from app.models.project_charter import ProjectCharter
 from app.models.project_closure import ProjectClosure
+
+
+class TestMigrationChain:
+    """Tests for Alembic migration chain integrity."""
+
+    def test_single_migration_head(self, app):
+        """Ensure the migration chain has exactly one head.
+
+        Multiple heads cause 'flask db upgrade' to fail with
+        'Multiple head revisions are present', which prevents the database
+        from being set up and results in a 500 on every route.
+        """
+        from alembic.config import Config
+        from alembic.script import ScriptDirectory
+
+        alembic_cfg = Config('migrations/alembic.ini')
+        alembic_cfg.set_main_option('script_location', 'migrations')
+        script_dir = ScriptDirectory.from_config(alembic_cfg)
+        heads = script_dir.get_heads()
+        assert len(heads) == 1, (
+            f"Expected exactly 1 migration head but found {len(heads)}: {heads}. "
+            "Run 'flask db merge heads' to fix multiple heads."
+        )
 
 
 class TestProjectCharter:
