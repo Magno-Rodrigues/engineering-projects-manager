@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from app import db
 from app.models.cost_center import CostCenter
+from app.models.project_cost_center import ProjectCostCenter
 from app.models.financial_budget import FinancialBudget, FinancialBudgetItem, BUDGET_CATEGORIES, BUDGET_STATUSES
 from app.models.financial_earned_value import FinancialEarnedValue
 from app.models.financial_transaction import (
@@ -92,7 +93,16 @@ class CostCenterService:
     @staticmethod
     def get_project_cost_centers(project_id: int) -> List[CostCenter]:
         """Return all cost centers for a project."""
-        return CostCenter.query.filter_by(project_id=project_id).order_by(CostCenter.name).all()
+    @staticmethod
+    def get_project_cost_centers(project_id: int) -> List[CostCenter]:
+        """Return all cost centers associated with a project."""
+        return (
+        CostCenter.query
+        .join(ProjectCostCenter, ProjectCostCenter.cost_center_id == CostCenter.id)
+        .filter(ProjectCostCenter.project_id == project_id)
+        .order_by(CostCenter.name)
+        .all()
+    )    
 
     @staticmethod
     def get_cost_center(cost_center_id: int) -> Optional[CostCenter]:

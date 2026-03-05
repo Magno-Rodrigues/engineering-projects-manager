@@ -16,6 +16,7 @@ from app.models.cost_center import CostCenter
 from app.models.financial_budget import FinancialBudget, FinancialBudgetItem
 from app.models.financial_transaction import FinancialTransaction
 from app.models.financial_earned_value import FinancialEarnedValue
+from app.models.project_cost_center import ProjectCostCenter
 
 __all__ = [
     'User', 'Project', 'Task', 'Report', 'PasswordResetToken',
