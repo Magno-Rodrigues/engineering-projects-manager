@@ -1,6 +1,7 @@
 """Admin routes for user management."""
 from flask import Blueprint, render_template, redirect, url_for, flash, request, abort
 from flask_login import login_required, current_user
+from sqlalchemy.orm import joinedload
 from app.utils.decorators import admin_required
 from app.services.admin_service import AdminService
 from app.services.permission_service import PermissionService
@@ -45,7 +46,6 @@ def dashboard():
         User.last_login >= one_month_ago,
     ).count()
 
-    from sqlalchemy.orm import joinedload
     recent_users = User.query.order_by(User.created_at.desc()).limit(5).all()
     recent_projects = (
         Project.query

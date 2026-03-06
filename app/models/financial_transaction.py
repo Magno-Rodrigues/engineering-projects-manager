@@ -38,9 +38,9 @@ class FinancialTransaction(db.Model):
 
     # Relationships
     project = db.relationship('Project', backref=db.backref('financial_transactions', lazy='dynamic'))
-    cost_center = db.relationship('CostCenter', foreign_keys=[cost_center_id])
-    supplier = db.relationship('Supplier', foreign_keys=[supplier_id])
-    creator = db.relationship('User', foreign_keys=[created_by])
+    cost_center = db.relationship('CostCenter', foreign_keys=[cost_center_id], lazy='joined')
+    supplier = db.relationship('Supplier', foreign_keys=[supplier_id], lazy='joined')
+    creator = db.relationship('User', foreign_keys=[created_by], lazy='joined')
 
     def __repr__(self) -> str:
         return f'<FinancialTransaction type={self.type} amount={self.amount} date={self.transaction_date}>'

@@ -18,7 +18,7 @@ class CostCenter(db.Model):
     created_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     # Relationships
-    manager = db.relationship('User', foreign_keys=[manager_id])
+    manager = db.relationship('User', foreign_keys=[manager_id], lazy='joined')
 
     def __repr__(self) -> str:
         return f'<CostCenter name={self.name}>'
