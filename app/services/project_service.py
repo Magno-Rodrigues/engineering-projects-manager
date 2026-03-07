@@ -3,6 +3,23 @@ from decimal import Decimal, InvalidOperation
 from typing import List, Optional, Tuple, Dict, Any
 from app import db
 from app.models.project import Project
+from app.models.communication_plan import CommunicationPlan
+from app.models.financial_budget import FinancialBudget
+from app.models.financial_earned_value import FinancialEarnedValue
+from app.models.financial_report import FinancialReport
+from app.models.financial_scenario import FinancialScenario
+from app.models.financial_transaction import FinancialTransaction
+from app.models.import_log import ImportLog
+from app.models.project_charter import ProjectCharter
+from app.models.project_closure import ProjectClosure
+from app.models.project_cost_center import ProjectCostCenter
+from app.models.report import Report
+from app.models.requirement import Requirement
+from app.models.scope_change import ScopeChange
+from app.models.stakeholder import Stakeholder
+from app.models.task import Task
+from app.models.time_entry import TimeEntry
+from app.models.wbs_item import WBSItem
 
 
 class ProjectService:
@@ -151,12 +168,54 @@ class ProjectService:
     def delete_project(project_id: int) -> Tuple[bool, Optional[str]]:
         """Delete a project by ID.
 
+        Explicitly removes all related records before deleting the project to
+        avoid SQLAlchemy attempting to set project_id=NULL on NOT NULL columns.
+
+        NOTE: If new models with a project_id foreign key are added, they must
+        also be imported and included in the deletion logic below.
+
         Returns:
             A tuple of (True, None) on success or (False, error_message) on failure.
         """
         project = db.session.get(Project, project_id)
         if not project:
             return False, 'Project not found.'
-        db.session.delete(project)
-        db.session.commit()
+
+        try:
+            # Delete simple related records (only reference projects.id).
+            simple_models = [
+                CommunicationPlan,
+                FinancialBudget,
+                FinancialEarnedValue,
+                FinancialReport,
+                FinancialScenario,
+                FinancialTransaction,
+                ImportLog,
+                ProjectCharter,
+                ProjectClosure,
+                ProjectCostCenter,
+                Report,
+                Requirement,
+                ScopeChange,
+                Stakeholder,
+                TimeEntry,
+            ]
+            for model in simple_models:
+                model.query.filter_by(project_id=project_id).delete(synchronize_session=False)
+
+            # Delete tasks before WBSItems, since Task.wbs_item_id references wbs_items.
+            Task.query.filter_by(project_id=project_id).delete(synchronize_session=False)
+
+            # WBSItem has a self-referential parent_id FK. Clear it first so the
+            # subsequent bulk delete does not violate the foreign key constraint.
+            db.session.query(WBSItem).filter_by(project_id=project_id).update(
+                {'parent_id': None}, synchronize_session=False
+            )
+            WBSItem.query.filter_by(project_id=project_id).delete(synchronize_session=False)
+
+            db.session.delete(project)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            raise
         return True, None
