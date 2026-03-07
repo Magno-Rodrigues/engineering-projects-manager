@@ -26,11 +26,42 @@ class ProjectService:
     """Service class for project operations."""
 
     @staticmethod
-    def get_user_projects(user_id: int, include_all: bool = False) -> List[Project]:
-        """Return projects owned by a user, or all projects if include_all is True."""
+    def get_user_projects(
+        user_id: int,
+        include_all: bool = False,
+        exclude_blocked: bool = False,
+    ) -> List[Project]:
+        """Return projects owned by a user, or all projects if include_all is True.
+
+        Args:
+            user_id: ID of the user whose projects to return.
+            include_all: When True, return all projects regardless of owner.
+            exclude_blocked: When True, exclude projects with status='blocked'.
+        """
         if include_all:
-            return Project.query.all()
-        return Project.query.filter_by(owner_id=user_id).all()
+            query = Project.query
+        else:
+            query = Project.query.filter_by(owner_id=user_id)
+        if exclude_blocked:
+            query = query.filter(Project.status != 'blocked')
+        return query.all()
+
+    @staticmethod
+    def toggle_project_status(project_id: int) -> Tuple[Optional[Project], Optional[str]]:
+        """Toggle a project's blocked status.
+
+        Sets the project status to 'blocked' regardless of its current status.
+        If the project is already 'blocked', reverts it to 'planning'.
+
+        Returns:
+            A tuple of (Project, None) on success or (None, error_message) on failure.
+        """
+        project = db.session.get(Project, project_id)
+        if not project:
+            return None, 'Project not found.'
+        project.status = 'planning' if project.status == 'blocked' else 'blocked'
+        db.session.commit()
+        return project, None
 
     @staticmethod
     def get_project(project_id: int) -> Optional[Project]:

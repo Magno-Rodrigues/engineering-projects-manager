@@ -135,6 +135,22 @@ def edit(project_id: int):
     )
 
 
+@projects_bp.route('/<int:project_id>/toggle-status', methods=['POST'])
+@login_required
+@module_required('projects')
+@action_required('projects', 'update')
+@admin_or_owner_required(ProjectService.get_project)
+def toggle_status(project_id: int):
+    """Toggle a project's status between 'planning' and 'blocked'."""
+    project, error = ProjectService.toggle_project_status(project_id)
+    if project:
+        status_label = 'bloqueado' if project.status == 'blocked' else 'desbloqueado'
+        flash(f'Projeto {status_label} com sucesso.', 'success')
+    else:
+        flash(error, 'error')
+    return redirect(url_for('projects.detail', project_id=project_id))
+
+
 @projects_bp.route('/<int:project_id>/delete', methods=['POST'])
 @login_required
 @module_required('projects')
