@@ -240,12 +240,14 @@ def cost_centers(project_id: int):
         .order_by(CostCenter.name)
         .all()
     )
-    
+    cc_projects = CostCenterService.get_cost_centers_projects_map([cc.id for cc in cc_list])
+
     return render_template(
         'projects/financial/cost_centers.html',
         project=project,
         cost_centers=cc_list,
         all_cost_centers=all_cost_centers,
+        cc_projects=cc_projects,
     )
 
 

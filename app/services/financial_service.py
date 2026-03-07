@@ -113,6 +113,37 @@ class CostCenterService:
         return db.session.get(CostCenter, cost_center_id)
 
     @staticmethod
+    def get_cost_center_projects(cost_center_id: int) -> List[Project]:
+        """Return all projects associated with a cost center."""
+        return (
+            Project.query
+            .join(ProjectCostCenter, ProjectCostCenter.project_id == Project.id)
+            .filter(ProjectCostCenter.cost_center_id == cost_center_id)
+            .order_by(Project.name)
+            .all()
+        )
+
+    @staticmethod
+    def get_cost_centers_projects_map(cost_center_ids: List[int]) -> Dict[int, List[Project]]:
+        """Return a mapping of cost center ID to its associated projects.
+
+        Fetches all associations in a single query to avoid N+1 query issues.
+        """
+        result: Dict[int, List[Project]] = {cc_id: [] for cc_id in cost_center_ids}
+        if not cost_center_ids:
+            return result
+        rows = (
+            db.session.query(ProjectCostCenter.cost_center_id, Project)
+            .join(Project, Project.id == ProjectCostCenter.project_id)
+            .filter(ProjectCostCenter.cost_center_id.in_(cost_center_ids))
+            .order_by(Project.name)
+            .all()
+        )
+        for cc_id, project in rows:
+            result[cc_id].append(project)
+        return result
+
+    @staticmethod
     def is_blocked(cost_center_id: int) -> bool:
         """Return True if the cost center status is 'blocked'."""
         cc = db.session.get(CostCenter, cost_center_id)
