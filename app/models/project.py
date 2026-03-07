@@ -31,6 +31,7 @@ class Project(db.Model):
     # Relationships
     tasks = db.relationship('Task', backref='project', lazy='dynamic', cascade='all, delete-orphan')
     reports = db.relationship('Report', backref='project', lazy='dynamic', cascade='all, delete-orphan')
+    
 
     @property
     def remaining_budget(self):

@@ -147,16 +147,29 @@ class ProjectService:
         db.session.commit()
         return project, None
 
+    
     @staticmethod
     def delete_project(project_id: int) -> Tuple[bool, Optional[str]]:
-        """Delete a project by ID.
+        """Delete a project by ID and all related data.
 
         Returns:
-            A tuple of (True, None) on success or (False, error_message) on failure.
+        A tuple of (True, None) on success or (False, error_message) on failure.
         """
         project = db.session.get(Project, project_id)
         if not project:
             return False, 'Project not found.'
+    
+    # Delete all related financial data first
+        from app.models.financial_budget import FinancialBudget
+        from app.models.financial_transaction import FinancialTransaction
+    
+    # Delete financial budgets (and their items via cascade)
+        FinancialBudget.query.filter_by(project_id=project_id).delete()
+    
+    # Delete financial transactions
+        FinancialTransaction.query.filter_by(project_id=project_id).delete()
+    
+    # Now delete the project
         db.session.delete(project)
         db.session.commit()
         return True, None
