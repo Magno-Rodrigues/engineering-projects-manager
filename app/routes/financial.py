@@ -295,23 +295,17 @@ def edit_cost_center(project_id: int, cc_id: int):
     if project is None:
         return redirect(url_for('projects.index'))
 
-    cc = CostCenterService.get_cost_center(cc_id)
-    if not cc:
-        flash('Centro de custo não encontrado.', 'error')
+    cc, error = CostCenterService.update_cost_center(
+        cc_id,
+        name=request.form.get('name', '').strip() or None,
+        description=request.form.get('description') or None,
+        budget_allocation=request.form.get('budget_allocation') or None,
+        status=request.form.get('status', 'active'),
+    )
+    if error:
+        flash(error, 'error')
         return redirect(url_for('financial.cost_centers', project_id=project_id))
 
-    cc.name = request.form.get('name', '').strip() or cc.name
-    cc.description = request.form.get('description') or None
-    
-    budget_val = request.form.get('budget_allocation')
-    if budget_val:
-        parsed_budget, err = _parse_decimal(budget_val)
-        if not err:
-            cc.budget_allocation = parsed_budget
-    
-    cc.status = request.form.get('status', 'active')
-    
-    db.session.commit()
     flash('Centro de custo atualizado com sucesso.', 'success')
     return redirect(url_for('financial.cost_centers', project_id=project_id))
 
