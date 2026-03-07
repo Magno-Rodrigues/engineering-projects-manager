@@ -164,6 +164,7 @@ class ProjectService:
         db.session.commit()
         return project, None
 
+    
     @staticmethod
     def delete_project(project_id: int) -> Tuple[bool, Optional[str]]:
         """Delete a project by ID.
