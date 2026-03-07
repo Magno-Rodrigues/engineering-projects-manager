@@ -39,7 +39,7 @@ class Task(db.Model):
     status: str = db.Column(db.String(32), default='todo')
     priority: str = db.Column(db.String(16), default='medium')
     due_date: datetime = db.Column(db.Date)
-    project_id: int = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
+    project_id: int = db.Column(db.Integer, db.ForeignKey('projects.id', ondelete='CASCADE'), nullable=False)
     assignee_id: int = db.Column(db.Integer, db.ForeignKey('users.id'))
     created_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
