@@ -13,7 +13,7 @@ class Stakeholder(db.Model):
     __tablename__ = 'stakeholders'
 
     id: int = db.Column(db.Integer, primary_key=True)
-    project_id: int = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
+    project_id: int = db.Column(db.Integer, db.ForeignKey('projects.id', ondelete='CASCADE'), nullable=False)
 
     name: str = db.Column(db.String(128), nullable=False)
     role: str = db.Column(db.String(128), nullable=True)

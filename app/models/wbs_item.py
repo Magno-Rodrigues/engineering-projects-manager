@@ -10,7 +10,7 @@ class WBSItem(db.Model):
     __tablename__ = 'wbs_items'
 
     id: int = db.Column(db.Integer, primary_key=True)
-    project_id: int = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
+    project_id: int = db.Column(db.Integer, db.ForeignKey('projects.id', ondelete='CASCADE'), nullable=False)
     created_by: int = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     parent_id: int = db.Column(db.Integer, db.ForeignKey('wbs_items.id'), nullable=True)
     responsible_user_id: int = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)

@@ -21,7 +21,7 @@ class Report(db.Model):
     title: str = db.Column(db.String(256), nullable=False)
     content: str = db.Column(db.Text)
     report_type: str = db.Column(db.String(32), default='progress')
-    project_id: int = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
+    project_id: int = db.Column(db.Integer, db.ForeignKey('projects.id', ondelete='CASCADE'), nullable=False)
     author_id: int = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     created_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at: datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
