@@ -9,7 +9,7 @@ class Requirement(db.Model):
     __tablename__ = 'requirements'
 
     id: int = db.Column(db.Integer, primary_key=True)
-    project_id: int = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
+    project_id: int = db.Column(db.Integer, db.ForeignKey('projects.id', ondelete='CASCADE'), nullable=False)
     created_by: int = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
     requirement_id: str = db.Column(db.String(64), nullable=False, unique=True)

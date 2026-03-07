@@ -10,7 +10,7 @@ class ProjectClosure(db.Model):
     __tablename__ = 'project_closures'
 
     id: int = db.Column(db.Integer, primary_key=True)
-    project_id: int = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
+    project_id: int = db.Column(db.Integer, db.ForeignKey('projects.id', ondelete='CASCADE'), nullable=False)
     created_by: int = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     approved_by: int = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
 
