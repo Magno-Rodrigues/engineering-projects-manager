@@ -137,7 +137,7 @@ def index():
 @login_required
 def create():
     """Create a new time entry."""
-    projects = ProjectService.get_user_projects(current_user.id, include_all=True)
+    projects = ProjectService.get_user_projects(current_user.id, include_all=True, exclude_blocked=True)
     active_cycle = TimeEntryService.get_active_cycle()
 
     if request.method == 'POST':
@@ -182,7 +182,7 @@ def edit(entry_id: int):
         flash('Você não tem permissão para editar este apontamento.', 'error')
         return redirect(url_for('timeentry.index'))
 
-    projects = ProjectService.get_user_projects(current_user.id, include_all=True)
+    projects = ProjectService.get_user_projects(current_user.id, include_all=True, exclude_blocked=True)
     active_cycle = TimeEntryService.get_active_cycle()
 
     # Block non-admin from editing entries whose work_date is outside the active cycle
