@@ -150,26 +150,49 @@ class ProjectService:
     
     @staticmethod
     def delete_project(project_id: int) -> Tuple[bool, Optional[str]]:
-        """Delete a project by ID and all related data.
-
-        Returns:
-        A tuple of (True, None) on success or (False, error_message) on failure.
-        """
+        """Delete a project by ID and all related data."""
         project = db.session.get(Project, project_id)
         if not project:
             return False, 'Project not found.'
-    
-    # Delete all related financial data first
+
+        from app.models.financial_earned_value import FinancialEarnedValue
         from app.models.financial_budget import FinancialBudget
         from app.models.financial_transaction import FinancialTransaction
-    
-    # Delete financial budgets (and their items via cascade)
+        from app.models.import_log import ImportLog
+        from app.models.financial_report import FinancialReport
+        from app.models.financial_scenario import FinancialScenario
+        from app.models.project_cost_center import ProjectCostCenter
+        from app.models.communication_plan import CommunicationPlan
+        from app.models.project_charter import ProjectCharter
+        from app.models.project_closure import ProjectClosure
+        from app.models.report import Report
+        from app.models.requirement import Requirement
+        from app.models.scope_change import ScopeChange
+        from app.models.stakeholder import Stakeholder
+        from app.models.task import Task
+        from app.models.time_entry import TimeEntry
+        from app.models.wbs_item import WBSItem
+
+        # Delete all related data
         FinancialBudget.query.filter_by(project_id=project_id).delete()
-    
-    # Delete financial transactions
+        FinancialEarnedValue.query.filter_by(project_id=project_id).delete()
         FinancialTransaction.query.filter_by(project_id=project_id).delete()
-    
-    # Now delete the project
+        ImportLog.query.filter_by(project_id=project_id).delete()
+        FinancialReport.query.filter_by(project_id=project_id).delete()
+        FinancialScenario.query.filter_by(project_id=project_id).delete()
+        ProjectCostCenter.query.filter_by(project_id=project_id).delete()
+        CommunicationPlan.query.filter_by(project_id=project_id).delete()
+        ProjectCharter.query.filter_by(project_id=project_id).delete()
+        ProjectClosure.query.filter_by(project_id=project_id).delete()
+        Report.query.filter_by(project_id=project_id).delete()
+        Requirement.query.filter_by(project_id=project_id).delete()
+        ScopeChange.query.filter_by(project_id=project_id).delete()
+        Stakeholder.query.filter_by(project_id=project_id).delete()
+        Task.query.filter_by(project_id=project_id).delete()
+        TimeEntry.query.filter_by(project_id=project_id).delete()
+        WBSItem.query.filter_by(project_id=project_id).delete()
+
+        # Now delete the project
         db.session.delete(project)
         db.session.commit()
         return True, None
