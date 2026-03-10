@@ -205,6 +205,13 @@ def index():
         calendar_grid = _build_calendar_grid(
             active_cycle.start_date, active_cycle.end_date, entered_dates
         )
+        days_remaining = max(0, (active_cycle.end_date - date_type.today()).days)
+        if days_remaining > 7:
+            days_urgency = 'green'
+        elif days_remaining >= 3:
+            days_urgency = 'yellow'
+        else:
+            days_urgency = 'red'
         pending_dashboard = {
             'all_weekdays': all_weekdays,
             'entered_dates': entered_dates,
@@ -216,6 +223,8 @@ def index():
             'pending_days': pending_days,
             'completion_pct': completion_pct,
             'calendar_grid': calendar_grid,
+            'days_remaining': days_remaining,
+            'days_urgency': days_urgency,
         }
 
     return render_template(
