@@ -34,7 +34,9 @@ def dashboard():
     from app.models.user import User
     from app.models.project import Project
     from app.models.time_entry import TimeEntry
-    from datetime import datetime, timezone, timedelta
+    from app import db
+    from datetime import datetime, timezone, timedelta, date
+    import json
 
     total_users = User.query.count()
     total_projects = Project.query.count()
@@ -60,6 +62,37 @@ def dashboard():
         .limit(5).all()
     )
 
+    # Chart data: time distribution by project (pie chart)
+    from sqlalchemy import func as sql_func
+    pie_rows = (
+        db.session.query(Project.name, sql_func.count(TimeEntry.id))
+        .join(TimeEntry, TimeEntry.project_id == Project.id)
+        .group_by(Project.name)
+        .order_by(sql_func.count(TimeEntry.id).desc())
+        .limit(8)
+        .all()
+    )
+    pie_labels = [r[0] for r in pie_rows]
+    pie_data = [r[1] for r in pie_rows]
+
+    # Chart data: time entries trend for last 30 days (line chart)
+    today = date.today()
+    thirty_days_ago = today - timedelta(days=29)
+    trend_rows = (
+        db.session.query(TimeEntry.work_date, sql_func.count(TimeEntry.id))
+        .filter(TimeEntry.work_date >= thirty_days_ago)
+        .group_by(TimeEntry.work_date)
+        .order_by(TimeEntry.work_date)
+        .all()
+    )
+    trend_map = {r[0]: r[1] for r in trend_rows}
+    trend_labels = []
+    trend_data = []
+    for i in range(30):
+        d = thirty_days_ago + timedelta(days=i)
+        trend_labels.append(d.strftime('%d/%m'))
+        trend_data.append(trend_map.get(d, 0))
+
     return render_template(
         'admin/dashboard.html',
         total_users=total_users,
@@ -69,6 +102,10 @@ def dashboard():
         recent_users=recent_users,
         recent_projects=recent_projects,
         recent_time_entries=recent_time_entries,
+        pie_labels=json.dumps(pie_labels),
+        pie_data=json.dumps(pie_data),
+        trend_labels=json.dumps(trend_labels),
+        trend_data=json.dumps(trend_data),
     )
 
 

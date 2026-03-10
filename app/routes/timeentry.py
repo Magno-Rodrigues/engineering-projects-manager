@@ -1,6 +1,6 @@
 """Time entry (apontamentos) routes."""
 from datetime import datetime
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, Response
 from flask_login import login_required, current_user
 from app.utils.decorators import admin_required
 from app.services.timeentry_service import TimeEntryService
@@ -105,22 +105,61 @@ def cycles_edit(cycle_id: int):
 @timeentry_bp.route('/')
 @login_required
 def index():
-    """List time entries."""
+    """List time entries with pagination, summary, and filters."""
     is_admin = current_user.role == 'admin'
     project_id = _parse_int(request.args.get('project_id'))
     cycle_id = _parse_int(request.args.get('cycle_id'))
     work_date = _parse_date(request.args.get('work_date'))
+    search = request.args.get('search', '').strip()
+    user_id_filter = _parse_int(request.args.get('user_id')) if is_admin else None
+    page = max(1, _parse_int(request.args.get('page')) or 1)
+    per_page = 50
 
-    entries = TimeEntryService.get_time_entries(
+    entries_all = TimeEntryService.get_time_entries(
         user_id=current_user.id,
         is_admin=is_admin,
         project_id=project_id,
         cycle_id=cycle_id,
         work_date=work_date,
+        search=search,
+        filter_user_id=user_id_filter,
     )
+
+    # Summary stats
+    total_entries = len(entries_all)
+    total_hours_seconds = 0
+    last_entry_date = None
+    for e in entries_all:
+        if e.hours_worked:
+            try:
+                parts = str(e.hours_worked).split(':')
+                h, m, s = int(parts[0]), int(parts[1]), int(parts[2]) if len(parts) > 2 else 0
+                total_hours_seconds += h * 3600 + m * 60 + s
+            except (ValueError, IndexError):
+                pass
+        if last_entry_date is None or (e.work_date and e.work_date > last_entry_date):
+            last_entry_date = e.work_date
+
+    total_hours_display = f"{total_hours_seconds // 3600:02d}:{(total_hours_seconds % 3600) // 60:02d}"
+    avg_hours_display = ''
+    if total_entries > 0:
+        avg_s = total_hours_seconds // total_entries
+        avg_hours_display = f"{avg_s // 3600:02d}:{(avg_s % 3600) // 60:02d}"
+
+    # Pagination
+    total_pages = max(1, (total_entries + per_page - 1) // per_page)
+    page = min(page, total_pages)
+    entries = entries_all[(page - 1) * per_page: page * per_page]
+
     projects = ProjectService.get_user_projects(current_user.id, include_all=True)
     cycles = TimeEntryService.get_all_cycles()
     active_cycle = TimeEntryService.get_active_cycle()
+
+    users = []
+    if is_admin:
+        from app.models.user import User
+        users = User.query.order_by(User.username).all()
+
     return render_template(
         'apontamentos/index.html',
         entries=entries,
@@ -130,6 +169,15 @@ def index():
         selected_project_id=project_id,
         selected_cycle_id=cycle_id,
         selected_work_date=request.args.get('work_date', ''),
+        search=search,
+        selected_user_id=user_id_filter,
+        users=users,
+        page=page,
+        total_pages=total_pages,
+        total_entries=total_entries,
+        total_hours_display=total_hours_display,
+        avg_hours_display=avg_hours_display,
+        last_entry_date=last_entry_date,
     )
 
 
@@ -240,3 +288,69 @@ def delete(entry_id: int):
     else:
         flash(error, 'error')
     return redirect(url_for('timeentry.index'))
+
+
+@timeentry_bp.route('/export-excel')
+@login_required
+def export_excel():
+    """Export filtered time entries to Excel (.xlsx)."""
+    import io
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment
+
+    is_admin = current_user.role == 'admin'
+    project_id = _parse_int(request.args.get('project_id'))
+    cycle_id = _parse_int(request.args.get('cycle_id'))
+    work_date = _parse_date(request.args.get('work_date'))
+    search = request.args.get('search', '').strip()
+    user_id_filter = _parse_int(request.args.get('user_id')) if is_admin else None
+
+    entries = TimeEntryService.get_time_entries(
+        user_id=current_user.id,
+        is_admin=is_admin,
+        project_id=project_id,
+        cycle_id=cycle_id,
+        work_date=work_date,
+        search=search,
+        filter_user_id=user_id_filter,
+    )
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'Apontamentos'
+
+    header_fill = PatternFill(start_color='3B82F6', end_color='3B82F6', fill_type='solid')
+    header_font = Font(bold=True, color='FFFFFF')
+    headers = ['Data', 'Projeto', 'Atividade Principal', 'Sub-Atividade', 'Disciplina', 'Horas', 'Tipo']
+    if is_admin:
+        headers.append('Usuário')
+
+    for col, h in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=h)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='center')
+
+    for row_idx, entry in enumerate(entries, 2):
+        ws.cell(row=row_idx, column=1, value=entry.work_date.strftime('%d/%m/%Y') if entry.work_date else '')
+        ws.cell(row=row_idx, column=2, value=entry.project.name if entry.project else '')
+        ws.cell(row=row_idx, column=3, value=entry.main_activity or '')
+        ws.cell(row=row_idx, column=4, value=entry.sub_activity or '')
+        ws.cell(row=row_idx, column=5, value=entry.discipline or '')
+        ws.cell(row=row_idx, column=6, value=str(entry.hours_worked) if entry.hours_worked else '')
+        ws.cell(row=row_idx, column=7, value=entry.hour_type or '')
+        if is_admin:
+            ws.cell(row=row_idx, column=8, value=entry.user.username if entry.user else '')
+
+    for col in ws.columns:
+        max_len = max((len(str(c.value)) for c in col if c.value), default=10)
+        ws.column_dimensions[col[0].column_letter].width = min(max_len + 4, 40)
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return Response(
+        buf.getvalue(),
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        headers={'Content-Disposition': 'attachment; filename=apontamentos.xlsx'},
+    )

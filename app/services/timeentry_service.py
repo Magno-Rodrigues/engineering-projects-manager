@@ -113,20 +113,36 @@ class TimeEntryService:
         project_id: Optional[int] = None,
         cycle_id: Optional[int] = None,
         work_date=None,
+        search: Optional[str] = None,
+        filter_user_id: Optional[int] = None,
     ) -> List[TimeEntry]:
         """Return time entries with optional filters.
 
         Admins see all entries; regular users see only their own.
         """
-        query = TimeEntry.query
+        from sqlalchemy.orm import joinedload
+        query = TimeEntry.query.options(joinedload(TimeEntry.project), joinedload(TimeEntry.user))
         if not is_admin:
             query = query.filter_by(user_id=user_id)
+        elif filter_user_id:
+            query = query.filter_by(user_id=filter_user_id)
         if project_id:
             query = query.filter_by(project_id=project_id)
         if cycle_id:
             query = query.filter_by(measurement_cycle_id=cycle_id)
         if work_date:
             query = query.filter_by(work_date=work_date)
+        if search:
+            from app.models.project import Project
+            search_term = f'%{search}%'
+            query = query.outerjoin(Project, TimeEntry.project_id == Project.id).filter(
+                db.or_(
+                    TimeEntry.main_activity.ilike(search_term),
+                    TimeEntry.sub_activity.ilike(search_term),
+                    TimeEntry.discipline.ilike(search_term),
+                    Project.name.ilike(search_term),
+                )
+            )
         return query.order_by(TimeEntry.work_date.desc()).all()
 
     @staticmethod
