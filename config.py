@@ -30,6 +30,7 @@ class DevelopmentConfig(Config):
     """Development configuration."""
     DEBUG: bool = True
     SQLALCHEMY_ECHO: bool = True
+    LOG_LEVEL: str = 'DEBUG'
 
 
 class TestingConfig(Config):
@@ -37,12 +38,14 @@ class TestingConfig(Config):
     TESTING: bool = True
     SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'postgresql://engineering_user:password@localhost:5432/engineering_projects')
     WTF_CSRF_ENABLED: bool = False
+    LOG_LEVEL: str = 'WARNING'
 
 
 class ProductionConfig(Config):
     """Production configuration."""
     DEBUG: bool = False
     TESTING: bool = False
+    LOG_LEVEL: str = 'INFO'
 
 
 config = {
