@@ -78,7 +78,7 @@ def dashboard(project_id: int):
         int(completed_activities / total_activities * 100) if total_activities else 0
     )
 
-    risk_counts = {'low': 0, 'medium': 0, 'high': 0}
+    risk_counts = {'green': 0, 'yellow': 0, 'red': 0}
     for risk in risks:
         risk_counts[risk.risk_color] += 1
 
