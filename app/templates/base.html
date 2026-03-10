@@ -3,19 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Engineering Projects Manager{% endblock %}</title>
+    <title>{% block title %}CMRDA — Engineering Management{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/cmrda-logo.svg') }}">
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: { sans: ['Inter', 'sans-serif'] },
                     colors: {
-                        primary: '#3B82F6',
+                        primary: '#1A3A52',
+                        accent: '#C9A961',
+                        gold: '#C9A961',
                         success: '#10B981',
                         warning: '#F59E0B',
                         danger: '#EF4444',
@@ -35,24 +38,34 @@
                 <!-- Logo -->
                 <div class="flex items-center gap-3">
                     <a href="{{ url_for('main.dashboard') }}" class="flex items-center gap-2 no-underline hover:opacity-80 transition-opacity">
-                        <svg width="36" height="36" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
-                            <rect width="36" height="36" rx="8" fill="#3B82F6"/>
-                            <text x="18" y="24" text-anchor="middle" font-family="'Inter',sans-serif" font-weight="900" font-size="11" fill="white" letter-spacing="-0.5">CMRDA</text>
+                        <!-- CMRDA Icon: bar chart + growth arrow -->
+                        <svg width="38" height="38" viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="38" height="38" rx="8" fill="#1A3A52"/>
+                            <g transform="translate(5,7)">
+                                <rect x="0" y="12" width="5" height="10" rx="1" fill="#C9A961"/>
+                                <rect x="7" y="7" width="5" height="15" rx="1" fill="#C9A961"/>
+                                <rect x="14" y="2" width="5" height="20" rx="1" fill="#C9A961"/>
+                                <polyline points="2,13 9,8 16,3 24,0" stroke="#C9A961" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                                <polygon points="24,0 19,2 21,6" fill="#C9A961"/>
+                            </g>
                         </svg>
-                        <span class="text-gray-900 font-extrabold text-lg tracking-tight">CMRDA</span>
+                        <div class="flex flex-col leading-none">
+                            <span class="text-gray-900 font-extrabold text-lg tracking-tight" style="color:#1A3A52">CMRDA</span>
+                            <span class="text-xs font-medium tracking-widest uppercase" style="color:#C9A961;font-size:0.55rem">Engineering Management</span>
+                        </div>
                     </a>
                 </div>
                 <!-- Nav links -->
                 <div class="flex items-center gap-4">
                     {% if current_user.is_authenticated %}
-                        <a href="{{ url_for('projects.index') }}" class="text-gray-600 hover:text-blue-600 font-medium text-sm transition-colors">Projetos</a>
-                        <a href="{{ url_for('timeentry.index') }}" class="text-gray-600 hover:text-blue-600 font-medium text-sm transition-colors">Apontamentos</a>
+                        <a href="{{ url_for('projects.index') }}" class="text-gray-600 hover:text-primary font-medium text-sm transition-colors">Projetos</a>
+                        <a href="{{ url_for('timeentry.index') }}" class="text-gray-600 hover:text-primary font-medium text-sm transition-colors">Apontamentos</a>
                         {% if current_user.role == 'admin' %}
-                            <a href="{{ url_for('admin.dashboard') }}" class="text-gray-600 hover:text-blue-600 font-medium text-sm transition-colors">Admin</a>
+                            <a href="{{ url_for('admin.dashboard') }}" class="text-gray-600 hover:text-primary font-medium text-sm transition-colors">Admin</a>
                         {% endif %}
                         <div class="flex items-center gap-2 ml-2 border-l border-gray-200 pl-4">
                             <span class="text-sm text-gray-500">
-                                <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-semibold text-sm">
+                                <span class="inline-flex items-center justify-center w-8 h-8 rounded-full font-semibold text-sm" style="background-color:#E8EFF5;color:#1A3A52">
                                     {{ current_user.username[0]|upper }}
                                 </span>
                             </span>
@@ -65,7 +78,7 @@
                             </a>
                         </div>
                     {% else %}
-                        <a href="{{ url_for('auth.login') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors">Entrar</a>
+                        <a href="{{ url_for('auth.login') }}" class="text-white font-medium text-sm px-4 py-2 rounded-lg transition-opacity hover:opacity-90" style="background-color:#1A3A52">Entrar</a>
                     {% endif %}
                 </div>
             </div>

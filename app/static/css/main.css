@@ -1,6 +1,13 @@
 /* Custom styles for Engineering Projects Manager */
 /* Tailwind CSS is loaded via CDN in base.html */
 
+/* CMRDA brand color variables */
+:root {
+    --primary-color: #1A3A52;
+    --accent-color: #C9A961;
+    --gold: #C9A961;
+}
+
 /* Prose styles for report content */
 .prose { line-height: 1.7; }
 
