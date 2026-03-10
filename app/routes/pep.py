@@ -1,5 +1,5 @@
 """PEP (Project Execution Plan) routes."""
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
 from app import db
@@ -46,6 +46,149 @@ def _log_change(project_id: int, entity_type: str, description: str) -> None:
 # PEP Dashboard
 # ---------------------------------------------------------------------------
 
+def _get_gantt_data(phases):
+    """Build Gantt chart task list from phases and stages."""
+    tasks = []
+    today_str = date.today().isoformat()
+
+    for phase in phases:
+        start = phase.start_date.isoformat() if phase.start_date else today_str
+        end = phase.end_date.isoformat() if phase.end_date else today_str
+
+        if end < start:
+            end = start
+
+        tasks.append({
+            'id': f'phase_{phase.id}',
+            'name': phase.name,
+            'start': start,
+            'end': end,
+            'progress': _phase_progress(phase),
+            'dependencies': '',
+            'custom_class': f'phase-level status-{phase.status}',
+        })
+
+        for stage in phase.stages.all():
+            s_start = stage.start_date.isoformat() if stage.start_date else start
+            s_end = stage.end_date.isoformat() if stage.end_date else end
+
+            if s_end < s_start:
+                s_end = s_start
+
+            tasks.append({
+                'id': f'stage_{stage.id}',
+                'name': f'  {stage.name}',
+                'start': s_start,
+                'end': s_end,
+                'progress': _stage_progress(stage),
+                'dependencies': f'phase_{phase.id}',
+                'custom_class': f'stage-level status-{stage.status}',
+            })
+
+    return tasks
+
+
+def _phase_progress(phase) -> int:
+    """Calculate average progress of activities in a phase (0-100)."""
+    total = 0
+    total_progress = 0
+    for stage in phase.stages.all():
+        for act in stage.activities.all():
+            total += 1
+            total_progress += act.progress or 0
+    return int(total_progress / total) if total else 0
+
+
+def _stage_progress(stage) -> int:
+    """Calculate average progress of activities in a stage (0-100)."""
+    activities = stage.activities.all()
+    if not activities:
+        return 0
+    return int(sum(a.progress or 0 for a in activities) / len(activities))
+
+
+def _get_scurve_data(phases, project):
+    """Calculate S-curve data (planned vs actual) for the project.
+
+    Returns a dict with keys: periods, planned, actual, labels.
+    Uses weekly periods for projects <= 90 days, monthly otherwise.
+    """
+    activities = []
+    for phase in phases:
+        for stage in phase.stages.all():
+            for act in stage.activities.all():
+                if act.start_date and act.end_date and act.duration_hours:
+                    activities.append(act)
+
+    if not activities:
+        return {'periods': [], 'planned': [], 'actual': [], 'labels': []}
+
+    proj_start = min(a.start_date for a in activities)
+    proj_end = max(a.end_date for a in activities)
+
+    if hasattr(project, 'start_date') and project.start_date:
+        proj_start = min(proj_start, project.start_date)
+    if hasattr(project, 'end_date') and project.end_date:
+        proj_end = max(proj_end, project.end_date)
+
+    duration_days = (proj_end - proj_start).days or 1
+
+    if duration_days > 90:
+        period_days = 30
+        label_fmt = 'Mês {n}'
+    else:
+        period_days = 7
+        label_fmt = 'Sem. {n}'
+
+    periods = []
+    cursor = proj_start
+    while cursor <= proj_end:
+        periods.append(cursor)
+        cursor += timedelta(days=period_days)
+    if not periods or periods[-1] < proj_end:
+        periods.append(proj_end)
+
+    total_hours = sum(float(a.duration_hours) for a in activities)
+    if total_hours == 0:
+        return {'periods': [], 'planned': [], 'actual': [], 'labels': []}
+
+    planned_data = []
+    actual_data = []
+    labels = []
+
+    for n, period_end in enumerate(periods, 1):
+        cum_planned = 0.0
+        cum_actual = 0.0
+        for act in activities:
+            hours = float(act.duration_hours)
+            act_duration = (act.end_date - act.start_date).days or 1
+
+            if act.start_date <= period_end:
+                planned_end = min(act.end_date, period_end)
+                overlap_days = max((planned_end - act.start_date).days, 0)
+                planned_completion_ratio = min(overlap_days / act_duration, 1.0)
+                cum_planned += hours * planned_completion_ratio
+
+            earned = hours * ((act.progress or 0) / 100.0)
+            if act.end_date <= period_end:
+                cum_actual += earned
+            elif act.start_date <= period_end:
+                elapsed = (period_end - act.start_date).days
+                actual_completion_ratio = min(elapsed / act_duration, 1.0)
+                cum_actual += earned * actual_completion_ratio
+
+        planned_data.append(round(cum_planned / total_hours * 100, 1))
+        actual_data.append(round(cum_actual / total_hours * 100, 1))
+        labels.append(label_fmt.format(n=n))
+
+    return {
+        'periods': [p.isoformat() for p in periods],
+        'planned': planned_data,
+        'actual': actual_data,
+        'labels': labels,
+    }
+
+
 @pep_bp.route('/')
 @login_required
 def dashboard(project_id: int):
@@ -78,7 +221,7 @@ def dashboard(project_id: int):
         int(completed_activities / total_activities * 100) if total_activities else 0
     )
 
-    risk_counts = {'low': 0, 'medium': 0, 'high': 0}
+    risk_counts = {'green': 0, 'yellow': 0, 'red': 0}
     for risk in risks:
         risk_counts[risk.risk_color] += 1
 
@@ -93,6 +236,10 @@ def dashboard(project_id: int):
     )
     total_allocated_hours = sum(float(a.allocated_hours or 0) for a in all_allocations)
 
+    # Gantt and S-curve data (pre-computed for template)
+    gantt_tasks = _get_gantt_data(phases)
+    scurve_data = _get_scurve_data(phases, project)
+
     return render_template(
         'pep/dashboard.html',
         project=project,
@@ -105,6 +252,8 @@ def dashboard(project_id: int):
         completed_activities=completed_activities,
         risk_counts=risk_counts,
         total_allocated_hours=total_allocated_hours,
+        gantt_tasks=gantt_tasks,
+        scurve_data=scurve_data,
     )
 
 
@@ -745,7 +894,6 @@ def delete_decision(project_id: int, decision_id: int):
     flash('Decisão removida.', 'success')
     return redirect(url_for('pep.documentation', project_id=project_id))
 
-
 # ---------------------------------------------------------------------------
 # API endpoints (JSON) for dashboard data
 # ---------------------------------------------------------------------------
@@ -753,35 +901,17 @@ def delete_decision(project_id: int, decision_id: int):
 @pep_bp.route('/api/progress')
 @login_required
 def api_progress(project_id: int):
-    """Return progress data for S-curve chart (JSON)."""
-    _get_project_or_404(project_id)
-
+    """Return S-curve progress data (planned vs actual) as JSON."""
+    project = _get_project_or_404(project_id)
     phases = PEPPhase.query.filter_by(project_id=project_id).order_by(PEPPhase.sequence).all()
+    data = _get_scurve_data(phases, project)
+    return jsonify(data)
 
-    labels = []
-    planned_data = []
-    actual_data = []
 
-    cumulative_planned = 0
-    cumulative_actual = 0
-
-    for phase in phases:
-        labels.append(phase.name)
-        phase_activities = []
-        for stage in phase.stages:
-            for activity in stage.activities:
-                phase_activities.append(activity)
-
-        total = len(phase_activities)
-        done = sum(1 for a in phase_activities if a.status == 'completed')
-
-        planned_pct = 100 if total else 0
-        actual_pct = int(done / total * 100) if total else 0
-
-        cumulative_planned += planned_pct / max(len(phases), 1)
-        cumulative_actual += actual_pct / max(len(phases), 1)
-
-        planned_data.append(round(cumulative_planned, 1))
-        actual_data.append(round(cumulative_actual, 1))
-
-    return jsonify({'labels': labels, 'planned': planned_data, 'actual': actual_data})
+@pep_bp.route('/api/gantt')
+@login_required
+def api_gantt(project_id: int):
+    """Return Gantt chart task data as JSON."""
+    _get_project_or_404(project_id)
+    phases = PEPPhase.query.filter_by(project_id=project_id).order_by(PEPPhase.sequence).all()
+    return jsonify(_get_gantt_data(phases))
