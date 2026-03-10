@@ -424,3 +424,106 @@ class TestTimeEntryCreateRoute:
         """GET /apontamentos/new contains the default placeholder option."""
         response = logged_in_client.get('/apontamentos/new')
         assert b'Selecione um projeto' in response.data
+
+
+class TestBulkAndPendingService:
+    """Tests for bulk creation and pending dates helpers."""
+
+    def test_generate_weekday_dates_skip_weekends(self, app, db):
+        """generate_weekday_dates excludes Sat/Sun when skip_weekends=True."""
+        with app.app_context():
+            # 2026-03-09 (Mon) to 2026-03-15 (Sun)
+            dates = TimeEntryService.generate_weekday_dates(
+                date(2026, 3, 9), date(2026, 3, 15), skip_weekends=True
+            )
+            assert len(dates) == 5
+            for d in dates:
+                assert d.weekday() < 5
+
+    def test_generate_weekday_dates_include_weekends(self, app, db):
+        """generate_weekday_dates includes weekends when skip_weekends=False."""
+        with app.app_context():
+            dates = TimeEntryService.generate_weekday_dates(
+                date(2026, 3, 9), date(2026, 3, 15), skip_weekends=False
+            )
+            assert len(dates) == 7
+
+    def test_generate_weekday_dates_same_day(self, app, db):
+        """generate_weekday_dates for start==end returns one weekday or zero."""
+        with app.app_context():
+            # 2026-03-09 is a Monday
+            dates = TimeEntryService.generate_weekday_dates(
+                date(2026, 3, 9), date(2026, 3, 9)
+            )
+            assert dates == [date(2026, 3, 9)]
+
+    def test_get_pending_cycle_dates_all_pending(self, app, db, regular_user, active_cycle):
+        """All weekdays are pending when no entries exist."""
+        with app.app_context():
+            all_weekdays, entered, pending, future, completed = \
+                TimeEntryService.get_pending_cycle_dates(regular_user.id, active_cycle)
+            assert len(completed) == 0
+            assert len(all_weekdays) == len(pending) + len(future)
+
+    def test_get_pending_cycle_dates_after_entry(self, app, db, regular_user, test_project, active_cycle):
+        """A date with an entry is marked completed, not pending."""
+        with app.app_context():
+            entry = TimeEntry(
+                project_id=test_project.id,
+                user_id=regular_user.id,
+                main_activity='Work',
+                work_date=date(2026, 2, 2),
+                hours_worked='08:00:00',
+                hour_type='Normal',
+                measurement_cycle_id=active_cycle.id,
+            )
+            _db.session.add(entry)
+            _db.session.commit()
+
+            _, entered, pending, future, completed = \
+                TimeEntryService.get_pending_cycle_dates(regular_user.id, active_cycle)
+            assert date(2026, 2, 2) in entered
+            assert date(2026, 2, 2) in completed
+            assert date(2026, 2, 2) not in pending
+
+            _db.session.delete(entry)
+            _db.session.commit()
+
+    def test_create_bulk_time_entries_success(self, app, db, regular_user, test_project, active_cycle):
+        """create_bulk_time_entries creates one entry per provided date."""
+        with app.app_context():
+            dates = [date(2026, 2, 2), date(2026, 2, 3)]
+            entries, errors = TimeEntryService.create_bulk_time_entries(
+                dates=dates,
+                project_id=test_project.id,
+                user_id=regular_user.id,
+                main_activity='Bulk Test',
+                hours_worked='08:00:00',
+                hour_type='Normal',
+            )
+            assert len(entries) == 2
+            assert errors == []
+            for e in entries:
+                _db.session.delete(e)
+            _db.session.commit()
+
+    def test_create_bulk_time_entries_partial_errors(self, app, db, regular_user, test_project, active_cycle):
+        """Dates outside the active cycle produce errors; valid ones succeed."""
+        with app.app_context():
+            dates = [
+                date(2026, 2, 2),   # inside cycle
+                date(2026, 1, 5),   # outside cycle
+            ]
+            entries, errors = TimeEntryService.create_bulk_time_entries(
+                dates=dates,
+                project_id=test_project.id,
+                user_id=regular_user.id,
+                main_activity='Bulk Test',
+                hours_worked='08:00:00',
+                hour_type='Normal',
+            )
+            assert len(entries) == 1
+            assert len(errors) == 1
+            for e in entries:
+                _db.session.delete(e)
+            _db.session.commit()

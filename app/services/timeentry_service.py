@@ -1,6 +1,6 @@
 """Time entry service."""
-from datetime import datetime
-from typing import List, Optional, Tuple, Any, Dict
+from datetime import datetime, timedelta, date as date_type
+from typing import List, Optional, Tuple, Any, Dict, Set
 from app import db
 from app.models.time_entry import MeasurementCycle, TimeEntry
 
@@ -275,6 +275,84 @@ class TimeEntryService:
 
         db.session.commit()
         return entry, None
+
+    # ── Bulk / Pending helpers ─────────────────────────────────────────────
+
+    @staticmethod
+    def generate_weekday_dates(
+        start_date: date_type,
+        end_date: date_type,
+        skip_weekends: bool = True,
+    ) -> List[date_type]:
+        """Return list of dates in [start_date, end_date], optionally skipping weekends."""
+        dates: List[date_type] = []
+        current = start_date
+        while current <= end_date:
+            if not skip_weekends or current.weekday() < 5:
+                dates.append(current)
+            current += timedelta(days=1)
+        return dates
+
+    @staticmethod
+    def get_pending_cycle_dates(
+        user_id: int,
+        cycle: MeasurementCycle,
+    ) -> Tuple[List[date_type], Set[date_type], List[date_type], List[date_type], List[date_type]]:
+        """Classify weekdays in the cycle as completed, pending (past), or future.
+
+        Returns:
+            (all_weekdays, entered_dates, pending, future, completed)
+        """
+        all_weekdays = TimeEntryService.generate_weekday_dates(
+            cycle.start_date, cycle.end_date, skip_weekends=True
+        )
+        entries = TimeEntry.query.filter_by(
+            user_id=user_id,
+            measurement_cycle_id=cycle.id,
+        ).all()
+        entered_dates: Set[date_type] = {e.work_date for e in entries}
+        today = date_type.today()
+        pending = [d for d in all_weekdays if d not in entered_dates and d <= today]
+        future = [d for d in all_weekdays if d not in entered_dates and d > today]
+        completed = [d for d in all_weekdays if d in entered_dates]
+        return all_weekdays, entered_dates, pending, future, completed
+
+    @staticmethod
+    def create_bulk_time_entries(
+        dates: List[date_type],
+        project_id: int,
+        user_id: int,
+        main_activity: str,
+        hours_worked: str,
+        hour_type: str,
+        discipline: Optional[str] = None,
+        sub_activity: Optional[str] = None,
+        observation: Optional[str] = None,
+    ) -> Tuple[List[TimeEntry], List[str]]:
+        """Create one time entry per date in *dates* with the same common fields.
+
+        Returns:
+            (created_entries, error_messages)
+        """
+        results: List[TimeEntry] = []
+        errors: List[str] = []
+        for work_date in dates:
+            entry, error = TimeEntryService.create_time_entry(
+                project_id=project_id,
+                user_id=user_id,
+                main_activity=main_activity,
+                work_date=work_date,
+                hours_worked=hours_worked,
+                hour_type=hour_type,
+                discipline=discipline,
+                sub_activity=sub_activity,
+                observation=observation,
+            )
+            if entry:
+                results.append(entry)
+            else:
+                errors.append(f"{work_date.strftime('%d/%m/%Y')}: {error}")
+        return results, errors
 
     @staticmethod
     def delete_time_entry(
