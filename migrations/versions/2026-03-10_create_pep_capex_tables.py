@@ -1,0 +1,1 @@
+from sqlalchemy import Column, Integer, String, ForeignKey, Float, DateTime\nfrom sqlalchemy.orm import relationship\nfrom your_app.database import Base\n\nclass PEP(Base):\n    __tablename__ = 'peps'\n    \n    id = Column(Integer, primary_key=True)\n    name = Column(String, nullable=False)\n    description = Column(String)\n    \n    capexes = relationship(\
