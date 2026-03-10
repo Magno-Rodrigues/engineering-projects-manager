@@ -1,0 +1,231 @@
+{% extends "pep/base.html" %}
+{% block pep_content %}
+
+<!-- Summary Cards -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <p class="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">Progresso Geral</p>
+        <p class="text-3xl font-bold text-primary">{{ overall_progress }}%</p>
+        <div class="mt-2 h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div class="h-2 rounded-full bg-blue-500 transition-all" style="width:{{ overall_progress }}%"></div>
+        </div>
+        <p class="text-xs text-gray-400 mt-1">{{ completed_activities }}/{{ total_activities }} atividades</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <p class="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">Riscos Altos</p>
+        <p class="text-3xl font-bold text-red-500">{{ risk_counts.high }}</p>
+        <p class="text-xs text-gray-400 mt-1">
+            {{ risk_counts.medium }} médios · {{ risk_counts.low }} baixos
+        </p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <p class="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">Fases</p>
+        <p class="text-3xl font-bold text-gray-800">{{ phases|length }}</p>
+        <p class="text-xs text-gray-400 mt-1">fases planejadas</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <p class="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">Horas Alocadas</p>
+        <p class="text-3xl font-bold text-accent">{{ total_allocated_hours|int }}</p>
+        <p class="text-xs text-gray-400 mt-1">horas totais</p>
+    </div>
+</div>
+
+<!-- Main grid: S-Curve + Risk Matrix -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+
+    <!-- S-Curve Chart -->
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-base font-semibold text-gray-800">Curva S — Progresso Acumulado</h2>
+        </div>
+        {% if phases %}
+        <canvas id="sCurveChart" height="220"></canvas>
+        {% else %}
+        <div class="flex flex-col items-center justify-center h-40 text-gray-400">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mb-2 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+            <p class="text-sm">Adicione fases ao EAP para visualizar a curva</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Risk Matrix -->
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-base font-semibold text-gray-800">Matriz de Riscos</h2>
+            <a href="{{ url_for('pep.risks', project_id=project.id) }}" class="text-xs text-blue-600 hover:underline">Ver todos</a>
+        </div>
+        {% if risks %}
+        <!-- 5x5 Risk Matrix Grid -->
+        <div class="overflow-x-auto">
+            <table class="w-full text-center text-xs border-collapse">
+                <thead>
+                    <tr>
+                        <th class="w-8 text-gray-400 font-normal pb-1">P↑ / I→</th>
+                        {% for i in range(1,6) %}
+                        <th class="text-gray-500 font-medium pb-1">{{ i }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in range(5,0,-1) %}
+                    <tr>
+                        <td class="text-gray-500 font-medium pr-1">{{ p }}</td>
+                        {% for i in range(1,6) %}
+                        {% set level = p * i %}
+                        {% if level <= 5 %}
+                            {% set cell_class = 'bg-green-100 text-green-700' %}
+                        {% elif level <= 12 %}
+                            {% set cell_class = 'bg-yellow-100 text-yellow-700' %}
+                        {% else %}
+                            {% set cell_class = 'bg-red-100 text-red-700' %}
+                        {% endif %}
+                        <td class="p-1">
+                            <div class="w-10 h-10 rounded-lg {{ cell_class }} flex items-center justify-center font-semibold mx-auto">
+                                {{ matrix[(p,i)]|length if matrix is defined and (p,i) in matrix else 0 }}
+                            </div>
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="flex items-center gap-4 mt-3 text-xs text-gray-500">
+                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-green-200 inline-block"></span> Baixo (≤5)</span>
+                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-yellow-200 inline-block"></span> Médio (6-12)</span>
+                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-red-200 inline-block"></span> Alto (&gt;12)</span>
+            </div>
+        </div>
+        {% else %}
+        <div class="flex flex-col items-center justify-center h-40 text-gray-400">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mb-2 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            <p class="text-sm">Nenhum risco cadastrado</p>
+            <a href="{{ url_for('pep.create_risk', project_id=project.id) }}" class="mt-2 text-xs text-blue-600 hover:underline">Cadastrar primeiro risco</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- EAP Summary + Recent Changes -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    <!-- EAP Summary (Gantt-style horizontal bars) -->
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-base font-semibold text-gray-800">EAP — Estrutura do Projeto</h2>
+            <a href="{{ url_for('pep.eap', project_id=project.id) }}" class="text-xs text-blue-600 hover:underline">Gerenciar</a>
+        </div>
+        {% if phases %}
+        <div class="space-y-3">
+            {% for phase in phases %}
+            {% set phase_stages = phase.stages.all() %}
+            {% set phase_activities = [] %}
+            {% for stage in phase_stages %}
+                {% for act in stage.activities %}
+                    {% set _ = phase_activities.append(act) %}
+                {% endfor %}
+            {% endfor %}
+            {% set total_act = phase_activities|length %}
+            {% set done_act = phase_activities|selectattr('status','eq','completed')|list|length %}
+            {% set phase_pct = (done_act / total_act * 100)|int if total_act else 0 %}
+            <div>
+                <div class="flex items-center justify-between text-sm mb-1">
+                    <span class="font-medium text-gray-700">{{ phase.name }}</span>
+                    <span class="text-xs text-gray-400">{{ done_act }}/{{ total_act }} ativ. · {{ phase_pct }}%</span>
+                </div>
+                <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div class="h-2 rounded-full transition-all
+                        {% if phase_pct == 100 %}bg-emerald-500
+                        {% elif phase_pct > 0 %}bg-blue-500
+                        {% else %}bg-gray-300{% endif %}"
+                        style="width:{{ phase_pct }}%"></div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="flex flex-col items-center justify-center h-32 text-gray-400">
+            <p class="text-sm">Nenhuma fase criada</p>
+            <a href="{{ url_for('pep.create_phase', project_id=project.id) }}" class="mt-2 text-xs text-blue-600 hover:underline">Criar primeira fase</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Recent Changes -->
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-base font-semibold text-gray-800">Alterações Recentes</h2>
+            <a href="{{ url_for('pep.documentation', project_id=project.id) }}" class="text-xs text-blue-600 hover:underline">Ver tudo</a>
+        </div>
+        {% if recent_changes %}
+        <div class="space-y-2">
+            {% for change in recent_changes %}
+            <div class="flex items-start gap-3 py-2 border-b border-gray-50 last:border-0">
+                <div class="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 text-xs font-semibold text-gray-500">
+                    {{ change.author.username[0]|upper if change.author else '?' }}
+                </div>
+                <div>
+                    <p class="text-sm text-gray-700 leading-snug">{{ change.change_description }}</p>
+                    <p class="text-xs text-gray-400 mt-0.5">
+                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-600">{{ change.entity_type }}</span>
+                        · {{ change.created_at.strftime('%d/%m/%Y %H:%M') if change.created_at else '' }}
+                    </p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="flex flex-col items-center justify-center h-32 text-gray-400">
+            <p class="text-sm">Nenhuma alteração registrada</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if phases %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    fetch("{{ url_for('pep.api_progress', project_id=project.id) }}")
+        .then(r => r.json())
+        .then(data => {
+            const ctx = document.getElementById('sCurveChart');
+            if (!ctx) return;
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [
+                        {
+                            label: 'Planejado (%)',
+                            data: data.planned,
+                            borderColor: '#1A3A52',
+                            backgroundColor: 'rgba(26,58,82,0.08)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true,
+                            pointRadius: 4,
+                        },
+                        {
+                            label: 'Realizado (%)',
+                            data: data.actual,
+                            borderColor: '#C9A961',
+                            backgroundColor: 'rgba(201,169,97,0.08)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true,
+                            pointRadius: 4,
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } },
+                    scales: {
+                        y: { min: 0, max: 100, ticks: { callback: v => v + '%' } }
+                    }
+                }
+            });
+        });
+});
+</script>
+{% endif %}
+{% endblock %}

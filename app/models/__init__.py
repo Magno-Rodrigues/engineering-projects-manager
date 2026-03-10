@@ -17,6 +17,13 @@ from app.models.financial_budget import FinancialBudget, FinancialBudgetItem
 from app.models.financial_transaction import FinancialTransaction
 from app.models.financial_earned_value import FinancialEarnedValue
 from app.models.project_cost_center import ProjectCostCenter
+from app.models.pep import (
+    PEPPhase, PEPStage, PEPActivity, PEPActivityLog,
+    PEPRisk, PEPRiskLog,
+    PEPResourceAllocation, PEPResourceCapacity,
+    PEPBaseline, PEPVariation,
+    PEPDecisionLog, PEPChangeLog, PEPComment,
+)
 
 __all__ = [
     'User', 'Project', 'Task', 'Report', 'PasswordResetToken',
@@ -27,4 +34,9 @@ __all__ = [
     'Supplier', 'CostCenter',
     'FinancialBudget', 'FinancialBudgetItem',
     'FinancialTransaction', 'FinancialEarnedValue',
+    'PEPPhase', 'PEPStage', 'PEPActivity', 'PEPActivityLog',
+    'PEPRisk', 'PEPRiskLog',
+    'PEPResourceAllocation', 'PEPResourceCapacity',
+    'PEPBaseline', 'PEPVariation',
+    'PEPDecisionLog', 'PEPChangeLog', 'PEPComment',
 ]
