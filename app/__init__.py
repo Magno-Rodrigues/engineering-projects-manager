@@ -98,5 +98,7 @@ def create_app(config_name: str = 'default') -> Flask:
     app.register_blueprint(import_bp)
     from app.routes.pep import pep_bp
     app.register_blueprint(pep_bp)
+    from app.commands import cli_bp
+    app.register_blueprint(cli_bp)
 
     return app

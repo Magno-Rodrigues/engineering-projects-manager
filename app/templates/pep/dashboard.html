@@ -13,9 +13,9 @@
     </div>
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
         <p class="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">Riscos Altos</p>
-        <p class="text-3xl font-bold text-red-500">{{ risk_counts.high }}</p>
+        <p class="text-3xl font-bold text-red-500">{{ risk_counts.red }}</p>
         <p class="text-xs text-gray-400 mt-1">
-            {{ risk_counts.medium }} médios · {{ risk_counts.low }} baixos
+            {{ risk_counts.yellow }} médios · {{ risk_counts.green }} baixos
         </p>
     </div>
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
@@ -38,8 +38,13 @@
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-base font-semibold text-gray-800">Curva S — Progresso Acumulado</h2>
         </div>
-        {% if phases %}
+        {% if scurve_data and scurve_data.labels %}
         <canvas id="sCurveChart" height="220"></canvas>
+        {% elif phases %}
+        <div class="flex flex-col items-center justify-center h-40 text-gray-400">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mb-2 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+            <p class="text-sm">Adicione atividades com datas e horas ao EAP para visualizar a curva</p>
+        </div>
         {% else %}
         <div class="flex flex-col items-center justify-center h-40 text-gray-400">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mb-2 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
@@ -104,6 +109,16 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Gantt Chart -->
+{% if gantt_tasks %}
+<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-base font-semibold text-gray-800">Gantt — Cronograma do Projeto</h2>
+    </div>
+    <div id="ganttChart" class="overflow-x-auto"></div>
+</div>
+{% endif %}
 
 <!-- EAP Summary + Recent Changes -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -181,50 +196,158 @@
     </div>
 </div>
 
-{% if phases %}
+{% if scurve_data and scurve_data.labels %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    fetch("{{ url_for('pep.api_progress', project_id=project.id) }}")
-        .then(r => r.json())
-        .then(data => {
-            const ctx = document.getElementById('sCurveChart');
-            if (!ctx) return;
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: data.labels,
-                    datasets: [
-                        {
-                            label: 'Planejado (%)',
-                            data: data.planned,
-                            borderColor: '#1A3A52',
-                            backgroundColor: 'rgba(26,58,82,0.08)',
-                            borderWidth: 2,
-                            tension: 0.4,
-                            fill: true,
-                            pointRadius: 4,
-                        },
-                        {
-                            label: 'Realizado (%)',
-                            data: data.actual,
-                            borderColor: '#C9A961',
-                            backgroundColor: 'rgba(201,169,97,0.08)',
-                            borderWidth: 2,
-                            tension: 0.4,
-                            fill: true,
-                            pointRadius: 4,
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } },
-                    scales: {
-                        y: { min: 0, max: 100, ticks: { callback: v => v + '%' } }
+    const scurveData = {{ scurve_data | tojson }};
+    const ctx = document.getElementById('sCurveChart');
+    if (ctx && scurveData.labels && scurveData.labels.length) {
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: scurveData.labels,
+                datasets: [
+                    {
+                        label: 'Planejado (%)',
+                        data: scurveData.planned,
+                        borderColor: '#1A3A52',
+                        backgroundColor: 'rgba(26,58,82,0.08)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 4,
+                    },
+                    {
+                        label: 'Realizado (%)',
+                        data: scurveData.actual,
+                        borderColor: '#C9A961',
+                        backgroundColor: 'rgba(201,169,97,0.08)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 4,
                     }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom', labels: { font: { size: 11 } } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y.toFixed(1) + '%';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: { min: 0, max: 100, ticks: { callback: v => v + '%' } }
                 }
-            });
+            }
         });
+    }
+});
+</script>
+{% endif %}
+
+{% if gantt_tasks %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tasks = {{ gantt_tasks | tojson }};
+    const container = document.getElementById('ganttChart');
+    if (!container || !tasks.length) return;
+
+    // Simple CSS-based Gantt chart (no external dependencies)
+    const allDates = tasks.flatMap(t => [new Date(t.start), new Date(t.end)]);
+    const minDate = new Date(Math.min(...allDates));
+    const maxDate = new Date(Math.max(...allDates));
+    const totalDays = Math.max((maxDate - minDate) / 86400000, 1);
+
+    const wrapper = document.createElement('div');
+    wrapper.style.minWidth = '600px';
+
+    // Month header
+    const header = document.createElement('div');
+    header.className = 'relative h-6 border-b border-gray-200 mb-1';
+    header.style.marginLeft = '160px';
+    let cur = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+    while (cur <= maxDate) {
+        const span = document.createElement('span');
+        span.className = 'absolute text-xs text-gray-400';
+        const leftPct = Math.max(0, (cur - minDate) / 86400000 / totalDays * 100);
+        span.style.left = leftPct + '%';
+        span.textContent = cur.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+        header.appendChild(span);
+        cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
+    }
+    wrapper.appendChild(header);
+
+    // Task rows — use DOM API to avoid XSS
+    tasks.forEach(task => {
+        const start = new Date(task.start);
+        const end = new Date(task.end);
+        const left = (start - minDate) / 86400000 / totalDays * 100;
+        const width = Math.max((end - start) / 86400000 / totalDays * 100, 0.5);
+        const isPhase = task.custom_class && task.custom_class.includes('phase-level');
+
+        let barColor = '#6b7280'; // gray = pending
+        if (task.custom_class) {
+            if (task.custom_class.includes('status-in_progress')) barColor = '#3b82f6';
+            else if (task.custom_class.includes('status-completed')) barColor = '#10b981';
+        }
+
+        const row = document.createElement('div');
+        row.className = 'flex items-center mb-1 group';
+        row.title = task.name.trim() + ' | ' + task.start + ' → ' + task.end + ' | ' + task.progress + '%';
+
+        const label = document.createElement('div');
+        label.className = 'text-xs truncate ' + (isPhase ? 'font-semibold text-gray-800' : 'text-gray-600 pl-4');
+        label.style.cssText = 'width:160px;flex-shrink:0';
+        label.textContent = task.name.trim();
+
+        const timeline = document.createElement('div');
+        timeline.className = 'relative flex-1 h-5';
+
+        const bar = document.createElement('div');
+        bar.className = 'absolute h-full rounded transition-all';
+        bar.style.cssText = 'left:' + left + '%;width:' + width + '%;background:' + barColor + ';opacity:' + (isPhase ? 1 : 0.75);
+
+        if (task.progress > 0) {
+            const fill = document.createElement('div');
+            fill.className = 'h-full rounded';
+            fill.style.cssText = 'width:' + task.progress + '%;background:rgba(255,255,255,0.35)';
+            bar.appendChild(fill);
+        }
+
+        timeline.appendChild(bar);
+        row.appendChild(label);
+        row.appendChild(timeline);
+        wrapper.appendChild(row);
+    });
+
+    // Legend
+    const legend = document.createElement('div');
+    legend.className = 'flex items-center gap-4 mt-3 text-xs text-gray-500';
+    [
+        { color: '#6b7280', label: 'Pendente' },
+        { color: '#3b82f6', label: 'Em Andamento' },
+        { color: '#10b981', label: 'Concluído' },
+    ].forEach(item => {
+        const span = document.createElement('span');
+        span.className = 'flex items-center gap-1';
+        const dot = document.createElement('span');
+        dot.className = 'w-3 h-3 rounded inline-block';
+        dot.style.background = item.color;
+        const text = document.createElement('span');
+        text.textContent = item.label;
+        span.appendChild(dot);
+        span.appendChild(text);
+        legend.appendChild(span);
+    });
+    wrapper.appendChild(legend);
+
+    container.appendChild(wrapper);
 });
 </script>
 {% endif %}
