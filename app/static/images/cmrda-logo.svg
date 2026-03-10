@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 60" width="220" height="60">
+  <!-- Icon: bar chart + growth arrow -->
+  <g transform="translate(6, 10)">
+    <!-- Bar chart bars -->
+    <rect x="0" y="22" width="8" height="18" rx="2" fill="#C9A961"/>
+    <rect x="11" y="14" width="8" height="26" rx="2" fill="#C9A961"/>
+    <rect x="22" y="6" width="8" height="34" rx="2" fill="#C9A961"/>
+    <!-- Growth arrow -->
+    <polyline points="0,24 11,16 22,8 34,2" stroke="#C9A961" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <polygon points="34,2 26,4 30,10" fill="#C9A961"/>
+  </g>
+  <!-- Brand name -->
+  <text x="52" y="32" font-family="'Inter','Arial',sans-serif" font-weight="900" font-size="22" fill="#1A3A52" letter-spacing="1">CMRDA</text>
+  <!-- Tagline -->
+  <text x="53" y="46" font-family="'Inter','Arial',sans-serif" font-weight="500" font-size="8.5" fill="#C9A961" letter-spacing="2">ENGINEERING MANAGEMENT</text>
+</svg>
