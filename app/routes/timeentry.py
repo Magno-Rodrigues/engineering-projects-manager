@@ -1,6 +1,6 @@
 """Time entry (apontamentos) routes."""
-from datetime import datetime
-from flask import Blueprint, render_template, redirect, url_for, flash, request, Response
+from datetime import datetime, date as date_type, timedelta
+from flask import Blueprint, render_template, redirect, url_for, flash, request, Response, jsonify
 from flask_login import login_required, current_user
 from app.utils.decorators import admin_required
 from app.services.timeentry_service import TimeEntryService
@@ -33,6 +33,39 @@ def _normalize_hours(hours_str):
     if hours_str and len(hours_str) == 5 and hours_str[2] == ':':
         return hours_str + ':00'
     return hours_str
+
+
+def _build_calendar_grid(start_date, end_date, entered_dates):
+    """Build a list-of-weeks grid for the pending dashboard calendar.
+
+    Each cell is a dict with keys: date, status
+    Status values: 'outside' | 'weekend' | 'completed' | 'future' | 'pending'
+    """
+    today = date_type.today()
+    # Align to Monday of the first week
+    monday = start_date - timedelta(days=start_date.weekday())
+    # Align to Sunday of the last week
+    sunday = end_date + timedelta(days=(6 - end_date.weekday()))
+
+    weeks = []
+    current = monday
+    while current <= sunday:
+        week = []
+        for _ in range(7):
+            if current < start_date or current > end_date:
+                status = 'outside'
+            elif current.weekday() >= 5:
+                status = 'weekend'
+            elif current in entered_dates:
+                status = 'completed'
+            elif current > today:
+                status = 'future'
+            else:
+                status = 'pending'
+            week.append({'date': current, 'status': status})
+            current += timedelta(days=1)
+        weeks.append(week)
+    return weeks
 
 
 # ── Measurement Cycle routes (admin only) ─────────────────────────────────────
@@ -160,6 +193,31 @@ def index():
         from app.models.user import User
         users = User.query.order_by(User.username).all()
 
+    # ── Pending-dates dashboard data ───────────────────────────────────────
+    pending_dashboard = None
+    if active_cycle:
+        all_weekdays, entered_dates, pending, future, completed = \
+            TimeEntryService.get_pending_cycle_dates(current_user.id, active_cycle)
+        total_days = len(all_weekdays)
+        completed_days = len(completed)
+        pending_days = len(pending)
+        completion_pct = round(completed_days / total_days * 100) if total_days > 0 else 0
+        calendar_grid = _build_calendar_grid(
+            active_cycle.start_date, active_cycle.end_date, entered_dates
+        )
+        pending_dashboard = {
+            'all_weekdays': all_weekdays,
+            'entered_dates': entered_dates,
+            'pending': pending,
+            'future': future,
+            'completed': completed,
+            'total_days': total_days,
+            'completed_days': completed_days,
+            'pending_days': pending_days,
+            'completion_pct': completion_pct,
+            'calendar_grid': calendar_grid,
+        }
+
     return render_template(
         'apontamentos/index.html',
         entries=entries,
@@ -178,6 +236,7 @@ def index():
         total_hours_display=total_hours_display,
         avg_hours_display=avg_hours_display,
         last_entry_date=last_entry_date,
+        pending_dashboard=pending_dashboard,
     )
 
 
@@ -287,6 +346,49 @@ def delete(entry_id: int):
         flash('Apontamento excluído com sucesso.', 'success')
     else:
         flash(error, 'error')
+    return redirect(url_for('timeentry.index'))
+
+
+@timeentry_bp.route('/bulk', methods=['POST'])
+@login_required
+def create_bulk():
+    """Create time entries for multiple dates in one submission."""
+    active_cycle = TimeEntryService.get_active_cycle()
+    if not active_cycle:
+        flash('Não há ciclo de medição ativo. Contate o administrador.', 'error')
+        return redirect(url_for('timeentry.create'))
+
+    dates_str = request.form.get('dates', '').strip()
+    dates = []
+    for d in dates_str.split(','):
+        parsed = _parse_date(d.strip())
+        if parsed:
+            dates.append(parsed)
+
+    if not dates:
+        flash('Nenhuma data válida selecionada.', 'error')
+        return redirect(url_for('timeentry.create'))
+
+    entries, errors = TimeEntryService.create_bulk_time_entries(
+        dates=dates,
+        project_id=_parse_int(request.form.get('project_id')),
+        user_id=current_user.id,
+        main_activity=request.form.get('main_activity', ''),
+        hours_worked=_normalize_hours(request.form.get('hours_worked', '')),
+        hour_type=request.form.get('hour_type', ''),
+        discipline=request.form.get('discipline') or None,
+        sub_activity=request.form.get('sub_activity') or None,
+        observation=request.form.get('observation') or None,
+    )
+
+    if entries:
+        flash(
+            f'{len(entries)} apontamento(s) criado(s) com sucesso.',
+            'success',
+        )
+    for error in errors:
+        flash(error, 'error')
+
     return redirect(url_for('timeentry.index'))
 
 

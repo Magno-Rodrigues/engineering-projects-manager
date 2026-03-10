@@ -1,5 +1,11 @@
 {% extends "base.html" %}
 {% block title %}Novo Apontamento — Engineering Projects Manager{% endblock %}
+{% block head %}
+<!-- Flatpickr for multi-date calendar selector -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
+{% endblock %}
 {% block content %}
 <!-- Breadcrumb -->
 <nav class="flex items-center gap-2 text-sm text-gray-500 mb-6">
@@ -36,14 +42,36 @@
     </div>
     {% endif %}
 
+    <!-- Mode Toggle -->
+    <div class="mb-5">
+        <div class="inline-flex bg-gray-100 rounded-xl p-1 gap-1">
+            <button type="button" id="btn-mode-single"
+                onclick="setMode('single')"
+                class="mode-btn px-4 py-2 rounded-lg text-sm font-medium transition-all bg-white shadow text-blue-700">
+                📅 Data Única
+            </button>
+            <button type="button" id="btn-mode-range"
+                onclick="setMode('range')"
+                class="mode-btn px-4 py-2 rounded-lg text-sm font-medium transition-all text-gray-600 hover:text-gray-800">
+                📆 Intervalo de Datas
+            </button>
+            <button type="button" id="btn-mode-calendar"
+                onclick="setMode('calendar')"
+                class="mode-btn px-4 py-2 rounded-lg text-sm font-medium transition-all text-gray-600 hover:text-gray-800">
+                🗓️ Seleção Múltipla
+            </button>
+        </div>
+    </div>
+
     <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
-        <form method="POST" class="space-y-5">
+        <!-- Single date form -->
+        <form id="form-single" method="POST" action="{{ url_for('timeentry.create') }}" class="space-y-5">
             <!-- Project -->
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1.5" for="project_id">
+                <label class="block text-sm font-medium text-gray-700 mb-1.5" for="project_id_s">
                     Projeto <span class="text-red-500">*</span>
                 </label>
-                <select id="project_id" name="project_id" required
+                <select id="project_id_s" name="project_id" required
                     class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white">
                     <option value="">— Selecione um projeto —</option>
                     {% for project in projects %}
@@ -55,16 +83,16 @@
             <!-- Main Activity & Sub Activity -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1.5" for="main_activity">
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5" for="main_activity_s">
                         Atividade Principal <span class="text-red-500">*</span>
                     </label>
-                    <input id="main_activity" type="text" name="main_activity" required
+                    <input id="main_activity_s" type="text" name="main_activity" required
                         class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
                         placeholder="Ex: Desenvolvimento">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1.5" for="sub_activity">Subatividade</label>
-                    <input id="sub_activity" type="text" name="sub_activity"
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5" for="sub_activity_s">Subatividade</label>
+                    <input id="sub_activity_s" type="text" name="sub_activity"
                         class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
                         placeholder="Ex: Codificação">
                 </div>
@@ -72,8 +100,8 @@
 
             <!-- Discipline -->
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1.5" for="discipline">Disciplina</label>
-                <input id="discipline" type="text" name="discipline"
+                <label class="block text-sm font-medium text-gray-700 mb-1.5" for="discipline_s">Disciplina</label>
+                <input id="discipline_s" type="text" name="discipline"
                     class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
                     placeholder="Ex: Engenharia Civil">
             </div>
@@ -81,10 +109,10 @@
             <!-- Work Date, Hours & Type -->
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1.5" for="work_date">
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5" for="work_date_s">
                         Data <span class="text-red-500">*</span>
                     </label>
-                    <input id="work_date" type="date" name="work_date" required
+                    <input id="work_date_s" type="date" name="work_date" required
                         {% if active_cycle %}
                         min="{{ active_cycle.start_date.strftime('%Y-%m-%d') }}"
                         max="{{ active_cycle.end_date.strftime('%Y-%m-%d') }}"
@@ -92,18 +120,18 @@
                         class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1.5" for="hours_worked">
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5" for="hours_worked_s">
                         Horas Trabalhadas <span class="text-red-500">*</span>
                     </label>
-                    <input id="hours_worked" type="time" name="hours_worked" required
+                    <input id="hours_worked_s" type="time" name="hours_worked" required
                         step="60"
                         class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1.5" for="hour_type">
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5" for="hour_type_s">
                         Tipo de Hora <span class="text-red-500">*</span>
                     </label>
-                    <select id="hour_type" name="hour_type" required
+                    <select id="hour_type_s" name="hour_type" required
                         class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white">
                         {% for ht in hour_types %}
                         <option value="{{ ht }}">{{ ht }}</option>
@@ -114,8 +142,8 @@
 
             <!-- Observation -->
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1.5" for="observation">Observações</label>
-                <textarea id="observation" name="observation" rows="3"
+                <label class="block text-sm font-medium text-gray-700 mb-1.5" for="observation_s">Observações</label>
+                <textarea id="observation_s" name="observation" rows="3"
                     class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400 resize-none"
                     placeholder="Observações adicionais..."></textarea>
             </div>
@@ -134,6 +162,429 @@
                 </a>
             </div>
         </form>
+
+        <!-- Range picker form -->
+        <form id="form-range" method="POST" action="{{ url_for('timeentry.create_bulk') }}" class="space-y-5 hidden">
+            <!-- Project -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1.5" for="project_id_r">
+                    Projeto <span class="text-red-500">*</span>
+                </label>
+                <select id="project_id_r" name="project_id" required
+                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white">
+                    <option value="">— Selecione um projeto —</option>
+                    {% for project in projects %}
+                    <option value="{{ project.id }}">{{ project.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Main Activity & Sub Activity -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5" for="main_activity_r">
+                        Atividade Principal <span class="text-red-500">*</span>
+                    </label>
+                    <input id="main_activity_r" type="text" name="main_activity" required
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
+                        placeholder="Ex: Desenvolvimento">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5" for="sub_activity_r">Subatividade</label>
+                    <input id="sub_activity_r" type="text" name="sub_activity"
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
+                        placeholder="Ex: Codificação">
+                </div>
+            </div>
+
+            <!-- Discipline -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1.5" for="discipline_r">Disciplina</label>
+                <input id="discipline_r" type="text" name="discipline"
+                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
+                    placeholder="Ex: Engenharia Civil">
+            </div>
+
+            <!-- Date Range -->
+            <div>
+                <p class="text-sm font-medium text-gray-700 mb-2">Intervalo de Datas <span class="text-red-500">*</span></p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1" for="range_start">Data Inicial</label>
+                        <input id="range_start" type="date"
+                            {% if active_cycle %}
+                            min="{{ active_cycle.start_date.strftime('%Y-%m-%d') }}"
+                            max="{{ active_cycle.end_date.strftime('%Y-%m-%d') }}"
+                            value="{{ active_cycle.start_date.strftime('%Y-%m-%d') }}"
+                            {% endif %}
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1" for="range_end">Data Final</label>
+                        <input id="range_end" type="date"
+                            {% if active_cycle %}
+                            min="{{ active_cycle.start_date.strftime('%Y-%m-%d') }}"
+                            max="{{ active_cycle.end_date.strftime('%Y-%m-%d') }}"
+                            value="{{ active_cycle.end_date.strftime('%Y-%m-%d') }}"
+                            {% endif %}
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                    </div>
+                </div>
+                <div class="mt-3 flex items-center gap-6">
+                    <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                        <input type="checkbox" id="skip_weekends" checked
+                            class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                        Pular fins de semana
+                    </label>
+                </div>
+            </div>
+
+            <!-- Preview -->
+            <div id="range-preview" class="hidden">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-sm font-medium text-gray-700">Preview das datas</p>
+                    <span id="range-count" class="text-xs bg-blue-100 text-blue-700 font-semibold px-2 py-0.5 rounded-full"></span>
+                </div>
+                <div id="range-list" class="max-h-48 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100 text-sm"></div>
+            </div>
+
+            <!-- Hidden dates field -->
+            <input type="hidden" id="range-dates-input" name="dates" value="">
+
+            <!-- Hours & Type -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5" for="hours_worked_r">
+                        Horas Trabalhadas <span class="text-red-500">*</span>
+                    </label>
+                    <input id="hours_worked_r" type="time" name="hours_worked" required
+                        step="60"
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5" for="hour_type_r">
+                        Tipo de Hora <span class="text-red-500">*</span>
+                    </label>
+                    <select id="hour_type_r" name="hour_type" required
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white">
+                        {% for ht in hour_types %}
+                        <option value="{{ ht }}">{{ ht }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Observation -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1.5" for="observation_r">Observações</label>
+                <textarea id="observation_r" name="observation" rows="3"
+                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400 resize-none"
+                    placeholder="Observações adicionais..."></textarea>
+            </div>
+
+            <div class="flex items-center gap-3 pt-2">
+                <button type="submit" id="range-submit-btn" {% if not active_cycle %}disabled{% endif %}
+                    class="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span id="range-submit-label">Salvar Apontamentos</span>
+                </button>
+                <a href="{{ url_for('timeentry.index') }}"
+                    class="px-4 py-2.5 border border-gray-300 hover:border-gray-400 text-gray-600 font-medium rounded-lg text-sm transition-colors">
+                    Cancelar
+                </a>
+            </div>
+        </form>
+
+        <!-- Calendar multi-select form -->
+        <form id="form-calendar" method="POST" action="{{ url_for('timeentry.create_bulk') }}" class="space-y-5 hidden">
+            <!-- Project -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1.5" for="project_id_c">
+                    Projeto <span class="text-red-500">*</span>
+                </label>
+                <select id="project_id_c" name="project_id" required
+                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white">
+                    <option value="">— Selecione um projeto —</option>
+                    {% for project in projects %}
+                    <option value="{{ project.id }}">{{ project.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Main Activity & Sub Activity -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5" for="main_activity_c">
+                        Atividade Principal <span class="text-red-500">*</span>
+                    </label>
+                    <input id="main_activity_c" type="text" name="main_activity" required
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
+                        placeholder="Ex: Desenvolvimento">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5" for="sub_activity_c">Subatividade</label>
+                    <input id="sub_activity_c" type="text" name="sub_activity"
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
+                        placeholder="Ex: Codificação">
+                </div>
+            </div>
+
+            <!-- Discipline -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1.5" for="discipline_c">Disciplina</label>
+                <input id="discipline_c" type="text" name="discipline"
+                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
+                    placeholder="Ex: Engenharia Civil">
+            </div>
+
+            <!-- Calendar selector -->
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <label class="block text-sm font-medium text-gray-700">
+                        Selecionar Datas <span class="text-red-500">*</span>
+                    </label>
+                    <div class="flex items-center gap-3">
+                        <span id="cal-count" class="text-xs bg-blue-100 text-blue-700 font-semibold px-2 py-0.5 rounded-full hidden"></span>
+                        <button type="button" id="cal-clear-btn" onclick="clearCalendar()"
+                            class="text-xs text-red-500 hover:text-red-700 font-medium hidden">
+                            Limpar seleção
+                        </button>
+                    </div>
+                </div>
+                <input id="cal-picker" type="text" placeholder="Clique para selecionar datas..."
+                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer bg-white">
+                <p class="text-xs text-gray-500 mt-1.5">Use Ctrl+Click para selecionar múltiplas datas individuais.</p>
+            </div>
+
+            <!-- Hidden dates field -->
+            <input type="hidden" id="cal-dates-input" name="dates" value="">
+
+            <!-- Hours & Type -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5" for="hours_worked_c">
+                        Horas Trabalhadas <span class="text-red-500">*</span>
+                    </label>
+                    <input id="hours_worked_c" type="time" name="hours_worked" required
+                        step="60"
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5" for="hour_type_c">
+                        Tipo de Hora <span class="text-red-500">*</span>
+                    </label>
+                    <select id="hour_type_c" name="hour_type" required
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white">
+                        {% for ht in hour_types %}
+                        <option value="{{ ht }}">{{ ht }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Observation -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1.5" for="observation_c">Observações</label>
+                <textarea id="observation_c" name="observation" rows="3"
+                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400 resize-none"
+                    placeholder="Observações adicionais..."></textarea>
+            </div>
+
+            <div class="flex items-center gap-3 pt-2">
+                <button type="submit" id="cal-submit-btn" {% if not active_cycle %}disabled{% endif %}
+                    class="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span id="cal-submit-label">Salvar Apontamentos</span>
+                </button>
+                <a href="{{ url_for('timeentry.index') }}"
+                    class="px-4 py-2.5 border border-gray-300 hover:border-gray-400 text-gray-600 font-medium rounded-lg text-sm transition-colors">
+                    Cancelar
+                </a>
+            </div>
+        </form>
     </div>
 </div>
+
+<script>
+(function () {
+    // ── Day names in Portuguese ──────────────────────────────────────────
+    const PT_DAYS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    const PT_MONTHS_SHORT = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+
+    // ── Mode toggle ──────────────────────────────────────────────────────
+    window.setMode = function (mode) {
+        ['single','range','calendar'].forEach(m => {
+            document.getElementById('form-' + m).classList.add('hidden');
+            const btn = document.getElementById('btn-mode-' + m);
+            btn.classList.remove('bg-white','shadow','text-blue-700');
+            btn.classList.add('text-gray-600');
+        });
+        document.getElementById('form-' + mode).classList.remove('hidden');
+        const activeBtn = document.getElementById('btn-mode-' + mode);
+        activeBtn.classList.add('bg-white','shadow','text-blue-700');
+        activeBtn.classList.remove('text-gray-600');
+
+        if (mode === 'calendar' && !calPicker) initCalendar();
+        if (mode === 'range') updateRangePreview();
+    };
+
+    // ── Range picker logic ───────────────────────────────────────────────
+    const rangeStart = document.getElementById('range_start');
+    const rangeEnd   = document.getElementById('range_end');
+    const skipWk     = document.getElementById('skip_weekends');
+
+    function parseDateStr(s) {
+        if (!s) return null;
+        const [y, m, d] = s.split('-').map(Number);
+        return new Date(y, m - 1, d);
+    }
+
+    function formatIso(dt) {
+        const y = dt.getFullYear();
+        const m = String(dt.getMonth() + 1).padStart(2, '0');
+        const d = String(dt.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+
+    function formatDisplay(dt) {
+        const d = String(dt.getDate()).padStart(2, '0');
+        const m = String(dt.getMonth() + 1).padStart(2, '0');
+        const dow = PT_DAYS[dt.getDay()];
+        return `${d}/${m} — ${dow}`;
+    }
+
+    // Track manually removed dates
+    let removedDates = new Set();
+
+    window.removeRangeDate = function(isoDate) {
+        removedDates.add(isoDate);
+        updateRangePreview();
+    };
+
+    function updateRangePreview() {
+        const start = parseDateStr(rangeStart ? rangeStart.value : '');
+        const end   = parseDateStr(rangeEnd   ? rangeEnd.value   : '');
+        const preview = document.getElementById('range-preview');
+        const list    = document.getElementById('range-list');
+        const countEl = document.getElementById('range-count');
+        const hiddenInput = document.getElementById('range-dates-input');
+        const submitLabel = document.getElementById('range-submit-label');
+
+        if (!start || !end || end < start) {
+            if (preview) preview.classList.add('hidden');
+            if (hiddenInput) hiddenInput.value = '';
+            return;
+        }
+
+        const dates = [];
+        const cur = new Date(start);
+        while (cur <= end) {
+            const iso = formatIso(cur);
+            if ((!skipWk || !skipWk.checked || cur.getDay() !== 0 && cur.getDay() !== 6)
+                && !removedDates.has(iso)) {
+                dates.push({ iso, display: formatDisplay(cur) });
+            }
+            cur.setDate(cur.getDate() + 1);
+        }
+
+        if (preview) preview.classList.toggle('hidden', dates.length === 0);
+        if (countEl) countEl.textContent = `${dates.length} dia${dates.length !== 1 ? 's' : ''}`;
+        if (hiddenInput) hiddenInput.value = dates.map(d => d.iso).join(',');
+        if (submitLabel) submitLabel.textContent = dates.length > 1
+            ? `Salvar ${dates.length} Apontamentos`
+            : 'Salvar Apontamento';
+
+        if (list) {
+            list.innerHTML = dates.map(d => `
+                <div class="flex items-center justify-between px-3 py-2 hover:bg-gray-50">
+                    <span class="text-gray-700">✓ ${d.display}</span>
+                    <button type="button" onclick="removeRangeDate('${d.iso}')"
+                        class="text-red-400 hover:text-red-600 text-xs font-medium ml-4">remover</button>
+                </div>`).join('');
+        }
+    }
+
+    if (rangeStart) rangeStart.addEventListener('change', () => { removedDates.clear(); updateRangePreview(); });
+    if (rangeEnd)   rangeEnd.addEventListener('change',   () => { removedDates.clear(); updateRangePreview(); });
+    if (skipWk)     skipWk.addEventListener('change',     updateRangePreview);
+
+    // Validate range form before submit
+    const formRange = document.getElementById('form-range');
+    if (formRange) {
+        formRange.addEventListener('submit', function (e) {
+            const dates = document.getElementById('range-dates-input').value;
+            if (!dates) {
+                e.preventDefault();
+                alert('Selecione um intervalo de datas válido com pelo menos uma data.');
+            }
+        });
+    }
+
+    // ── Calendar multi-select (Flatpickr) ────────────────────────────────
+    let calPicker = null;
+
+    function initCalendar() {
+        {% if active_cycle %}
+        const minDate = "{{ active_cycle.start_date.strftime('%Y-%m-%d') }}";
+        const maxDate = "{{ active_cycle.end_date.strftime('%Y-%m-%d') }}";
+        {% else %}
+        const minDate = null;
+        const maxDate = null;
+        {% endif %}
+
+        calPicker = flatpickr('#cal-picker', {
+            mode: 'multiple',
+            dateFormat: 'Y-m-d',
+            locale: 'pt',
+            minDate: minDate || undefined,
+            maxDate: maxDate || undefined,
+            conjunction: ',',
+            onChange: function(selectedDates) {
+                const isoList = selectedDates.map(d => formatIso(d));
+                document.getElementById('cal-dates-input').value = isoList.join(',');
+
+                const countEl = document.getElementById('cal-count');
+                const clearBtn = document.getElementById('cal-clear-btn');
+                const submitLabel = document.getElementById('cal-submit-label');
+
+                if (selectedDates.length > 0) {
+                    countEl.textContent = `${selectedDates.length} data${selectedDates.length !== 1 ? 's' : ''} selecionada${selectedDates.length !== 1 ? 's' : ''}`;
+                    countEl.classList.remove('hidden');
+                    clearBtn.classList.remove('hidden');
+                    submitLabel.textContent = selectedDates.length > 1
+                        ? `Salvar ${selectedDates.length} Apontamentos`
+                        : 'Salvar Apontamento';
+                } else {
+                    countEl.classList.add('hidden');
+                    clearBtn.classList.add('hidden');
+                    submitLabel.textContent = 'Salvar Apontamentos';
+                }
+            },
+        });
+    }
+
+    window.clearCalendar = function () {
+        if (calPicker) {
+            calPicker.clear();
+            document.getElementById('cal-dates-input').value = '';
+        }
+    };
+
+    // Validate calendar form before submit
+    const formCal = document.getElementById('form-calendar');
+    if (formCal) {
+        formCal.addEventListener('submit', function (e) {
+            const dates = document.getElementById('cal-dates-input').value;
+            if (!dates) {
+                e.preventDefault();
+                alert('Selecione ao menos uma data no calendário.');
+            }
+        });
+    }
+})();
+</script>
 {% endblock %}
