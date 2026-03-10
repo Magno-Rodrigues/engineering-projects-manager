@@ -31,17 +31,62 @@ def _parse_date(date_str):
 @module_required('projects')
 @action_required('projects', 'read')
 def index():
-    """List all projects for the current user."""
+    """List all projects for the current user with filtering and sorting."""
     from app.models.project import Project
     from app.models.task import Task
-    projects = ProjectService.get_user_projects(current_user.id, include_all=(current_user.role == 'admin'))
+    from sqlalchemy import or_
+
+    is_admin = current_user.role == 'admin'
+    search = request.args.get('search', '').strip()
+    status_filter = request.args.get('status', '').strip()
+    client_filter = request.args.get('client', '').strip()
+    sort_by = request.args.get('sort', 'created_at')
+    sort_dir = request.args.get('dir', 'desc')
+    view_mode = request.args.get('view', 'card')
+
+    projects = ProjectService.get_user_projects(current_user.id, include_all=is_admin)
+
+    # Apply search / filters in Python (projects already scoped to user)
+    if search:
+        search_lower = search.lower()
+        projects = [p for p in projects if search_lower in (p.name or '').lower()]
+    if status_filter:
+        projects = [p for p in projects if p.status == status_filter]
+    if client_filter:
+        client_lower = client_filter.lower()
+        projects = [p for p in projects if p.client_name and client_lower in p.client_name.lower()]
+
+    # Sorting
+    reverse = sort_dir == 'desc'
+    if sort_by == 'name':
+        projects.sort(key=lambda p: (p.name or '').lower(), reverse=reverse)
+    elif sort_by == 'status':
+        projects.sort(key=lambda p: (p.status or ''), reverse=reverse)
+    elif sort_by == 'budget':
+        projects.sort(key=lambda p: float(p.budget or 0), reverse=reverse)
+    else:
+        projects.sort(key=lambda p: p.created_at or '', reverse=reverse)
+
     recent_projects = Project.query.order_by(Project.created_at.desc()).limit(5).all()
     pending_tasks = Task.query.filter_by(status='pending').count()
+
+    # Unique client names for filter dropdown
+    all_projects = ProjectService.get_user_projects(current_user.id, include_all=is_admin)
+    client_names = sorted({p.client_name for p in all_projects if p.client_name})
+
     return render_template(
         'projects/index.html',
         projects=projects,
         recent_projects=recent_projects,
         pending_tasks=pending_tasks,
+        search=search,
+        status_filter=status_filter,
+        client_filter=client_filter,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+        view_mode=view_mode,
+        client_names=client_names,
+        statuses=PROJECT_STATUS,
     )
 
 

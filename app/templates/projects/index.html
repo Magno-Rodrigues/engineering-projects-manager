@@ -2,47 +2,47 @@
 {% block title %}Projetos — Engineering Projects Manager{% endblock %}
 {% block content %}
 <!-- Page header -->
-<div class="flex items-center justify-between mb-8">
+<div class="flex items-center justify-between mb-6">
     <div>
         <h1 class="text-2xl font-bold text-gray-900">Meus Projetos</h1>
         <p class="text-sm text-gray-500 mt-1">Gerencie todos os seus projetos de engenharia</p>
     </div>
-    {% if user_can('projects', 'create') %}
-    <a href="{{ url_for('projects.create') }}"
-        class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2.5 rounded-lg text-sm transition-colors">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-        </svg>
-        Novo Projeto
-    </a>
-    {% else %}
-    <span class="inline-flex items-center gap-2 bg-gray-200 text-gray-400 font-semibold px-4 py-2.5 rounded-lg text-sm cursor-not-allowed" title="Sem permissão para criar projetos">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-        </svg>
-        Novo Projeto
-    </span>
-    {% endif %}
+    <div class="flex items-center gap-3">
+        {% if user_can('projects', 'create') %}
+        <a href="{{ url_for('projects.create') }}"
+            class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2.5 rounded-lg text-sm transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Novo Projeto
+        </a>
+        {% else %}
+        <span class="inline-flex items-center gap-2 bg-gray-200 text-gray-400 font-semibold px-4 py-2.5 rounded-lg text-sm cursor-not-allowed" title="Sem permissão para criar projetos">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Novo Projeto
+        </span>
+        {% endif %}
+    </div>
 </div>
 
 <!-- Overview cards -->
-<div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
-    <!-- Recent projects card -->
-    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex items-center gap-4">
-        <div class="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 flex items-center gap-4">
+        <div class="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
             </svg>
         </div>
         <div>
-            <p class="text-2xl font-bold text-gray-900">{{ recent_projects|length }}</p>
-            <p class="text-sm text-gray-500">Projetos Recentes</p>
+            <p class="text-2xl font-bold text-gray-900">{{ projects|length }}</p>
+            <p class="text-sm text-gray-500">Projetos</p>
         </div>
     </div>
 
-    <!-- Pending tasks card -->
-    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex items-center gap-4">
-        <div class="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 flex items-center gap-4">
+        <div class="w-11 h-11 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
@@ -53,11 +53,10 @@
         </div>
     </div>
 
-    <!-- Quick link: New project -->
     {% if user_can('projects', 'create') %}
     <a href="{{ url_for('projects.create') }}"
-        class="group bg-white rounded-2xl border border-gray-200 hover:border-emerald-300 shadow-sm hover:shadow-md transition-all p-6 flex items-center gap-4 no-underline">
-        <div class="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-100 transition-colors">
+        class="group bg-white rounded-2xl border border-gray-200 hover:border-emerald-300 shadow-sm hover:shadow-md transition-all p-5 flex items-center gap-4 no-underline">
+        <div class="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-100 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
             </svg>
@@ -68,8 +67,8 @@
         </div>
     </a>
     {% else %}
-    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex items-center gap-4 cursor-not-allowed opacity-50" title="Sem permissão para criar projetos">
-        <div class="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 flex items-center gap-4 cursor-not-allowed opacity-50">
+        <div class="w-11 h-11 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
             </svg>
@@ -82,8 +81,166 @@
     {% endif %}
 </div>
 
+<!-- Filters & Search & View Toggle -->
+<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-5">
+    <form method="GET" class="flex flex-wrap gap-3 items-end">
+        <!-- Search -->
+        <div class="flex-1 min-w-[180px]">
+            <label class="block text-xs font-medium text-gray-600 mb-1">Buscar por nome</label>
+            <input type="text" name="search" value="{{ search }}" placeholder="Nome do projeto..."
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <!-- Status filter -->
+        <div class="min-w-[150px]">
+            <label class="block text-xs font-medium text-gray-600 mb-1">Status</label>
+            <select name="status"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                <option value="">Todos</option>
+                {% for s in statuses %}
+                <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ s | replace('_', ' ') | title }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <!-- Client filter -->
+        {% if client_names %}
+        <div class="min-w-[150px]">
+            <label class="block text-xs font-medium text-gray-600 mb-1">Cliente</label>
+            <select name="client"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                <option value="">Todos</option>
+                {% for c in client_names %}
+                <option value="{{ c }}" {% if client_filter == c %}selected{% endif %}>{{ c }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+        <!-- Sort -->
+        <div class="min-w-[130px]">
+            <label class="block text-xs font-medium text-gray-600 mb-1">Ordenar por</label>
+            <select name="sort"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                <option value="created_at" {% if sort_by == 'created_at' %}selected{% endif %}>Data de criação</option>
+                <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Nome</option>
+                <option value="status" {% if sort_by == 'status' %}selected{% endif %}>Status</option>
+                <option value="budget" {% if sort_by == 'budget' %}selected{% endif %}>Orçamento</option>
+            </select>
+        </div>
+        <div class="min-w-[90px]">
+            <label class="block text-xs font-medium text-gray-600 mb-1">Ordem</label>
+            <select name="dir"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                <option value="asc" {% if sort_dir == 'asc' %}selected{% endif %}>↑ Asc</option>
+                <option value="desc" {% if sort_dir == 'desc' %}selected{% endif %}>↓ Desc</option>
+            </select>
+        </div>
+        <!-- Keep view mode through filter submit -->
+        <input type="hidden" name="view" value="{{ view_mode }}">
+        <div class="flex gap-2">
+            <button type="submit"
+                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm transition-colors">
+                Filtrar
+            </button>
+            <a href="{{ url_for('projects.index') }}"
+                class="px-4 py-2 border border-gray-300 hover:border-gray-400 text-gray-600 font-medium rounded-lg text-sm transition-colors">
+                Limpar
+            </a>
+        </div>
+        <!-- View toggle -->
+        <div class="flex items-center gap-1 ml-auto">
+            <a href="{{ url_for('projects.index', view='card', search=search, status=status_filter, client=client_filter, sort=sort_by, dir=sort_dir) }}"
+                class="p-2 rounded-lg border transition-colors {% if view_mode != 'table' %}bg-blue-600 border-blue-600 text-white{% else %}border-gray-300 text-gray-500 hover:bg-gray-50{% endif %}" title="Visualização em cards">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                </svg>
+            </a>
+            <a href="{{ url_for('projects.index', view='table', search=search, status=status_filter, client=client_filter, sort=sort_by, dir=sort_dir) }}"
+                class="p-2 rounded-lg border transition-colors {% if view_mode == 'table' %}bg-blue-600 border-blue-600 text-white{% else %}border-gray-300 text-gray-500 hover:bg-gray-50{% endif %}" title="Visualização em tabela">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18M10 6h11M10 18h11M3 6h.01M3 18h.01" />
+                </svg>
+            </a>
+        </div>
+    </form>
+</div>
+
 {% if projects %}
-    <!-- Projects grid -->
+    {% if view_mode == 'table' %}
+    <!-- Table view -->
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Nome</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Cliente</th>
+                        <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Orçamento</th>
+                        <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Custo Real</th>
+                        <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Saldo</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for project in projects %}
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-4 py-3">
+                            <a href="{{ url_for('projects.detail', project_id=project.id) }}" class="font-medium text-gray-900 hover:text-blue-600 transition-colors">{{ project.name }}</a>
+                        </td>
+                        <td class="px-4 py-3">
+                            {% if project.status == 'planning' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">Planejamento</span>
+                            {% elif project.status == 'in_progress' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">Em Progresso</span>
+                            {% elif project.status == 'completed' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">Completo</span>
+                            {% elif project.status == 'on_hold' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">Em Espera</span>
+                            {% elif project.status == 'cancelled' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Cancelado</span>
+                            {% elif project.status == 'blocked' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Bloqueado</span>
+                            {% else %}
+                                <span class="text-gray-400 text-xs">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-gray-600 text-sm">{{ project.client_name or '—' }}</td>
+                        <td class="px-4 py-3 text-right text-gray-700 font-mono text-sm">
+                            {% if project.budget is not none %}R$ {{ "%.2f"|format(project.budget|float) }}{% else %}—{% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-right text-gray-700 font-mono text-sm">
+                            {% if project.actual_cost is not none %}R$ {{ "%.2f"|format(project.actual_cost|float) }}{% else %}—{% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-right font-mono text-sm">
+                            {% if project.remaining_budget is not none %}
+                                {% if project.remaining_budget >= 0 %}
+                                    <span class="text-emerald-600">R$ {{ "%.2f"|format(project.remaining_budget|float) }}</span>
+                                {% else %}
+                                    <span class="text-red-600">R$ {{ "%.2f"|format(project.remaining_budget|float) }}</span>
+                                {% endif %}
+                            {% else %}—{% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-2">
+                                <a href="{{ url_for('projects.detail', project_id=project.id) }}" class="text-blue-600 hover:text-blue-800 text-xs font-medium">Ver</a>
+                                {% if user_can('projects', 'update') %}
+                                <a href="{{ url_for('projects.edit', project_id=project.id) }}" class="text-gray-600 hover:text-gray-800 text-xs font-medium">Editar</a>
+                                {% endif %}
+                                {% if user_can('projects', 'delete') %}
+                                <form method="POST" action="{{ url_for('projects.delete', project_id=project.id) }}"
+                                    onsubmit="return confirm('Excluir o projeto {{ project.name }}?');">
+                                    <button type="submit" class="text-red-500 hover:text-red-700 text-xs font-medium">Excluir</button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <!-- Card view -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {% for project in projects %}
         <a href="{{ url_for('projects.detail', project_id=project.id) }}"
@@ -105,6 +262,8 @@
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">Em Espera</span>
                 {% elif project.status == 'cancelled' %}
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Cancelado</span>
+                {% elif project.status == 'blocked' %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Bloqueado</span>
                 {% endif %}
             </div>
             <h2 class="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors mb-1">{{ project.name }}</h2>
@@ -130,7 +289,16 @@
         </a>
         {% endfor %}
     </div>
+    {% endif %}
+
 {% else %}
+    {% if search or status_filter or client_filter %}
+    <!-- Filtered empty state -->
+    <div class="text-center py-12">
+        <p class="text-gray-500 text-sm">Nenhum projeto encontrado com os filtros selecionados.</p>
+        <a href="{{ url_for('projects.index') }}" class="mt-3 inline-block text-blue-600 hover:underline text-sm">Limpar filtros</a>
+    </div>
+    {% else %}
     <!-- Empty state -->
     <div class="text-center py-20">
         <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gray-100 mb-4">
@@ -148,14 +316,8 @@
             </svg>
             Criar Primeiro Projeto
         </a>
-        {% else %}
-        <span class="inline-flex items-center gap-2 bg-gray-200 text-gray-400 font-semibold px-5 py-2.5 rounded-lg text-sm cursor-not-allowed" title="Sem permissão para criar projetos">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            Criar Primeiro Projeto
-        </span>
         {% endif %}
     </div>
+    {% endif %}
 {% endif %}
 {% endblock %}
