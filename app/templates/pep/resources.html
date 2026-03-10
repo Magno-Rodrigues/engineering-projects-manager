@@ -1,0 +1,124 @@
+{% extends "pep/base.html" %}
+{% block pep_content %}
+
+<div class="flex items-center justify-between mb-6">
+    <h2 class="text-xl font-bold text-gray-900">Alocação de Recursos</h2>
+    <div class="flex gap-2">
+        <a href="{{ url_for('pep.create_capacity', project_id=project.id) }}"
+            class="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg text-sm hover:bg-gray-50 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Capacidade
+        </a>
+        <a href="{{ url_for('pep.create_allocation', project_id=project.id) }}"
+            class="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white font-medium rounded-lg text-sm hover:bg-opacity-90 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Nova Alocação
+        </a>
+    </div>
+</div>
+
+<!-- Utilisation heatmap (per user) -->
+<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
+    <h3 class="text-base font-semibold text-gray-800 mb-4">Utilização por Membro da Equipe</h3>
+    {% if users %}
+    <div class="space-y-3">
+        {% for user in users %}
+        {% set user_alloc = user_hours.get(user.id, 0) %}
+        {% set user_cap = 0 %}
+        {% for cap in capacities %}
+            {% if cap.user_id == user.id %}
+                {% set user_cap = user_cap + (cap.available_hours_per_day * 20) %}
+            {% endif %}
+        {% endfor %}
+        {% if user_alloc > 0 or user_cap > 0 %}
+        {% set util_pct = [(user_alloc / user_cap * 100)|int, 100]|min if user_cap else 0 %}
+        <div>
+            <div class="flex items-center justify-between text-sm mb-1">
+                <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-xs font-semibold text-gray-600">
+                        {{ (user.full_name or user.username)[0]|upper }}
+                    </div>
+                    <span class="font-medium text-gray-700">{{ user.full_name or user.username }}</span>
+                </div>
+                <span class="text-xs text-gray-500">
+                    {{ user_alloc|int }}h alocadas
+                    {% if user_cap %} / {{ user_cap|int }}h disponíveis · {{ util_pct }}%{% endif %}
+                    {% if user_alloc > user_cap and user_cap > 0 %}
+                    <span class="ml-1 px-1.5 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">Super-alocado</span>
+                    {% endif %}
+                </span>
+            </div>
+            <div class="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                <div class="h-2.5 rounded-full transition-all
+                    {% if util_pct > 100 %}bg-red-500
+                    {% elif util_pct > 80 %}bg-yellow-500
+                    {% else %}bg-emerald-500{% endif %}"
+                    style="width:{{ [util_pct, 100]|min }}%"></div>
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm text-gray-400">Nenhum usuário no sistema.</p>
+    {% endif %}
+</div>
+
+<!-- Allocations Table -->
+<div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+    <div class="px-5 py-4 border-b border-gray-100">
+        <h3 class="font-semibold text-gray-800">Alocações Registradas</h3>
+    </div>
+    {% if allocations %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-gray-50 text-xs text-gray-500 uppercase border-b border-gray-100">
+                    <th class="px-4 py-3 text-left font-medium">Membro</th>
+                    <th class="px-4 py-3 text-left font-medium">Atividade</th>
+                    <th class="px-4 py-3 text-center font-medium">Horas</th>
+                    <th class="px-4 py-3 text-center font-medium">Período</th>
+                    <th class="px-4 py-3 text-right font-medium">Ações</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+                {% for alloc in allocations %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-2">
+                            <div class="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-xs font-semibold text-gray-600">
+                                {{ (alloc.user.full_name or alloc.user.username)[0]|upper }}
+                            </div>
+                            <span class="font-medium text-gray-700">{{ alloc.user.full_name or alloc.user.username }}</span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 text-gray-600">{{ alloc.activity.name }}</td>
+                    <td class="px-4 py-3 text-center font-semibold text-gray-800">{{ alloc.allocated_hours }}h</td>
+                    <td class="px-4 py-3 text-center text-xs text-gray-500">
+                        {% if alloc.start_date %}
+                        {{ alloc.start_date.strftime('%d/%m/%Y') }} → {{ alloc.end_date.strftime('%d/%m/%Y') if alloc.end_date else '—' }}
+                        {% else %}—{% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                        <form method="POST" action="{{ url_for('pep.delete_allocation', project_id=project.id, allocation_id=alloc.id) }}"
+                            onsubmit="return confirm('Remover alocação?')" class="inline">
+                            <button class="px-2 py-1 text-xs bg-red-50 text-red-600 hover:bg-red-100 rounded transition-colors">Remover</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="p-12 text-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <p class="text-gray-500 mb-3">Nenhuma alocação registrada.</p>
+        <a href="{{ url_for('pep.create_allocation', project_id=project.id) }}"
+            class="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white font-medium rounded-lg text-sm hover:bg-opacity-90 transition-colors">
+            Criar Primeira Alocação
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

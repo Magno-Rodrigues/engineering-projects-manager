@@ -1,0 +1,86 @@
+{% extends "pep/base.html" %}
+{% block pep_content %}
+<div class="max-w-2xl mx-auto">
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-1">
+            {% if activity %}Editar Atividade{% else %}Nova Atividade{% endif %}
+        </h2>
+        <p class="text-sm text-gray-500 mb-6">Etapa: <span class="font-medium">{{ stage.name }}</span></p>
+        <form method="POST">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nome da Atividade <span class="text-red-500">*</span></label>
+                    <input type="text" name="name" value="{{ activity.name if activity else '' }}" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+                    <textarea name="description" rows="2"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none resize-none">{{ activity.description if activity and activity.description else '' }}</textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Duração (horas)</label>
+                        <input type="number" name="duration_hours" step="0.5" min="0"
+                            value="{{ activity.duration_hours if activity and activity.duration_hours else '' }}"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Progresso (%)</label>
+                        <input type="number" name="progress" min="0" max="100"
+                            value="{{ activity.progress if activity else 0 }}"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Data Início</label>
+                        <input type="date" name="start_date" value="{{ activity.start_date.strftime('%Y-%m-%d') if activity and activity.start_date else '' }}"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Data Fim</label>
+                        <input type="date" name="end_date" value="{{ activity.end_date.strftime('%Y-%m-%d') if activity and activity.end_date else '' }}"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Responsável</label>
+                    <select name="responsible_user_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none">
+                        <option value="">— Selecionar —</option>
+                        {% for user in users %}
+                        <option value="{{ user.id }}" {% if activity and activity.responsible_user_id == user.id %}selected{% endif %}>
+                            {{ user.full_name or user.username }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none">
+                        <option value="pending" {% if activity and activity.status == 'pending' %}selected{% endif %}>Pendente</option>
+                        <option value="in_progress" {% if activity and activity.status == 'in_progress' %}selected{% endif %}>Em Progresso</option>
+                        <option value="completed" {% if activity and activity.status == 'completed' %}selected{% endif %}>Concluída</option>
+                        <option value="blocked" {% if activity and activity.status == 'blocked' %}selected{% endif %}>Bloqueada</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Dependências</label>
+                    <input type="text" name="dependencies" value="{{ activity.dependencies if activity and activity.dependencies else '' }}"
+                        placeholder="Ex.: IDs de atividades separados por vírgula"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none">
+                    <p class="text-xs text-gray-400 mt-1">Informe os IDs das atividades das quais esta depende.</p>
+                </div>
+            </div>
+            <div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
+                <a href="{{ url_for('pep.eap', project_id=project.id) }}"
+                    class="px-4 py-2 border border-gray-300 text-gray-600 hover:bg-gray-50 rounded-lg text-sm font-medium transition-colors">Cancelar</a>
+                <button type="submit"
+                    class="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-opacity-90 transition-colors">
+                    {% if activity %}Salvar Alterações{% else %}Criar Atividade{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

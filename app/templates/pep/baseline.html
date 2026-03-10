@@ -1,0 +1,105 @@
+{% extends "pep/base.html" %}
+{% block pep_content %}
+
+<div class="flex items-center justify-between mb-6">
+    <h2 class="text-xl font-bold text-gray-900">Gerenciamento de Baseline</h2>
+    <a href="{{ url_for('pep.create_baseline', project_id=project.id) }}"
+        class="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white font-medium rounded-lg text-sm hover:bg-opacity-90 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Novo Baseline
+    </a>
+</div>
+
+{% if baselines %}
+<div class="space-y-4">
+    {% for bl in baselines %}
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+        <div class="flex items-start justify-between gap-4">
+            <div>
+                <div class="flex items-center gap-3 mb-1">
+                    <h3 class="text-base font-semibold text-gray-900">{{ bl.name }}</h3>
+                    {% if bl.status == 'locked' %}
+                        <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-800 text-white">🔒 Bloqueado</span>
+                    {% else %}
+                        <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">Ativo</span>
+                    {% endif %}
+                </div>
+                <div class="flex flex-wrap gap-4 text-sm text-gray-600 mt-2">
+                    <span>📅 Data: <strong>{{ bl.baseline_date.strftime('%d/%m/%Y') }}</strong></span>
+                    {% if bl.total_cost %}
+                    <span>💰 Custo Total: <strong>R$ {{ '{:,.2f}'.format(bl.total_cost) }}</strong></span>
+                    {% endif %}
+                    {% if bl.total_duration %}
+                    <span>⏱ Duração: <strong>{{ bl.total_duration }} dias</strong></span>
+                    {% endif %}
+                    {% if bl.creator %}
+                    <span>👤 Criado por: <strong>{{ bl.creator.full_name or bl.creator.username }}</strong></span>
+                    {% endif %}
+                    <span>🕐 {{ bl.created_at.strftime('%d/%m/%Y %H:%M') if bl.created_at else '' }}</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 flex-shrink-0">
+                {% if not bl.is_locked %}
+                <form method="POST" action="{{ url_for('pep.lock_baseline', project_id=project.id, baseline_id=bl.id) }}"
+                    onsubmit="return confirm('Bloquear baseline? Esta ação não pode ser desfeita.')" class="inline">
+                    <button class="px-3 py-1.5 text-xs bg-gray-800 text-white hover:bg-gray-700 rounded-lg transition-colors font-medium">
+                        🔒 Bloquear
+                    </button>
+                </form>
+                <form method="POST" action="{{ url_for('pep.delete_baseline', project_id=project.id, baseline_id=bl.id) }}"
+                    onsubmit="return confirm('Remover baseline?')" class="inline">
+                    <button class="px-3 py-1.5 text-xs bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors">
+                        Remover
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Variations -->
+        {% set variations = bl.variations.all() %}
+        {% if variations %}
+        <div class="mt-4 pt-4 border-t border-gray-100">
+            <h4 class="text-sm font-semibold text-gray-700 mb-2">Variações Registradas</h4>
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs">
+                    <thead>
+                        <tr class="text-gray-500 uppercase">
+                            <th class="text-left py-1 pr-3 font-medium">Tipo</th>
+                            <th class="text-right py-1 pr-3 font-medium">Valor Original</th>
+                            <th class="text-right py-1 pr-3 font-medium">Valor Atual</th>
+                            <th class="text-right py-1 font-medium">Variação</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50">
+                        {% for v in variations %}
+                        <tr>
+                            <td class="py-1 pr-3 capitalize">{{ v.variation_type }}</td>
+                            <td class="py-1 pr-3 text-right">{{ '{:,.2f}'.format(v.original_value) }}</td>
+                            <td class="py-1 pr-3 text-right">{{ '{:,.2f}'.format(v.current_value) }}</td>
+                            <td class="py-1 text-right font-medium {% if v.variance > 0 %}text-red-600{% elif v.variance < 0 %}text-green-600{% else %}text-gray-600{% endif %}">
+                                {% if v.variance > 0 %}+{% endif %}{{ '{:,.2f}'.format(v.variance) }}
+                                ({% if v.variance_pct > 0 %}+{% endif %}{{ '{:.1f}'.format(v.variance_pct) }}%)
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-12 text-center">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+    <p class="text-gray-500 mb-4">Nenhum baseline definido. Crie um snapshot do estado atual do projeto.</p>
+    <a href="{{ url_for('pep.create_baseline', project_id=project.id) }}"
+        class="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white font-medium rounded-lg text-sm hover:bg-opacity-90 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Criar Primeiro Baseline
+    </a>
+</div>
+{% endif %}
+{% endblock %}

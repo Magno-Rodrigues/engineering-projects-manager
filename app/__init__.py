@@ -96,5 +96,7 @@ def create_app(config_name: str = 'default') -> Flask:
     from app.routes.financial_api import financial_api_bp
     app.register_blueprint(financial_api_bp)
     app.register_blueprint(import_bp)
+    from app.routes.pep import pep_bp
+    app.register_blueprint(pep_bp)
 
     return app

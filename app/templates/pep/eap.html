@@ -1,0 +1,175 @@
+{% extends "pep/base.html" %}
+{% block pep_content %}
+
+<div class="flex items-center justify-between mb-6">
+    <h2 class="text-xl font-bold text-gray-900">EAP — Estrutura Analítica do Projeto</h2>
+    <a href="{{ url_for('pep.create_phase', project_id=project.id) }}"
+        class="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white font-medium rounded-lg text-sm hover:bg-opacity-90 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Nova Fase
+    </a>
+</div>
+
+{% if phases %}
+<div class="space-y-4">
+    {% for phase in phases %}
+    {% set phase_stages = phase.stages.order_by('sequence').all() %}
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <!-- Phase Header -->
+        <div class="flex items-center justify-between px-5 py-4 bg-primary bg-opacity-5 border-b border-gray-200">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center text-sm font-bold">
+                    {{ loop.index }}
+                </div>
+                <div>
+                    <h3 class="font-semibold text-gray-900">{{ phase.name }}</h3>
+                    {% if phase.description %}
+                    <p class="text-xs text-gray-500">{{ phase.description }}</p>
+                    {% endif %}
+                </div>
+                <!-- Status badge -->
+                {% if phase.status == 'completed' %}
+                    <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">Concluída</span>
+                {% elif phase.status == 'in_progress' %}
+                    <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">Em Progresso</span>
+                {% else %}
+                    <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">Pendente</span>
+                {% endif %}
+            </div>
+            <div class="flex items-center gap-2">
+                {% if phase.start_date %}
+                <span class="text-xs text-gray-400">{{ phase.start_date.strftime('%d/%m/%Y') }} → {{ phase.end_date.strftime('%d/%m/%Y') if phase.end_date else '—' }}</span>
+                {% endif %}
+                <a href="{{ url_for('pep.create_stage', project_id=project.id, phase_id=phase.id) }}"
+                    class="px-2 py-1 text-xs bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors font-medium">+ Etapa</a>
+                <a href="{{ url_for('pep.edit_phase', project_id=project.id, phase_id=phase.id) }}"
+                    class="px-2 py-1 text-xs bg-gray-100 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors">Editar</a>
+                <form method="POST" action="{{ url_for('pep.delete_phase', project_id=project.id, phase_id=phase.id) }}"
+                    onsubmit="return confirm('Remover fase e todos seus dados?')" class="inline">
+                    <button class="px-2 py-1 text-xs bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors">Remover</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Stages -->
+        {% if phase_stages %}
+        <div class="divide-y divide-gray-50">
+            {% for stage in phase_stages %}
+            {% set stage_activities = stage.activities.all() %}
+            <div class="px-5 py-3">
+                <!-- Stage row -->
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full bg-accent flex-shrink-0"></div>
+                        <span class="text-sm font-medium text-gray-800">{{ stage.name }}</span>
+                        {% if stage.status == 'completed' %}
+                            <span class="px-1.5 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-600">Concluída</span>
+                        {% elif stage.status == 'in_progress' %}
+                            <span class="px-1.5 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-600">Em Progresso</span>
+                        {% else %}
+                            <span class="px-1.5 py-0.5 rounded text-xs font-medium bg-gray-50 text-gray-500">Pendente</span>
+                        {% endif %}
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <a href="{{ url_for('pep.create_activity', project_id=project.id, stage_id=stage.id) }}"
+                            class="px-2 py-1 text-xs bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors font-medium">+ Atividade</a>
+                        <a href="{{ url_for('pep.edit_stage', project_id=project.id, stage_id=stage.id) }}"
+                            class="px-2 py-1 text-xs bg-gray-100 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors">Editar</a>
+                        <form method="POST" action="{{ url_for('pep.delete_stage', project_id=project.id, stage_id=stage.id) }}"
+                            onsubmit="return confirm('Remover etapa?')" class="inline">
+                            <button class="px-2 py-1 text-xs bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors">Remover</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Activities table -->
+                {% if stage_activities %}
+                <div class="ml-4 mt-2 rounded-lg overflow-hidden border border-gray-100">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="bg-gray-50 text-xs text-gray-500 uppercase">
+                                <th class="px-3 py-2 text-left font-medium">Atividade</th>
+                                <th class="px-3 py-2 text-center font-medium">Status</th>
+                                <th class="px-3 py-2 text-center font-medium">Progresso</th>
+                                <th class="px-3 py-2 text-center font-medium">Horas</th>
+                                <th class="px-3 py-2 text-center font-medium">Responsável</th>
+                                <th class="px-3 py-2 text-right font-medium">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-50 bg-white">
+                            {% for activity in stage_activities %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-3 py-2">
+                                    <span class="font-medium text-gray-800">{{ activity.name }}</span>
+                                    {% if activity.description %}
+                                    <p class="text-xs text-gray-400 truncate max-w-xs">{{ activity.description }}</p>
+                                    {% endif %}
+                                </td>
+                                <td class="px-3 py-2 text-center">
+                                    {% if activity.status == 'completed' %}
+                                        <span class="px-1.5 py-0.5 rounded text-xs bg-emerald-50 text-emerald-600">Concluída</span>
+                                    {% elif activity.status == 'in_progress' %}
+                                        <span class="px-1.5 py-0.5 rounded text-xs bg-blue-50 text-blue-600">Em Progresso</span>
+                                    {% elif activity.status == 'blocked' %}
+                                        <span class="px-1.5 py-0.5 rounded text-xs bg-red-50 text-red-600">Bloqueada</span>
+                                    {% else %}
+                                        <span class="px-1.5 py-0.5 rounded text-xs bg-gray-50 text-gray-500">Pendente</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-3 py-2 text-center">
+                                    <div class="flex items-center gap-1">
+                                        <div class="h-1.5 w-16 bg-gray-100 rounded-full overflow-hidden">
+                                            <div class="h-1.5 rounded-full bg-blue-500" style="width:{{ activity.progress }}%"></div>
+                                        </div>
+                                        <span class="text-xs text-gray-500">{{ activity.progress }}%</span>
+                                    </div>
+                                </td>
+                                <td class="px-3 py-2 text-center text-xs text-gray-600">
+                                    {{ activity.duration_hours if activity.duration_hours else '—' }}
+                                </td>
+                                <td class="px-3 py-2 text-center text-xs text-gray-600">
+                                    {{ activity.responsible_user.full_name if activity.responsible_user else '—' }}
+                                </td>
+                                <td class="px-3 py-2 text-right">
+                                    <div class="flex items-center justify-end gap-1">
+                                        <a href="{{ url_for('pep.edit_activity', project_id=project.id, activity_id=activity.id) }}"
+                                            class="px-2 py-1 text-xs bg-gray-100 text-gray-600 hover:bg-gray-200 rounded transition-colors">Editar</a>
+                                        <form method="POST" action="{{ url_for('pep.delete_activity', project_id=project.id, activity_id=activity.id) }}"
+                                            onsubmit="return confirm('Remover atividade?')" class="inline">
+                                            <button class="px-2 py-1 text-xs bg-red-50 text-red-600 hover:bg-red-100 rounded transition-colors">Remover</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-xs text-gray-400 italic ml-4 mt-1">Nenhuma atividade. 
+                    <a href="{{ url_for('pep.create_activity', project_id=project.id, stage_id=stage.id) }}" class="text-blue-500 hover:underline">Adicionar</a>
+                </p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-sm text-gray-400 italic px-5 py-4">Nenhuma etapa. 
+            <a href="{{ url_for('pep.create_stage', project_id=project.id, phase_id=phase.id) }}" class="text-blue-500 hover:underline">Adicionar etapa</a>
+        </p>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-12 text-center">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+    <p class="text-gray-500 mb-4">Nenhuma fase criada. Comece estruturando o projeto.</p>
+    <a href="{{ url_for('pep.create_phase', project_id=project.id) }}"
+        class="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white font-medium rounded-lg text-sm hover:bg-opacity-90 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Criar Primeira Fase
+    </a>
+</div>
+{% endif %}
+{% endblock %}
