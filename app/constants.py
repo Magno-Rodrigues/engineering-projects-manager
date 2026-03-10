@@ -1,33 +1,8 @@
-"""Application constants."""
-
-# Project Status
-PROJECT_STATUS = [
-    ('planning', 'Planejamento'),
-    ('in_progress', 'Em Progresso'),
-    ('on_hold', 'Pausado'),
-    ('completed', 'Concluído'),
-    ('cancelled', 'Cancelado'),
-]
-
-# Project Priority
-PROJECT_PRIORITY = [
-    ('low', 'Baixa'),
-    ('medium', 'Média'),
-    ('high', 'Alta'),
-    ('critical', 'Crítica'),
-]
-
-# Project Categories
-PROJECT_CATEGORIES = [
-    ('development', 'Desenvolvimento'),
-    ('design', 'Design'),
-    ('infrastructure', 'Infraestrutura'),
-    ('research', 'Pesquisa'),
-    ('maintenance', 'Manutenção'),
-]
-
-
 """Application constants and dropdown options."""
+
+# ---------------------------------------------------------------------------
+# Business / Personnel Constants
+# ---------------------------------------------------------------------------
 
 SUPERVISION_TYPES = [
     'Engenharia',
@@ -77,6 +52,10 @@ USER_ROLES = [
     'Administrador',
     'Usuário',
 ]
+
+# ---------------------------------------------------------------------------
+# Access Control Constants
+# ---------------------------------------------------------------------------
 
 # Module names for the access control system
 VALID_MODULES = ['projects', 'tasks', 'reports', 'apontamentos', 'pmbok', 'admin']
@@ -159,6 +138,10 @@ FUNCTION_DISPLAY_NAMES = {
     'manage_permissions': 'Gerenciar Permissões',
     'manage_config': 'Gerenciar Configurações',
 }
+
+# ---------------------------------------------------------------------------
+# Project Management Constants
+# ---------------------------------------------------------------------------
 
 PROJECT_STATUS = ['planning', 'in_progress', 'on_hold', 'completed', 'cancelled']
 

@@ -1,4 +1,5 @@
 """Application factory module."""
+import logging
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -24,6 +25,14 @@ def create_app(config_name: str = 'default') -> Flask:
     """
     app = Flask(__name__)
     app.config.from_object(config[config_name])
+
+    # Configure structured logging
+    log_level = getattr(logging, app.config.get('LOG_LEVEL', 'INFO').upper(), logging.INFO)
+    logging.basicConfig(
+        level=log_level,
+        format='%(asctime)s %(levelname)s %(name)s: %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S',
+    )
 
     # Initialize extensions
     db.init_app(app)
