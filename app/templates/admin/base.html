@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/cmrda-logo.svg') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}">
     {% block extra_head %}{% endblock %}
     <script>
         tailwind.config = {
@@ -36,21 +36,7 @@
     <aside class="w-64 bg-gray-900 text-white flex flex-col min-h-screen flex-shrink-0">
         <div class="px-5 py-4 border-b border-gray-700">
             <a href="{{ url_for('admin.dashboard') }}" class="flex items-center gap-2 text-white no-underline hover:opacity-80 transition-opacity">
-                <!-- CMRDA Icon -->
-                <svg width="34" height="34" viewBox="0 0 34 34" xmlns="http://www.w3.org/2000/svg" class="flex-shrink-0">
-                    <rect width="34" height="34" rx="7" fill="#1A3A52"/>
-                    <g transform="translate(4,6)">
-                        <rect x="0" y="11" width="4" height="9" rx="1" fill="#C9A961"/>
-                        <rect x="6" y="7" width="4" height="13" rx="1" fill="#C9A961"/>
-                        <rect x="12" y="2" width="4" height="18" rx="1" fill="#C9A961"/>
-                        <polyline points="2,12 8,8 14,3 22,0" stroke="#C9A961" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-                        <polygon points="22,0 17,2 19,6" fill="#C9A961"/>
-                    </g>
-                </svg>
-                <div class="flex flex-col leading-none">
-                    <span class="text-white font-extrabold tracking-wide text-sm">CMRDA</span>
-                    <span class="font-medium tracking-widest uppercase" style="color:#C9A961;font-size:0.5rem">Engineering Mgmt</span>
-                </div>
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="ARCCCA" class="sidebar-logo-img">
             </a>
         </div>
 
