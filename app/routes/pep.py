@@ -1,4 +1,5 @@
 """PEP (Project Execution Plan) routes."""
+import logging
 from datetime import datetime, date, timedelta
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, abort
 from flask_login import login_required, current_user
@@ -18,6 +19,8 @@ from app.utils.pep_charts import (
     build_risk_matrix_chart,
     cache_invalidate_project,
 )
+
+logger = logging.getLogger(__name__)
 
 pep_bp = Blueprint('pep', __name__, url_prefix='/projects/<int:project_id>/pep')
 
@@ -250,9 +253,24 @@ def dashboard(project_id: int):
     scurve_data = _get_scurve_data(phases, project)
 
     # Plotly interactive chart JSON (cached per project)
-    gantt_json = build_gantt_chart(phases, project_id=project_id)
-    scurve_json = build_scurve_chart(scurve_data, project_id=project_id)
-    risk_matrix_json = build_risk_matrix_chart(risks, project_id=project_id)
+    # Errors are caught so a chart failure never breaks the whole dashboard.
+    try:
+        gantt_json = build_gantt_chart(phases, project_id=project_id)
+    except Exception:
+        logger.exception("dashboard: failed to build Gantt chart for project %s", project_id)
+        gantt_json = None
+
+    try:
+        scurve_json = build_scurve_chart(scurve_data, project_id=project_id)
+    except Exception:
+        logger.exception("dashboard: failed to build S-Curve chart for project %s", project_id)
+        scurve_json = None
+
+    try:
+        risk_matrix_json = build_risk_matrix_chart(risks, project_id=project_id)
+    except Exception:
+        logger.exception("dashboard: failed to build Risk Matrix chart for project %s", project_id)
+        risk_matrix_json = None
 
     return render_template(
         'pep/dashboard.html',
