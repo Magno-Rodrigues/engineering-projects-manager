@@ -189,6 +189,285 @@ def _get_scurve_data(phases, project):
     }
 
 
+def _get_gantt_plotly(phases):
+    """Build a Plotly interactive Gantt chart and return its JSON string."""
+    try:
+        import plotly.graph_objects as go
+    except ImportError:
+        return None
+
+    today_str = date.today().isoformat()
+    tasks = []
+
+    for phase in phases:
+        start = phase.start_date.isoformat() if phase.start_date else today_str
+        end = phase.end_date.isoformat() if phase.end_date else today_str
+        if end < start:
+            end = start
+        status = (getattr(phase, 'status', None) or 'pending')
+        tasks.append({
+            'name': phase.name,
+            'start': start,
+            'end': end,
+            'progress': _phase_progress(phase),
+            'type': 'phase',
+            'status': status,
+        })
+        for stage in phase.stages.all():
+            s_start = stage.start_date.isoformat() if stage.start_date else start
+            s_end = stage.end_date.isoformat() if stage.end_date else end
+            if s_end < s_start:
+                s_end = s_start
+            s_status = (getattr(stage, 'status', None) or 'pending')
+            tasks.append({
+                'name': stage.name,
+                'start': s_start,
+                'end': s_end,
+                'progress': _stage_progress(stage),
+                'type': 'stage',
+                'status': s_status,
+            })
+
+    if not tasks:
+        return None
+
+    color_map = {
+        'pending': '#94a3b8',
+        'in_progress': '#3b82f6',
+        'completed': '#10b981',
+    }
+    label_map = {
+        'pending': 'Pendente',
+        'in_progress': 'Em Andamento',
+        'completed': 'Concluído',
+    }
+
+    fig = go.Figure()
+    status_shown = set()
+
+    for task in tasks:
+        status = task['status'] if task['status'] in color_map else 'pending'
+        color = color_map[status]
+        show_legend = status not in status_shown
+        status_shown.add(status)
+        fig.add_trace(go.Bar(
+            name=label_map.get(status, status),
+            legendgroup=status,
+            showlegend=show_legend,
+            y=[task['name']],
+            x=[task['end']],
+            base=[task['start']],
+            orientation='h',
+            marker_color=color,
+            marker_line_width=0,
+            customdata=[[task['start'], task['end'], task['progress']]],
+            hovertemplate=(
+                '<b>%{y}</b><br>'
+                'Início: %{customdata[0]}<br>'
+                'Fim: %{customdata[1]}<br>'
+                'Progresso: %{customdata[2]}%'
+                '<extra></extra>'
+            ),
+        ))
+
+    height = max(300, len(tasks) * 44 + 160)
+    fig.update_layout(
+        barmode='overlay',
+        height=height,
+        margin=dict(l=0, r=10, t=40, b=10),
+        xaxis_type='date',
+        xaxis=dict(
+            showgrid=True,
+            gridcolor='#f1f5f9',
+            tickformat='%d/%m/%y',
+            tickfont=dict(size=11),
+        ),
+        yaxis=dict(
+            autorange='reversed',
+            tickfont=dict(size=12),
+            showgrid=False,
+        ),
+        legend=dict(
+            orientation='h',
+            yanchor='bottom',
+            y=1.02,
+            xanchor='right',
+            x=1,
+            font=dict(size=11),
+        ),
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        font=dict(family='Inter, sans-serif', size=12),
+        hovermode='closest',
+    )
+    return fig.to_json()
+
+
+def _get_scurve_plotly(scurve_data):
+    """Convert S-curve data dict to a Plotly figure JSON string."""
+    try:
+        import plotly.graph_objects as go
+    except ImportError:
+        return None
+
+    if not scurve_data or not scurve_data.get('labels'):
+        return None
+
+    labels = scurve_data['labels']
+    planned = scurve_data.get('planned', [])
+    actual = scurve_data.get('actual', [])
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=labels,
+        y=planned,
+        mode='lines+markers',
+        name='Planejado (%)',
+        line=dict(color='#1A3A52', width=2.5),
+        marker=dict(size=6, color='#1A3A52'),
+        fill='tozeroy',
+        fillcolor='rgba(26,58,82,0.06)',
+        hovertemplate='Planejado: %{y:.1f}%<extra></extra>',
+    ))
+    fig.add_trace(go.Scatter(
+        x=labels,
+        y=actual,
+        mode='lines+markers',
+        name='Realizado (%)',
+        line=dict(color='#C9A961', width=2.5),
+        marker=dict(size=6, color='#C9A961'),
+        fill='tozeroy',
+        fillcolor='rgba(201,169,97,0.06)',
+        hovertemplate='Realizado: %{y:.1f}%<extra></extra>',
+    ))
+    fig.update_layout(
+        height=300,
+        margin=dict(l=10, r=10, t=10, b=10),
+        yaxis=dict(
+            range=[0, 100],
+            ticksuffix='%',
+            tickfont=dict(size=11),
+            showgrid=True,
+            gridcolor='#f1f5f9',
+        ),
+        xaxis=dict(
+            tickfont=dict(size=11),
+            showgrid=False,
+        ),
+        legend=dict(
+            orientation='h',
+            yanchor='bottom',
+            y=1.02,
+            xanchor='right',
+            x=1,
+            font=dict(size=11),
+        ),
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        font=dict(family='Inter, sans-serif', size=12),
+        hovermode='x unified',
+    )
+    return fig.to_json()
+
+
+def _get_risk_matrix_plotly(risks):
+    """Build an interactive Plotly heatmap for the risk matrix and return JSON."""
+    try:
+        import plotly.graph_objects as go
+    except ImportError:
+        return None
+
+    # 5x5 matrix: rows = probability 5→1 (top to bottom), cols = impact 1→5
+    z_count = [[0] * 5 for _ in range(5)]
+    hover_details = [[[] for _ in range(5)] for _ in range(5)]
+
+    for risk in risks:
+        p = int(getattr(risk, 'probability', 0) or 0)
+        i = int(getattr(risk, 'impact', 0) or 0)
+        if 1 <= p <= 5 and 1 <= i <= 5:
+            row = 5 - p   # probability 5 → row 0
+            col = i - 1   # impact 1 → col 0
+            z_count[row][col] += 1
+            name = (
+                getattr(risk, 'description', None)
+                or getattr(risk, 'name', None)
+                or ''
+            )
+            if name:
+                hover_details[row][col].append(name[:50])
+
+    # Background risk-level values (p * i) for colouring
+    z_risk = [[(5 - row) * (col + 1) for col in range(5)] for row in range(5)]
+
+    x_labels = ['1 - MB', '2 - B', '3 - M', '4 - A', '5 - MA']
+    y_labels = ['5 - Crítico', '4 - Alto', '3 - Médio', '2 - Baixo', '1 - Mínimo']
+
+    # Build text and hover matrices
+    text_matrix = []
+    hover_matrix = []
+    for row in range(5):
+        text_row = []
+        hover_row = []
+        p_val = 5 - row
+        for col in range(5):
+            i_val = col + 1
+            count = z_count[row][col]
+            text_row.append(str(count) if count > 0 else '')
+            names_str = ('<br>' + '<br>'.join(hover_details[row][col])
+                         if hover_details[row][col] else '')
+            hover_row.append(
+                f'Probabilidade: {p_val}<br>Impacto: {i_val}'
+                f'<br>Nível: {p_val * i_val}'
+                f'<br>Riscos: {count}{names_str}'
+            )
+        text_matrix.append(text_row)
+        hover_matrix.append(hover_row)
+
+    colorscale = [
+        [0.00, '#bbf7d0'],
+        [0.20, '#bbf7d0'],
+        [0.40, '#fef08a'],
+        [0.60, '#fed7aa'],
+        [0.80, '#fca5a5'],
+        [1.00, '#dc2626'],
+    ]
+
+    fig = go.Figure(data=go.Heatmap(
+        z=z_risk,
+        x=x_labels,
+        y=y_labels,
+        text=text_matrix,
+        texttemplate='%{text}',
+        textfont=dict(size=16, color='#1e293b', family='Inter, sans-serif'),
+        colorscale=colorscale,
+        showscale=False,
+        zmin=1,
+        zmax=25,
+        hovertext=hover_matrix,
+        hoverinfo='text',
+    ))
+
+    fig.update_layout(
+        height=320,
+        margin=dict(l=0, r=0, t=10, b=10),
+        xaxis=dict(
+            title='Impacto →',
+            side='bottom',
+            tickfont=dict(size=11),
+            showgrid=False,
+        ),
+        yaxis=dict(
+            title='← Probabilidade',
+            tickfont=dict(size=11),
+            showgrid=False,
+        ),
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        font=dict(family='Inter, sans-serif', size=12),
+    )
+    return fig.to_json()
+
+
 @pep_bp.route('/')
 @login_required
 def dashboard(project_id: int):
@@ -240,6 +519,11 @@ def dashboard(project_id: int):
     gantt_tasks = _get_gantt_data(phases)
     scurve_data = _get_scurve_data(phases, project)
 
+    # Plotly interactive chart JSON
+    gantt_json = _get_gantt_plotly(phases)
+    scurve_json = _get_scurve_plotly(scurve_data)
+    risk_matrix_json = _get_risk_matrix_plotly(risks)
+
     return render_template(
         'pep/dashboard.html',
         project=project,
@@ -254,6 +538,9 @@ def dashboard(project_id: int):
         total_allocated_hours=total_allocated_hours,
         gantt_tasks=gantt_tasks,
         scurve_data=scurve_data,
+        gantt_json=gantt_json,
+        scurve_json=scurve_json,
+        risk_matrix_json=risk_matrix_json,
     )
 
 
