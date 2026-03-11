@@ -31,10 +31,11 @@
     object-fit: contain;
 }
 
-.navbar-brand .logo-text {
-    font-weight: 700;
-    font-size: 18px;
-    margin: 0;
+/* Admin sidebar logo */
+.sidebar-logo-img {
+    height: 40px;
+    width: auto;
+    object-fit: contain;
 }
 
 /* Login page logo */
@@ -44,18 +45,18 @@
 }
 
 .login-logo-img {
-    height: 80px;
+    height: 120px;
     width: auto;
     object-fit: contain;
 }
 
-/* Responsive: hide brand text on very small screens */
+/* Responsive: smaller logo on very small screens */
 @media (max-width: 480px) {
-    .navbar-brand .logo-text {
-        display: none;
-    }
-
     .navbar-brand .logo-img {
         height: 32px;
+    }
+
+    .login-logo-img {
+        height: 80px;
     }
 }
