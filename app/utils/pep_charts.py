@@ -211,17 +211,18 @@ def build_gantt_chart(phases, project_id: int | None = None) -> str | None:
             line=dict(color='#f59e0b', width=2, dash='dot'),
         )]
 
-        height = max(300, len(tasks) * 44 + 160)
+        height = max(450, len(tasks) * 50 + 180)
         fig.update_layout(
             barmode='overlay',
             height=height,
-            margin=dict(l=0, r=10, t=40, b=10),
+            margin=dict(l=180, r=10, t=40, b=10),
             xaxis_type='date',
             xaxis=dict(
                 showgrid=True,
                 gridcolor='#f1f5f9',
-                tickformat='%d/%m/%y',
-                tickfont=dict(size=11),
+                tickformat='%d/%m',
+                tickangle=-45,
+                tickfont=dict(size=12),
             ),
             yaxis=dict(
                 autorange='reversed',
