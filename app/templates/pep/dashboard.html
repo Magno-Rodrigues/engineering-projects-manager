@@ -115,8 +115,9 @@
 <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
     <div class="flex items-center justify-between mb-4">
         <h2 class="text-base font-semibold text-gray-800">Gantt — Cronograma do Projeto</h2>
+        <div id="gantt-legend" class="flex items-center gap-4 text-xs text-gray-500"></div>
     </div>
-    <div id="ganttChart" class="overflow-x-auto"></div>
+    <div id="ganttChart" class="overflow-x-auto" style="min-height:200px;"></div>
 </div>
 {% endif %}
 
@@ -256,96 +257,348 @@ document.addEventListener('DOMContentLoaded', function() {
 document.addEventListener('DOMContentLoaded', function() {
     const tasks = {{ gantt_tasks | tojson }};
     const container = document.getElementById('ganttChart');
+    const legendContainer = document.getElementById('gantt-legend');
     if (!container || !tasks.length) return;
 
-    // Simple CSS-based Gantt chart (no external dependencies)
-    const allDates = tasks.flatMap(t => [new Date(t.start), new Date(t.end)]);
-    const minDate = new Date(Math.min(...allDates));
-    const maxDate = new Date(Math.max(...allDates));
-    const totalDays = Math.max((maxDate - minDate) / 86400000, 1);
+    // ── Constants ───────────────────────────────────────────────────────────
+    const LABEL_WIDTH = 200;       // px — left column for task names
+    const ROW_HEIGHT  = 52;        // px — height of each task row
+    const BAR_HEIGHT  = 28;        // px — height of the coloured bar inside the row
+    const HEADER_H    = 56;        // px — date-axis header height (room for rotated labels)
+    const MS_PER_DAY  = 86400000;  // milliseconds in one day
 
-    const wrapper = document.createElement('div');
-    wrapper.style.minWidth = '600px';
+    // ── Date range ──────────────────────────────────────────────────────────
+    // Backend always sends dates as YYYY-MM-DD; append time to avoid timezone shifts.
+    const allDates = tasks.flatMap(t => [new Date(t.start + 'T00:00:00'), new Date(t.end + 'T00:00:00')]);
+    const minDate  = new Date(Math.min(...allDates));
+    const maxDate  = new Date(Math.max(...allDates));
+    // Extend slightly so the last bar isn't flush against the right edge
+    maxDate.setDate(maxDate.getDate() + 3);
+    const totalDays = Math.max((maxDate - minDate) / MS_PER_DAY, 1);
 
-    // Month header
-    const header = document.createElement('div');
-    header.className = 'relative h-6 border-b border-gray-200 mb-1';
-    header.style.marginLeft = '160px';
-    let cur = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
-    while (cur <= maxDate) {
-        const span = document.createElement('span');
-        span.className = 'absolute text-xs text-gray-400';
-        const leftPct = Math.max(0, (cur - minDate) / 86400000 / totalDays * 100);
-        span.style.left = leftPct + '%';
-        span.textContent = cur.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
-        header.appendChild(span);
-        cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
+    // ── Status colour palette ────────────────────────────────────────────────
+    const STATUS_COLORS = {
+        pending:     { bar: '#94a3b8', track: '#e2e8f0', text: '#475569' },
+        in_progress: { bar: '#3b82f6', track: '#dbeafe', text: '#1d4ed8' },
+        completed:   { bar: '#10b981', track: '#d1fae5', text: '#065f46' },
+    };
+
+    function getStatus(task) {
+        if (!task.custom_class) return 'pending';
+        if (task.custom_class.includes('status-in_progress')) return 'in_progress';
+        if (task.custom_class.includes('status-completed'))   return 'completed';
+        return 'pending';
     }
-    wrapper.appendChild(header);
 
-    // Task rows — use DOM API to avoid XSS
-    tasks.forEach(task => {
-        const start = new Date(task.start);
-        const end = new Date(task.end);
-        const left = (start - minDate) / 86400000 / totalDays * 100;
-        const width = Math.max((end - start) / 86400000 / totalDays * 100, 0.5);
+    // ── Outer wrapper (enables horizontal scroll) ────────────────────────────
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'min-width:600px;width:100%;';
+
+    // ── Inner layout: fixed label column + scrollable timeline ──────────────
+    // We use a single-row flex where the label column is sticky.
+    const layout = document.createElement('div');
+    layout.style.cssText = 'display:flex;width:100%;';
+
+    // Left sticky label column
+    const labelCol = document.createElement('div');
+    labelCol.style.cssText = [
+        'flex-shrink:0',
+        'width:' + LABEL_WIDTH + 'px',
+        'position:sticky',
+        'left:0',
+        'z-index:2',
+        'background:#fff',
+        'border-right:2px solid #e2e8f0',
+    ].join(';');
+
+    // Right timeline column (takes remaining space)
+    const timelineCol = document.createElement('div');
+    timelineCol.style.cssText = 'flex:1;min-width:0;position:relative;';
+
+    // ── Date-axis header ─────────────────────────────────────────────────────
+    // Spacer in label column
+    const labelHeaderSpacer = document.createElement('div');
+    labelHeaderSpacer.style.cssText = 'height:' + HEADER_H + 'px;border-bottom:2px solid #e2e8f0;background:#f8fafc;';
+    labelCol.appendChild(labelHeaderSpacer);
+
+    // Actual header in timeline column
+    const header = document.createElement('div');
+    header.style.cssText = [
+        'position:relative',
+        'height:' + HEADER_H + 'px',
+        'background:#f8fafc',
+        'border-bottom:2px solid #e2e8f0',
+        'overflow:visible',
+    ].join(';');
+
+    // Render one label per month (or per week for short timelines)
+    const useWeeks = totalDays <= 60;
+    // For weekly mode, snap back to the Monday on or before minDate to keep labels aligned.
+    function weekStart(d) {
+        const day = d.getDay(); // 0=Sun … 6=Sat
+        const diff = (day === 0) ? -6 : 1 - day; // align to Monday
+        const ws = new Date(d);
+        ws.setDate(ws.getDate() + diff);
+        ws.setHours(0, 0, 0, 0);
+        return ws;
+    }
+    let cur = useWeeks
+        ? weekStart(minDate)
+        : new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+    while (cur <= maxDate) {
+        const leftPct = Math.max(0, (cur - minDate) / MS_PER_DAY / totalDays * 100);
+        if (leftPct > 100) break;
+
+        // Tick mark
+        const tick = document.createElement('div');
+        tick.style.cssText = [
+            'position:absolute',
+            'bottom:0',
+            'left:' + leftPct + '%',
+            'height:8px',
+            'width:1px',
+            'background:#cbd5e1',
+        ].join(';');
+        header.appendChild(tick);
+
+        // Label — rotated so it never overlaps
+        const lbl = document.createElement('span');
+        const labelText = useWeeks
+            ? cur.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+            : cur.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+        lbl.textContent = labelText;
+        lbl.style.cssText = [
+            'position:absolute',
+            'bottom:10px',
+            'left:' + leftPct + '%',
+            'transform:rotate(-45deg)',
+            'transform-origin:left bottom',
+            'font-size:11px',
+            'font-weight:500',
+            'color:#475569',
+            'white-space:nowrap',
+            'line-height:1',
+        ].join(';');
+        header.appendChild(lbl);
+
+        // Advance by 1 week or 1 month
+        if (useWeeks) {
+            cur = new Date(cur.getTime() + 7 * MS_PER_DAY);
+        } else {
+            cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
+        }
+    }
+    timelineCol.appendChild(header);
+
+    // ── Grid lines (vertical, behind rows) ───────────────────────────────────
+    const gridOverlay = document.createElement('div');
+    gridOverlay.style.cssText = 'position:absolute;top:' + HEADER_H + 'px;left:0;right:0;bottom:0;pointer-events:none;z-index:0;';
+    // We'll append grid lines after we know total height
+
+    // ── Task rows ─────────────────────────────────────────────────────────────
+    tasks.forEach((task, idx) => {
         const isPhase = task.custom_class && task.custom_class.includes('phase-level');
+        const status  = getStatus(task);
+        const colors  = STATUS_COLORS[status];
 
-        let barColor = '#6b7280'; // gray = pending
-        if (task.custom_class) {
-            if (task.custom_class.includes('status-in_progress')) barColor = '#3b82f6';
-            else if (task.custom_class.includes('status-completed')) barColor = '#10b981';
+        const start = new Date(task.start + 'T00:00:00');
+        const end   = new Date(task.end   + 'T00:00:00');
+        const leftPct  = (start - minDate) / MS_PER_DAY / totalDays * 100;
+        // +1 day so a single-day task has a visible minimum width on the timeline
+        const widthPct = Math.max((end - start + MS_PER_DAY) / MS_PER_DAY / totalDays * 100, 0.4);
+
+        // Normalise progress to a valid 0–100 number (guard against null/undefined)
+        const progress = Math.max(0, Math.min(Number(task.progress) || 0, 100));
+
+        // ── Label cell ──────────────────────────────────────────────────────
+        const labelCell = document.createElement('div');
+        labelCell.style.cssText = [
+            'height:' + ROW_HEIGHT + 'px',
+            'display:flex',
+            'align-items:center',
+            'padding:0 12px',
+            'border-bottom:1px solid #f1f5f9',
+            isPhase ? 'background:#f8fafc;' : 'background:#fff;',
+        ].join(';');
+
+        if (isPhase) {
+            const bullet = document.createElement('span');
+            bullet.style.cssText = 'width:8px;height:8px;border-radius:2px;background:' + colors.bar + ';flex-shrink:0;margin-right:8px;';
+            labelCell.appendChild(bullet);
+        } else {
+            const indent = document.createElement('span');
+            indent.style.cssText = 'width:20px;flex-shrink:0;';
+            labelCell.appendChild(indent);
         }
 
-        const row = document.createElement('div');
-        row.className = 'flex items-center mb-1 group';
-        row.title = task.name.trim() + ' | ' + task.start + ' → ' + task.end + ' | ' + task.progress + '%';
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = task.name.trim();
+        nameSpan.style.cssText = [
+            'font-size:12px',
+            'white-space:nowrap',
+            'overflow:hidden',
+            'text-overflow:ellipsis',
+            isPhase ? 'font-weight:600;color:#1e293b;' : 'font-weight:400;color:#475569;',
+        ].join(';');
+        nameSpan.title = task.name.trim();
+        labelCell.appendChild(nameSpan);
+        labelCol.appendChild(labelCell);
 
-        const label = document.createElement('div');
-        label.className = 'text-xs truncate ' + (isPhase ? 'font-semibold text-gray-800' : 'text-gray-600 pl-4');
-        label.style.cssText = 'width:160px;flex-shrink:0';
-        label.textContent = task.name.trim();
+        // ── Timeline cell ────────────────────────────────────────────────────
+        const timelineCell = document.createElement('div');
+        timelineCell.style.cssText = [
+            'height:' + ROW_HEIGHT + 'px',
+            'position:relative',
+            'display:flex',
+            'align-items:center',
+            'border-bottom:1px solid #f1f5f9',
+            isPhase ? 'background:#f8fafc;' : 'background:#fff;',
+        ].join(';');
 
-        const timeline = document.createElement('div');
-        timeline.className = 'relative flex-1 h-5';
+        // Track (full-width light background for this task's span)
+        const track = document.createElement('div');
+        track.style.cssText = [
+            'position:absolute',
+            'left:' + leftPct + '%',
+            'width:' + widthPct + '%',
+            'height:' + BAR_HEIGHT + 'px',
+            'border-radius:6px',
+            'background:' + colors.track,
+        ].join(';');
+        timelineCell.appendChild(track);
 
+        // Progress fill
         const bar = document.createElement('div');
-        bar.className = 'absolute h-full rounded transition-all';
-        bar.style.cssText = 'left:' + left + '%;width:' + width + '%;background:' + barColor + ';opacity:' + (isPhase ? 1 : 0.75);
+        bar.style.cssText = [
+            'position:absolute',
+            'left:' + leftPct + '%',
+            'width:' + (widthPct * progress / 100) + '%',
+            'height:' + BAR_HEIGHT + 'px',
+            'border-radius:6px',
+            'background:' + colors.bar,
+            'transition:width .3s ease',
+            'box-shadow:0 1px 3px rgba(0,0,0,0.15)',
+        ].join(';');
+        timelineCell.appendChild(bar);
 
-        if (task.progress > 0) {
-            const fill = document.createElement('div');
-            fill.className = 'h-full rounded';
-            fill.style.cssText = 'width:' + task.progress + '%;background:rgba(255,255,255,0.35)';
-            bar.appendChild(fill);
+        // Progress label (inside bar when wide enough, else after)
+        if (progress > 0) {
+            const pLabel = document.createElement('span');
+            pLabel.textContent = progress + '%';
+            pLabel.style.cssText = [
+                'position:absolute',
+                'left:' + leftPct + '%',
+                'width:' + widthPct + '%',
+                'height:' + BAR_HEIGHT + 'px',
+                'display:flex',
+                'align-items:center',
+                'justify-content:center',
+                'font-size:10px',
+                'font-weight:600',
+                'color:#fff',
+                'pointer-events:none',
+                'text-shadow:0 1px 2px rgba(0,0,0,0.4)',
+            ].join(';');
+            timelineCell.appendChild(pLabel);
         }
 
-        timeline.appendChild(bar);
-        row.appendChild(label);
-        row.appendChild(timeline);
-        wrapper.appendChild(row);
+        // Tooltip title
+        timelineCell.title = task.name.trim() + ' | ' + task.start + ' → ' + task.end + ' | ' + progress + '%';
+
+        timelineCol.appendChild(timelineCell);
     });
 
-    // Legend
-    const legend = document.createElement('div');
-    legend.className = 'flex items-center gap-4 mt-3 text-xs text-gray-500';
-    [
-        { color: '#6b7280', label: 'Pendente' },
-        { color: '#3b82f6', label: 'Em Andamento' },
-        { color: '#10b981', label: 'Concluído' },
-    ].forEach(item => {
-        const span = document.createElement('span');
-        span.className = 'flex items-center gap-1';
-        const dot = document.createElement('span');
-        dot.className = 'w-3 h-3 rounded inline-block';
-        dot.style.background = item.color;
-        const text = document.createElement('span');
-        text.textContent = item.label;
-        span.appendChild(dot);
-        span.appendChild(text);
-        legend.appendChild(span);
-    });
-    wrapper.appendChild(legend);
+    // ── Vertical grid lines ───────────────────────────────────────────────────
+    const totalRowsHeight = tasks.length * ROW_HEIGHT;
+    gridOverlay.style.height = totalRowsHeight + 'px';
+    let gridCur = useWeeks
+        ? weekStart(minDate)
+        : new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+    while (gridCur <= maxDate) {
+        const gPct = Math.max(0, (gridCur - minDate) / MS_PER_DAY / totalDays * 100);
+        if (gPct > 100) break;
+        const line = document.createElement('div');
+        line.style.cssText = [
+            'position:absolute',
+            'top:0',
+            'bottom:0',
+            'left:' + gPct + '%',
+            'width:1px',
+            'background:#f1f5f9',
+        ].join(';');
+        gridOverlay.appendChild(line);
+        if (useWeeks) {
+            gridCur = new Date(gridCur.getTime() + 7 * MS_PER_DAY);
+        } else {
+            gridCur = new Date(gridCur.getFullYear(), gridCur.getMonth() + 1, 1);
+        }
+    }
+    timelineCol.appendChild(gridOverlay);
+
+    // ── Today marker ─────────────────────────────────────────────────────────
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (today >= minDate && today <= maxDate) {
+        const todayPct = (today - minDate) / MS_PER_DAY / totalDays * 100;
+        const todayLine = document.createElement('div');
+        todayLine.style.cssText = [
+            'position:absolute',
+            'top:0',
+            'bottom:0',
+            'left:' + todayPct + '%',
+            'width:2px',
+            'background:#f59e0b',
+            'z-index:1',
+            'pointer-events:none',
+        ].join(';');
+        const todayLabel = document.createElement('span');
+        todayLabel.textContent = 'Hoje';
+        todayLabel.style.cssText = [
+            'position:absolute',
+            'top:4px',
+            'left:3px',
+            'font-size:9px',
+            'font-weight:700',
+            'color:#f59e0b',
+            'white-space:nowrap',
+        ].join(';');
+        todayLine.appendChild(todayLabel);
+        timelineCol.appendChild(todayLine);
+    }
+
+    layout.appendChild(labelCol);
+    layout.appendChild(timelineCol);
+    wrapper.appendChild(layout);
+
+    // ── Legend (moved to header bar via legendContainer) ─────────────────────
+    if (legendContainer) {
+        [
+            { color: STATUS_COLORS.pending.bar,     label: 'Pendente'     },
+            { color: STATUS_COLORS.in_progress.bar, label: 'Em Andamento' },
+            { color: STATUS_COLORS.completed.bar,   label: 'Concluído'    },
+        ].forEach(item => {
+            const span = document.createElement('span');
+            span.className = 'flex items-center gap-1';
+            const dot = document.createElement('span');
+            dot.style.cssText = 'width:10px;height:10px;border-radius:3px;background:' + item.color + ';display:inline-block;flex-shrink:0;';
+            const text = document.createElement('span');
+            text.textContent = item.label;
+            span.appendChild(dot);
+            span.appendChild(text);
+            legendContainer.appendChild(span);
+        });
+
+        // Today marker legend item
+        const todaySpan = document.createElement('span');
+        todaySpan.className = 'flex items-center gap-1';
+        const todayDot = document.createElement('span');
+        todayDot.style.cssText = 'width:2px;height:10px;border-radius:1px;background:#f59e0b;display:inline-block;flex-shrink:0;';
+        const todayText = document.createElement('span');
+        todayText.textContent = 'Hoje';
+        todaySpan.appendChild(todayDot);
+        todaySpan.appendChild(todayText);
+        legendContainer.appendChild(todaySpan);
+    }
 
     container.appendChild(wrapper);
 });
