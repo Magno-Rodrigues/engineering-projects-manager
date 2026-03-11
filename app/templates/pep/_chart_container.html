@@ -1,0 +1,64 @@
+{#
+  Reusable chart container component for the PEP dashboard.
+
+  Parameters:
+    chart_id    (str)  – The HTML id for the Plotly div (e.g. 'ganttChart').
+    title       (str)  – Section heading (e.g. 'Gantt — Cronograma').
+    subtitle    (str, optional) – Small sub-heading below the title.
+    chart_json  (any)  – The actual JSON value (truthy check).
+    empty_msg   (str, optional)  – Message shown when no data is available.
+    empty_link  (str, optional)  – URL for the empty-state call-to-action.
+    empty_link_label (str, optional) – Label for the empty-state link.
+    header_link (str, optional)  – URL for the 'Ver todos' header link.
+    header_link_label (str, optional) – Label for the header link.
+    export_filename (str, optional) – Filename stem for PNG export.
+    extra_class (str, optional)  – Extra CSS classes for the card wrapper.
+#}
+
+{% macro chart_card(
+    chart_id,
+    title,
+    chart_json,
+    subtitle='',
+    empty_msg='Sem dados suficientes para exibir o gráfico.',
+    empty_link='',
+    empty_link_label='',
+    header_link='',
+    header_link_label='Ver todos',
+    export_filename='chart',
+    extra_class=''
+) %}
+<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 {{ extra_class }}">
+    <div class="flex items-center justify-between mb-4">
+        <div>
+            <h2 class="text-base font-semibold text-gray-800">{{ title }}</h2>
+            {% if subtitle %}
+            <p class="text-xs text-gray-400 mt-0.5">{{ subtitle }}</p>
+            {% endif %}
+        </div>
+        {% if header_link %}
+        <a href="{{ header_link }}" class="text-xs text-blue-600 hover:underline">{{ header_link_label }}</a>
+        {% endif %}
+    </div>
+
+    {% if chart_json %}
+    <div id="{{ chart_id }}" class="w-full"></div>
+    {% else %}
+    <div class="flex flex-col items-center justify-center h-40 text-gray-400">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mb-2 opacity-40" fill="none"
+             viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0
+                     0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2
+                     2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+        </svg>
+        <p class="text-sm text-center">{{ empty_msg }}</p>
+        {% if empty_link %}
+        <a href="{{ empty_link }}" class="mt-2 text-xs text-blue-600 hover:underline">
+            {{ empty_link_label or 'Adicionar dados' }}
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endmacro %}
