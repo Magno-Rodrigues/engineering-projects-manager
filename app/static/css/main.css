@@ -15,3 +15,47 @@
 .alert {
     transition: opacity 0.3s ease, transform 0.3s ease;
 }
+
+/* Navbar logo */
+.navbar-brand {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    gap: 8px;
+    margin-right: 20px;
+}
+
+.navbar-brand .logo-img {
+    height: 40px;
+    width: auto;
+    object-fit: contain;
+}
+
+.navbar-brand .logo-text {
+    font-weight: 700;
+    font-size: 18px;
+    margin: 0;
+}
+
+/* Login page logo */
+.login-logo {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.login-logo-img {
+    height: 80px;
+    width: auto;
+    object-fit: contain;
+}
+
+/* Responsive: hide brand text on very small screens */
+@media (max-width: 480px) {
+    .navbar-brand .logo-text {
+        display: none;
+    }
+
+    .navbar-brand .logo-img {
+        height: 32px;
+    }
+}
