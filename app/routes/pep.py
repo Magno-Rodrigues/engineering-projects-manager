@@ -13,6 +13,9 @@ from app.models.pep import (
     PEPBaseline, PEPVariation,
     PEPDecisionLog, PEPChangeLog, PEPComment,
 )
+from app.models.import_log import ImportLog
+from app.models.schedule_sync import ScheduleImportRecord
+from app.services.schedule_sync_service import ScheduleSyncService
 from app.utils.pep_charts import (
     build_gantt_chart,
     build_scurve_chart,
@@ -544,6 +547,7 @@ def edit_activity(project_id: int, activity_id: int):
 
     if request.method == 'POST':
         old_status = activity.status
+        old_progress = activity.progress
         activity.name = request.form.get('name', activity.name).strip()
         activity.description = request.form.get('description', '').strip() or None
         resp_raw = request.form.get('responsible_user_id')
@@ -560,9 +564,20 @@ def edit_activity(project_id: int, activity_id: int):
             log_entry = PEPActivityLog(
                 activity_id=activity_id,
                 change_description=f'Status alterado: {old_status} → {activity.status}',
+                old_value=old_status,
+                new_value=activity.status,
+                sync_source='eap',
                 created_by=current_user.id,
             )
             db.session.add(log_entry)
+
+        # Sync changes back to schedule record (bidirectional sync)
+        ScheduleSyncService.sync_activity_to_schedule(
+            activity=activity,
+            changed_by=current_user.id,
+            old_status=old_status if old_status != activity.status else None,
+            old_progress=old_progress if old_progress != activity.progress else None,
+        )
 
         _log_change(project_id, 'activity', f'Atividade editada: {activity.name}')
         db.session.commit()
@@ -1001,3 +1016,74 @@ def api_gantt(project_id: int):
     _get_project_or_404(project_id)
     phases = PEPPhase.query.filter_by(project_id=project_id).order_by(PEPPhase.sequence).all()
     return jsonify(_get_gantt_data(phases))
+
+
+# ---------------------------------------------------------------------------
+# Feature 1: Import from Schedule → EAP
+# ---------------------------------------------------------------------------
+
+@pep_bp.route('/import-from-schedule', methods=['POST'])
+@login_required
+def import_from_schedule(project_id: int):
+    """Import tasks from an import log into the PEP EAP structure."""
+    project = _get_project_or_404(project_id)
+    import_log_id = request.form.get('import_log_id', type=int)
+    if not import_log_id:
+        flash('Selecione uma importação para sincronizar com o EAP.', 'error')
+        return redirect(url_for('import.log', project_id=project_id))
+
+    summary, error = ScheduleSyncService.import_to_eap(
+        project_id=project_id,
+        import_log_id=import_log_id,
+        created_by=current_user.id,
+    )
+    if error:
+        flash(f'Erro ao importar para o EAP: {error}', 'error')
+        return redirect(url_for('import.log', project_id=project_id))
+
+    flash(
+        f'{summary["activities_created"]} atividade(s) importadas para o EAP '
+        f'(Fase: "{summary["phase_name"]}").',
+        'success',
+    )
+    return redirect(url_for('pep.eap', project_id=project_id))
+
+
+# ---------------------------------------------------------------------------
+# Feature 2: Real-time Alerts Dashboard
+# ---------------------------------------------------------------------------
+
+@pep_bp.route('/alerts')
+@login_required
+def alerts(project_id: int):
+    """Real-time alerts dashboard for schedule delays."""
+    project = _get_project_or_404(project_id)
+    alert_data = ScheduleSyncService.get_alerts(project_id)
+    return render_template('pep/alerts.html', project=project, alert_data=alert_data)
+
+
+# ---------------------------------------------------------------------------
+# Feature 3: Variance Analysis Dashboard
+# ---------------------------------------------------------------------------
+
+@pep_bp.route('/variance-analysis')
+@login_required
+def variance_analysis(project_id: int):
+    """Variance analysis and SPI dashboard."""
+    project = _get_project_or_404(project_id)
+    analysis = ScheduleSyncService.get_variance_analysis(project_id)
+    return render_template('pep/variance_analysis.html', project=project, analysis=analysis)
+
+
+# ---------------------------------------------------------------------------
+# Feature 4: Sync History for a specific activity (JSON API)
+# ---------------------------------------------------------------------------
+
+@pep_bp.route('/activity/<int:activity_id>/sync-history')
+@login_required
+def activity_sync_history(project_id: int, activity_id: int):
+    """Return the sync audit log for a PEP activity as JSON."""
+    _get_project_or_404(project_id)
+    PEPActivity.query.get_or_404(activity_id)
+    history = ScheduleSyncService.get_sync_history(activity_id)
+    return jsonify(history)

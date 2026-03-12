@@ -1,0 +1,326 @@
+{% extends "pep/base.html" %}
+{% block title %}Análise de Variação — {{ project.name }}{% endblock %}
+{% block head %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block pep_content %}
+<div class="mb-6">
+    <h2 class="text-xl font-semibold text-gray-900">Análise de Variação</h2>
+    <p class="text-gray-500 text-sm mt-1">Análise de variação de cronograma baseada nos dados importados</p>
+</div>
+
+{% if analysis.total_tasks == 0 %}
+<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-10 text-center text-gray-400">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+    </svg>
+    <p class="font-medium">Nenhum dado de variação disponível.</p>
+    <p class="text-sm mt-1">Importe um arquivo de cronograma com datas baseline para calcular variações.</p>
+    <a href="{{ url_for('import.index', project_id=project.id) }}"
+       class="inline-flex items-center gap-2 mt-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+        Importar Cronograma
+    </a>
+</div>
+{% else %}
+
+<!-- KPI Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+    <!-- SPI Card -->
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+        <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">SPI (Schedule Performance Index)</div>
+        {% if analysis.spi is not none %}
+        <div class="text-3xl font-bold {% if analysis.spi >= 1 %}text-emerald-600{% elif analysis.spi >= 0.8 %}text-yellow-600{% else %}text-red-600{% endif %}">
+            {{ '%.3f'|format(analysis.spi) }}
+        </div>
+        <div class="text-xs text-gray-500 mt-1">
+            {% if analysis.spi >= 1 %}Acima do planejado ✓{% elif analysis.spi >= 0.8 %}Atenção — ligeiramente abaixo{% else %}Crítico — muito abaixo do planejado{% endif %}
+        </div>
+        {% else %}
+        <div class="text-2xl font-bold text-gray-400">N/A</div>
+        <div class="text-xs text-gray-400 mt-1">Dados insuficientes</div>
+        {% endif %}
+    </div>
+    <!-- Average Variance -->
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+        <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Variação Média</div>
+        <div class="text-3xl font-bold {% if analysis.avg_variance_pct <= 0 %}text-emerald-600{% elif analysis.avg_variance_pct <= 10 %}text-yellow-600{% else %}text-red-600{% endif %}">
+            {{ '%+.1f'|format(analysis.avg_variance_pct) }}%
+        </div>
+        <div class="text-xs text-gray-500 mt-1">Positivo = atrasado, negativo = adiantado</div>
+    </div>
+    <!-- Total tasks -->
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+        <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Tarefas Analisadas</div>
+        <div class="text-3xl font-bold text-gray-900">{{ analysis.total_tasks }}</div>
+        <div class="text-xs text-gray-500 mt-1 flex gap-2 flex-wrap">
+            <span class="text-red-600">{{ analysis.tasks_by_severity.critical | length }} críticas</span>
+            <span class="text-yellow-600">{{ analysis.tasks_by_severity.moderate | length }} moderadas</span>
+            <span class="text-orange-500">{{ analysis.tasks_by_severity.minor | length }} menores</span>
+            <span class="text-emerald-600">{{ analysis.tasks_by_severity.on_track | length }} no prazo</span>
+        </div>
+    </div>
+</div>
+
+<!-- Variance Trend Chart -->
+{% if analysis.monthly_trend %}
+<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
+    <h3 class="text-base font-semibold text-gray-800 mb-4">Tendência de Variação por Mês</h3>
+    <div style="height: 280px; position: relative;">
+        <canvas id="varianceTrendChart"></canvas>
+    </div>
+</div>
+{% endif %}
+
+<!-- Tasks by Severity -->
+<!-- Critical -->
+{% if analysis.tasks_by_severity.critical %}
+<div class="bg-white rounded-2xl border border-red-200 shadow-sm p-6 mb-6 overflow-x-auto">
+    <h3 class="text-base font-semibold text-red-700 mb-4">
+        🔴 Críticas — Variação &gt; 20% ({{ analysis.tasks_by_severity.critical | length }} tarefas)
+    </h3>
+    <table class="min-w-full text-sm">
+        <thead>
+            <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-100">
+                <th class="pb-2 pr-4">Tarefa</th><th class="pb-2 pr-4">Fim Previsto</th><th class="pb-2 pr-4">Fim Real</th><th class="pb-2 pr-4">Variação</th><th class="pb-2">Progresso</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50">
+            {% for task in analysis.tasks_by_severity.critical %}
+            <tr class="hover:bg-red-50">
+                <td class="py-2 pr-4 font-medium text-gray-900">{% if task.pep_activity_id %}<a href="{{ url_for('pep.edit_activity', project_id=project.id, activity_id=task.pep_activity_id) }}" class="text-blue-600 hover:underline">{{ task.task_name }}</a>{% else %}{{ task.task_name }}{% endif %}</td>
+                <td class="py-2 pr-4 text-gray-500">{{ task.planned_end or '—' }}</td>
+                <td class="py-2 pr-4 text-red-600 font-medium">{{ task.actual_end or '—' }}</td>
+                <td class="py-2 pr-4"><span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">{{ '%+.1f'|format(task.variance_percentage) }}%</span></td>
+                <td class="py-2"><div class="flex items-center gap-2"><div class="flex-1 bg-gray-200 rounded-full h-1.5 w-20"><div class="bg-red-500 h-1.5 rounded-full" style="width: {{ task.progress }}%"></div></div><span class="text-xs text-gray-500">{{ task.progress }}%</span></div></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<!-- Moderate -->
+{% if analysis.tasks_by_severity.moderate %}
+<div class="bg-white rounded-2xl border border-yellow-200 shadow-sm p-6 mb-6 overflow-x-auto">
+    <h3 class="text-base font-semibold text-yellow-700 mb-4">
+        🟡 Moderadas — Variação 10–20% ({{ analysis.tasks_by_severity.moderate | length }} tarefas)
+    </h3>
+    <table class="min-w-full text-sm">
+        <thead>
+            <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-100">
+                <th class="pb-2 pr-4">Tarefa</th><th class="pb-2 pr-4">Fim Previsto</th><th class="pb-2 pr-4">Fim Real</th><th class="pb-2 pr-4">Variação</th><th class="pb-2">Progresso</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50">
+            {% for task in analysis.tasks_by_severity.moderate %}
+            <tr class="hover:bg-yellow-50">
+                <td class="py-2 pr-4 font-medium text-gray-900">{% if task.pep_activity_id %}<a href="{{ url_for('pep.edit_activity', project_id=project.id, activity_id=task.pep_activity_id) }}" class="text-blue-600 hover:underline">{{ task.task_name }}</a>{% else %}{{ task.task_name }}{% endif %}</td>
+                <td class="py-2 pr-4 text-gray-500">{{ task.planned_end or '—' }}</td>
+                <td class="py-2 pr-4 text-yellow-600 font-medium">{{ task.actual_end or '—' }}</td>
+                <td class="py-2 pr-4"><span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">{{ '%+.1f'|format(task.variance_percentage) }}%</span></td>
+                <td class="py-2"><div class="flex items-center gap-2"><div class="flex-1 bg-gray-200 rounded-full h-1.5 w-20"><div class="bg-yellow-500 h-1.5 rounded-full" style="width: {{ task.progress }}%"></div></div><span class="text-xs text-gray-500">{{ task.progress }}%</span></div></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<!-- Minor -->
+{% if analysis.tasks_by_severity.minor %}
+<div class="bg-white rounded-2xl border border-orange-100 shadow-sm p-6 mb-6 overflow-x-auto">
+    <h3 class="text-base font-semibold text-orange-700 mb-4">
+        🟠 Menores — Variação 0–10% ({{ analysis.tasks_by_severity.minor | length }} tarefas)
+    </h3>
+    <table class="min-w-full text-sm">
+        <thead>
+            <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-100">
+                <th class="pb-2 pr-4">Tarefa</th><th class="pb-2 pr-4">Fim Previsto</th><th class="pb-2 pr-4">Fim Real</th><th class="pb-2 pr-4">Variação</th><th class="pb-2">Progresso</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50">
+            {% for task in analysis.tasks_by_severity.minor %}
+            <tr class="hover:bg-orange-50">
+                <td class="py-2 pr-4 font-medium text-gray-900">{% if task.pep_activity_id %}<a href="{{ url_for('pep.edit_activity', project_id=project.id, activity_id=task.pep_activity_id) }}" class="text-blue-600 hover:underline">{{ task.task_name }}</a>{% else %}{{ task.task_name }}{% endif %}</td>
+                <td class="py-2 pr-4 text-gray-500">{{ task.planned_end or '—' }}</td>
+                <td class="py-2 pr-4 text-orange-600 font-medium">{{ task.actual_end or '—' }}</td>
+                <td class="py-2 pr-4"><span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">{{ '%+.1f'|format(task.variance_percentage) }}%</span></td>
+                <td class="py-2"><div class="flex items-center gap-2"><div class="flex-1 bg-gray-200 rounded-full h-1.5 w-20"><div class="bg-orange-500 h-1.5 rounded-full" style="width: {{ task.progress }}%"></div></div><span class="text-xs text-gray-500">{{ task.progress }}%</span></div></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<!-- On Track -->
+{% if analysis.tasks_by_severity.on_track %}
+<div class="bg-white rounded-2xl border border-emerald-100 shadow-sm p-6 mb-6 overflow-x-auto">
+    <h3 class="text-base font-semibold text-emerald-700 mb-4">
+        🟢 No Prazo ou Adiantadas ({{ analysis.tasks_by_severity.on_track | length }} tarefas)
+    </h3>
+    <table class="min-w-full text-sm">
+        <thead>
+            <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-100">
+                <th class="pb-2 pr-4">Tarefa</th><th class="pb-2 pr-4">Fim Previsto</th><th class="pb-2 pr-4">Fim Real</th><th class="pb-2 pr-4">Variação</th><th class="pb-2">Progresso</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50">
+            {% for task in analysis.tasks_by_severity.on_track %}
+            <tr class="hover:bg-emerald-50">
+                <td class="py-2 pr-4 font-medium text-gray-900">{% if task.pep_activity_id %}<a href="{{ url_for('pep.edit_activity', project_id=project.id, activity_id=task.pep_activity_id) }}" class="text-blue-600 hover:underline">{{ task.task_name }}</a>{% else %}{{ task.task_name }}{% endif %}</td>
+                <td class="py-2 pr-4 text-gray-500">{{ task.planned_end or '—' }}</td>
+                <td class="py-2 pr-4 text-emerald-600 font-medium">{{ task.actual_end or '—' }}</td>
+                <td class="py-2 pr-4"><span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">{{ '%+.1f'|format(task.variance_percentage) }}%</span></td>
+                <td class="py-2"><div class="flex items-center gap-2"><div class="flex-1 bg-gray-200 rounded-full h-1.5 w-20"><div class="bg-emerald-500 h-1.5 rounded-full" style="width: {{ task.progress }}%"></div></div><span class="text-xs text-gray-500">{{ task.progress }}%</span></div></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<!-- All tasks table -->
+<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6 overflow-x-auto">
+    <h3 class="text-base font-semibold text-gray-800 mb-4">Todas as Tarefas</h3>
+    <table class="min-w-full text-sm">
+        <thead>
+            <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-100">
+                <th class="pb-2 pr-4">Tarefa</th>
+                <th class="pb-2 pr-4">Início Prev.</th>
+                <th class="pb-2 pr-4">Fim Prev.</th>
+                <th class="pb-2 pr-4">Fim Real</th>
+                <th class="pb-2 pr-4">Variação (%)</th>
+                <th class="pb-2">Progresso</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50">
+            {% set all_tasks = analysis.tasks_by_severity.critical + analysis.tasks_by_severity.moderate + analysis.tasks_by_severity.minor + analysis.tasks_by_severity.on_track %}
+            {% for task in all_tasks | sort(attribute='variance_percentage', reverse=True) %}
+            <tr class="hover:bg-gray-50">
+                <td class="py-2.5 pr-4 font-medium text-gray-900">
+                    {% if task.pep_activity_id %}
+                    <a href="{{ url_for('pep.edit_activity', project_id=project.id, activity_id=task.pep_activity_id) }}"
+                       class="text-blue-600 hover:underline">{{ task.task_name }}</a>
+                    {% else %}
+                    {{ task.task_name }}
+                    {% endif %}
+                </td>
+                <td class="py-2.5 pr-4 text-gray-500">{{ task.planned_start or '—' }}</td>
+                <td class="py-2.5 pr-4 text-gray-500">{{ task.planned_end or '—' }}</td>
+                <td class="py-2.5 pr-4 {% if task.variance_percentage > 10 %}text-red-600 font-medium{% elif task.variance_percentage > 0 %}text-yellow-600{% else %}text-emerald-600{% endif %}">
+                    {{ task.actual_end or '—' }}
+                </td>
+                <td class="py-2.5 pr-4">
+                    {% if task.variance_percentage > 20 %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">{{ '%+.1f'|format(task.variance_percentage) }}%</span>
+                    {% elif task.variance_percentage > 10 %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">{{ '%+.1f'|format(task.variance_percentage) }}%</span>
+                    {% elif task.variance_percentage > 0 %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">{{ '%+.1f'|format(task.variance_percentage) }}%</span>
+                    {% else %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">{{ '%+.1f'|format(task.variance_percentage) }}%</span>
+                    {% endif %}
+                </td>
+                <td class="py-2.5">
+                    <div class="flex items-center gap-2">
+                        <div class="flex-1 bg-gray-200 rounded-full h-1.5 w-20">
+                            <div class="h-1.5 rounded-full {% if task.variance_percentage > 20 %}bg-red-500{% elif task.variance_percentage > 0 %}bg-yellow-500{% else %}bg-emerald-500{% endif %}" style="width: {{ task.progress }}%"></div>
+                        </div>
+                        <span class="text-xs text-gray-500">{{ task.progress }}%</span>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endif %}{# end if analysis.total_tasks > 0 #}
+
+{% if analysis.monthly_trend %}
+<script>
+(function() {
+    const labels = {{ analysis.monthly_trend | map(attribute='label') | list | tojson }};
+    const planned = {{ analysis.monthly_trend | map(attribute='planned_days') | list | tojson }};
+    const actual = {{ analysis.monthly_trend | map(attribute='actual_days') | list | tojson }};
+    const spiData = {{ analysis.monthly_trend | map(attribute='spi') | list | tojson }};
+
+    const ctx = document.getElementById('varianceTrendChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Planejado (dias)',
+                    data: planned,
+                    backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                    borderColor: 'rgb(59, 130, 246)',
+                    borderWidth: 1,
+                    yAxisID: 'y',
+                },
+                {
+                    label: 'Realizado (dias)',
+                    data: actual,
+                    backgroundColor: 'rgba(239, 68, 68, 0.5)',
+                    borderColor: 'rgb(239, 68, 68)',
+                    borderWidth: 1,
+                    yAxisID: 'y',
+                },
+                {
+                    label: 'SPI',
+                    data: spiData,
+                    type: 'line',
+                    borderColor: 'rgb(16, 185, 129)',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    fill: false,
+                    yAxisID: 'y1',
+                    tension: 0.3,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { position: 'top' },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) {
+                            if (ctx.datasetIndex === 2) {
+                                return `SPI: ${ctx.raw !== null ? ctx.raw.toFixed(3) : 'N/A'}`;
+                            }
+                            return `${ctx.dataset.label}: ${ctx.raw} dias`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: { display: true, text: 'Dias' },
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: { display: true, text: 'SPI' },
+                    grid: { drawOnChartArea: false },
+                    suggestedMin: 0,
+                    suggestedMax: 2,
+                }
+            }
+        }
+    });
+})();
+</script>
+{% endif %}
+{% endblock %}

@@ -95,6 +95,10 @@ class PEPActivity(db.Model):
     dependencies: str = db.Column(db.Text, nullable=True)
     start_date = db.Column(db.Date, nullable=True)
     end_date = db.Column(db.Date, nullable=True)
+    # Schedule sync fields
+    external_task_id: str = db.Column(db.String(64), nullable=True)
+    variance_percentage: Decimal = db.Column(db.Numeric(8, 2), nullable=True)
+    last_synced_at: datetime = db.Column(db.DateTime, nullable=True)
     created_at: datetime = db.Column(
         db.DateTime, default=lambda: datetime.now(timezone.utc)
     )
@@ -127,6 +131,9 @@ class PEPActivityLog(db.Model):
         db.Integer, db.ForeignKey('pep_activities.id', ondelete='CASCADE'), nullable=False
     )
     change_description: str = db.Column(db.Text, nullable=False)
+    old_value: str = db.Column(db.String(256), nullable=True)
+    new_value: str = db.Column(db.String(256), nullable=True)
+    sync_source: str = db.Column(db.String(32), nullable=True)  # 'eap' or 'schedule'
     created_by: int = db.Column(
         db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True
     )
