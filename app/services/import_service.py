@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from app import db
 from app.models.financial_budget import FinancialBudget, FinancialBudgetItem
 from app.models.import_log import ImportLog
+from app.models.schedule_sync import ScheduleImportRecord
 from app.models.task import Task
 from app.services.importers.ms_project_importer import MSProjectImporter
 from app.services.importers.primavera_importer import PrimaveraImporter
@@ -65,7 +66,7 @@ class ImportService:
             wbs_items = data.get('wbs_items', [])
             WBSService.bulk_create_wbs_items(project_id, created_by, wbs_items)
 
-            # Tasks
+            # Tasks and ScheduleImportRecords
             tasks_imported = 0
             for t in data.get('tasks', []):
                 if t.get('summary'):
@@ -81,6 +82,22 @@ class ImportService:
                     progress=int(t.get('percent_complete') or 0),
                 )
                 db.session.add(task)
+
+                # Store full record for EAP sync and variance analysis
+                record = ScheduleImportRecord(
+                    import_log_id=log.id,
+                    project_id=project_id,
+                    external_task_id=str(t.get('uid', '')) or None,
+                    task_name=t.get('name', 'Untitled'),
+                    planned_start=_parse_date(t.get('baseline_start') or t.get('start')),
+                    planned_end=_parse_date(t.get('baseline_finish') or t.get('finish')),
+                    actual_start=_parse_date(t.get('start')),
+                    actual_end=_parse_date(t.get('finish')),
+                    duration_hours=t.get('estimated_effort'),
+                    progress=int(t.get('percent_complete') or 0),
+                    is_summary=bool(t.get('summary', False)),
+                )
+                db.session.add(record)
                 tasks_imported += 1
 
             # Budget baseline
