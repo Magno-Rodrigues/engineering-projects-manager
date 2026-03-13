@@ -33,7 +33,15 @@ class PEPPhase(db.Model):
     )
 
     # Relationships
-    project = db.relationship('Project', backref=db.backref('pep_phases', lazy='dynamic'))
+    project = db.relationship(
+    'Project',
+    backref=db.backref(
+        'pep_phases',
+        lazy='dynamic',
+        cascade='all, delete-orphan',
+        passive_deletes=True
+    )
+)
     stages = db.relationship(
         'PEPStage', backref='phase', lazy='dynamic', cascade='all, delete-orphan'
     )
@@ -407,7 +415,15 @@ class PEPChangeLog(db.Model):
     )
 
     # Relationships
-    project = db.relationship('Project', backref=db.backref('pep_change_logs', lazy='dynamic'))
+    project = db.relationship(
+    'Project',
+    backref=db.backref(
+        'pep_change_logs',
+        lazy='dynamic',
+        cascade='all, delete-orphan',
+        passive_deletes=True
+    )
+)
     author = db.relationship('User', foreign_keys=[created_by], lazy='joined')
 
     def __repr__(self) -> str:
