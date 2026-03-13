@@ -16,6 +16,7 @@ from app.models.financial_budget import BUDGET_CATEGORIES, BUDGET_STATUSES
 from app.models.financial_transaction import TRANSACTION_TYPES, TRANSACTION_CATEGORIES, PAYMENT_STATUSES, PAYMENT_METHODS
 from app.services.cash_flow_service import CashFlowService
 from app.services.evm_analysis_service import EVMAnalysisService
+from app.services.import_service import ImportService
 from app.services.reporting_service import ReportingService
 from app.models.financial_scenario import FinancialScenario
 from app.models.financial_report import REPORT_TYPES, REPORT_FORMATS
@@ -584,10 +585,12 @@ def schedule_comparison(project_id: int):
     if project is None:
         return redirect(url_for('projects.index'))
     tasks_data = EVMAnalysisService.get_schedule_comparison(project_id)
+    import_logs = ImportService.get_import_logs(project_id)
     return render_template(
         'projects/financial/schedule_comparison.html',
         project=project,
         tasks_data=tasks_data,
+        import_logs=import_logs,
     )
 
 

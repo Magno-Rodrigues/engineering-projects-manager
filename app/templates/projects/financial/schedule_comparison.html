@@ -9,10 +9,74 @@
     <span class="text-gray-800 font-medium">Cronograma: Planejado x Realizado</span>
 </nav>
 
-<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
-    <h1 class="text-2xl font-bold text-gray-900">Cronograma: Planejado x Realizado</h1>
-    <p class="text-gray-500 text-sm mt-1">{{ project.name }} — comparação de progresso esperado vs avanço real por tarefa</p>
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div class="mb-4 space-y-2">
+{% for category, message in messages %}
+<div class="px-4 py-3 rounded-lg text-sm {% if category == 'error' %}bg-red-50 text-red-700 border border-red-200{% elif category == 'success' %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}bg-blue-50 text-blue-700 border border-blue-200{% endif %}">{{ message }}</div>
+{% endfor %}
 </div>
+{% endif %}
+{% endwith %}
+
+<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Cronograma: Planejado x Realizado</h1>
+            <p class="text-gray-500 text-sm mt-1">{{ project.name }} — comparação de progresso esperado vs avanço real por tarefa</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="{{ url_for('pep.alerts', project_id=project.id) }}"
+               class="inline-flex items-center gap-2 border border-gray-300 hover:border-gray-400 text-gray-600 hover:text-gray-800 text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                Ver Alertas
+            </a>
+            <a href="{{ url_for('pep.variance_analysis', project_id=project.id) }}"
+               class="inline-flex items-center gap-2 border border-gray-300 hover:border-gray-400 text-gray-600 hover:text-gray-800 text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                Análise de Variação
+            </a>
+        </div>
+    </div>
+</div>
+
+{% set success_logs = import_logs | selectattr('status', 'equalto', 'success') | list if import_logs else [] %}
+{% if success_logs %}
+<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-base font-semibold text-gray-900">Importações Disponíveis para o EAP</h2>
+        <a href="{{ url_for('import.index', project_id=project.id) }}"
+           class="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Nova Importação
+        </a>
+    </div>
+    <div class="space-y-3">
+        {% for log in success_logs %}
+        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="h-9 w-9 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                </div>
+                <div class="min-w-0">
+                    <div class="font-medium text-gray-900 text-sm truncate">{{ log.file_name }}</div>
+                    <div class="text-xs text-gray-500 mt-0.5">
+                        {% if log.import_type == 'ms_project' %}MS Project{% else %}Primavera P6{% endif %}
+                        · {{ log.total_tasks_imported }} tarefa(s) · {{ log.created_at.strftime('%d/%m/%Y %H:%M') }}
+                    </div>
+                </div>
+            </div>
+            <button type="button"
+                    onclick="openImportToEapModal({{ log.id }}, '{{ log.file_name }}', {{ log.total_tasks_imported }})"
+                    class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors flex-shrink-0 ml-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                Importar para EAP
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
 
 {% if tasks_data %}
 <!-- Summary cards -->
@@ -97,4 +161,61 @@
     <p class="text-sm text-gray-400 mt-1">Cadastre tarefas com data de início e fim planejados para visualizar o comparativo.</p>
 </div>
 {% endif %}
+
+<!-- Import to EAP Confirmation Modal -->
+<div id="importToEapModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+        <div class="flex items-start gap-4 mb-4">
+            <div class="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+            </div>
+            <div>
+                <h3 class="text-base font-semibold text-gray-900">Importar para EAP</h3>
+                <p class="text-sm text-gray-500 mt-1">As tarefas importadas serão criadas como atividades no EAP do projeto.</p>
+            </div>
+        </div>
+        <div class="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-5 text-sm text-blue-800">
+            <strong>Resumo:</strong>
+            <ul class="mt-1 ml-3 list-disc text-xs text-blue-700 space-y-0.5">
+                <li>Arquivo: <span id="modalFileName" class="font-medium"></span></li>
+                <li>Tarefas a importar: <span id="modalTaskCount" class="font-medium"></span></li>
+                <li>Será criada 1 Fase e 1 Etapa no EAP</li>
+                <li>Cada tarefa será uma atividade independente</li>
+            </ul>
+        </div>
+        <form id="importToEapForm" method="post" action="{{ url_for('pep.import_from_schedule', project_id=project.id) }}">
+            <input type="hidden" name="import_log_id" id="modalImportLogId">
+            <div class="flex items-center gap-3 justify-end">
+                <button type="button" onclick="closeImportToEapModal()"
+                        class="text-sm text-gray-600 hover:text-gray-800 font-medium px-4 py-2 border border-gray-300 rounded-lg transition-colors">
+                    Cancelar
+                </button>
+                <button type="submit"
+                        class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Confirmar Importação
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openImportToEapModal(logId, fileName, taskCount) {
+    document.getElementById('modalImportLogId').value = logId;
+    document.getElementById('modalFileName').textContent = fileName;
+    document.getElementById('modalTaskCount').textContent = taskCount;
+    document.getElementById('importToEapModal').classList.remove('hidden');
+}
+function closeImportToEapModal() {
+    document.getElementById('importToEapModal').classList.add('hidden');
+}
+document.getElementById('importToEapModal').addEventListener('click', function(e) {
+    if (e.target === this) closeImportToEapModal();
+});
+</script>
 {% endblock %}

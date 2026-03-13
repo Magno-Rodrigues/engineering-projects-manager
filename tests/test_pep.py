@@ -279,3 +279,41 @@ class TestPEPRoutes:
             risk = PEPRisk.query.filter_by(project_id=project_id, description='Test risk description').first()
             assert risk is not None
             assert risk.risk_level == 12
+
+    def test_pep_alerts_returns_200(self, client, app, db):
+        """Alerts page returns 200 for authenticated user."""
+        project_id = self._login(client, app, db)
+        if project_id is None:
+            pytest.skip('Could not create project for route test')
+        resp = client.get(f'/projects/{project_id}/pep/alerts')
+        assert resp.status_code == 200
+
+    def test_pep_variance_analysis_returns_200(self, client, app, db):
+        """Variance analysis page returns 200 for authenticated user."""
+        project_id = self._login(client, app, db)
+        if project_id is None:
+            pytest.skip('Could not create project for route test')
+        resp = client.get(f'/projects/{project_id}/pep/variance-analysis')
+        assert resp.status_code == 200
+
+    def test_pep_activity_sync_history_returns_json(self, client, app, db):
+        """Sync history endpoint returns JSON for a valid activity."""
+        from app.models.pep import PEPPhase, PEPStage, PEPActivity
+        project_id = self._login(client, app, db)
+        if project_id is None:
+            pytest.skip('Could not create project for route test')
+        with app.app_context():
+            phase = PEPPhase(project_id=project_id, name='SyncPhase', sequence=1)
+            db.session.add(phase)
+            db.session.flush()
+            stage = PEPStage(phase_id=phase.id, name='SyncStage', sequence=1)
+            db.session.add(stage)
+            db.session.flush()
+            activity = PEPActivity(stage_id=stage.id, name='SyncActivity')
+            db.session.add(activity)
+            db.session.commit()
+            activity_id = activity.id
+        resp = client.get(f'/projects/{project_id}/pep/activity/{activity_id}/sync-history')
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert isinstance(data, list)
