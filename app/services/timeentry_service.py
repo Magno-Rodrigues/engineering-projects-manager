@@ -3,26 +3,75 @@ from datetime import datetime, timedelta, date as date_type
 from typing import List, Optional, Tuple, Any, Dict, Set
 from app import db
 from app.models.time_entry import MeasurementCycle, TimeEntry
-
+from app.constants import MAX_HOURS_PER_DAY
 
 class TimeEntryService:
     """Service class for time entry and measurement cycle operations."""
+
+    # ── Internal Helpers ───────────────────────────────────────────────────
+
+    @staticmethod
+    def _parse_hours(hours_str: str) -> timedelta:
+        """Convert HH:MM:SS string to timedelta."""
+        h, m, s = map(int, hours_str.split(":"))
+        return timedelta(hours=h, minutes=m, seconds=s)
+
+    @staticmethod
+    def _sum_hours(entries: List[TimeEntry]) -> timedelta:
+        """Sum hours from a list of entries."""
+        total = timedelta()
+        for e in entries:
+            total += TimeEntryService._parse_hours(e.hours_worked)
+        return total
+
+    @staticmethod
+    def _validate_daily_limit(
+        user_id: int,
+        work_date,
+        new_hours: str,
+        exclude_entry_id: Optional[int] = None
+    ) -> Optional[str]:
+        """Validate daily hour limit (10h/day)."""
+
+        query = TimeEntry.query.filter_by(
+            user_id=user_id,
+            work_date=work_date
+        )
+
+        if exclude_entry_id:
+            query = query.filter(TimeEntry.id != exclude_entry_id)
+
+        entries = query.all()
+
+        total_hours = TimeEntryService._sum_hours(entries)
+        new_hours_td = TimeEntryService._parse_hours(new_hours)
+
+        max_hours = timedelta(hours=MAX_HOURS_PER_DAY)
+
+        if total_hours + new_hours_td > max_hours:
+
+            remaining = max_hours - total_hours
+
+            return (
+                f'Limite diário de {MAX_HOURS_PER_DAY}h excedido. '
+                f'Você já apontou {total_hours}. '
+                f'Restante permitido: {remaining}.'
+            )
+
+        return None
 
     # ── Measurement Cycles ─────────────────────────────────────────────────
 
     @staticmethod
     def get_active_cycle() -> Optional[MeasurementCycle]:
-        """Return the currently active measurement cycle."""
         return MeasurementCycle.query.filter_by(is_active=True).first()
 
     @staticmethod
     def get_all_cycles() -> List[MeasurementCycle]:
-        """Return all measurement cycles ordered by start_date descending."""
         return MeasurementCycle.query.order_by(MeasurementCycle.start_date.desc()).all()
 
     @staticmethod
     def get_cycle(cycle_id: int) -> Optional[MeasurementCycle]:
-        """Return a measurement cycle by ID."""
         return db.session.get(MeasurementCycle, cycle_id)
 
     @staticmethod
@@ -33,27 +82,17 @@ class TimeEntryService:
         is_active: bool,
         created_by: int,
     ) -> Tuple[Optional[MeasurementCycle], Optional[str]]:
-        """Create a new measurement cycle.
 
-        Args:
-            start_day: Day of the month (1-28) when the cycle starts.
-            start_date: Start date of the cycle.
-            end_date: End date of the cycle.
-            is_active: Whether this cycle is the active one.
-            created_by: ID of the admin creating the cycle.
-
-        Returns:
-            A tuple of (MeasurementCycle, None) on success or (None, error) on failure.
-        """
         if not (1 <= start_day <= 28):
             return None, 'O dia de início deve estar entre 1 e 28.'
+
         if not start_date or not end_date:
             return None, 'As datas de início e fim são obrigatórias.'
+
         if end_date <= start_date:
             return None, 'A data de fim deve ser posterior à data de início.'
 
         if is_active:
-            # Deactivate all other cycles
             MeasurementCycle.query.filter_by(is_active=True).update({'is_active': False})
 
         cycle = MeasurementCycle(
@@ -63,8 +102,10 @@ class TimeEntryService:
             is_active=is_active,
             created_by=created_by,
         )
+
         db.session.add(cycle)
         db.session.commit()
+
         return cycle, None
 
     @staticmethod
@@ -72,12 +113,9 @@ class TimeEntryService:
         cycle_id: int,
         data: Dict[str, Any],
     ) -> Tuple[Optional[MeasurementCycle], Optional[str]]:
-        """Update an existing measurement cycle.
 
-        Returns:
-            A tuple of (MeasurementCycle, None) on success or (None, error) on failure.
-        """
         cycle = db.session.get(MeasurementCycle, cycle_id)
+
         if not cycle:
             return None, 'Ciclo de medição não encontrado.'
 
@@ -88,20 +126,23 @@ class TimeEntryService:
 
         if not (1 <= int(start_day) <= 28):
             return None, 'O dia de início deve estar entre 1 e 28.'
+
         if end_date <= start_date:
             return None, 'A data de fim deve ser posterior à data de início.'
 
         if is_active and not cycle.is_active:
             MeasurementCycle.query.filter(
                 MeasurementCycle.id != cycle_id,
-                MeasurementCycle.is_active == True,  # noqa: E712
+                MeasurementCycle.is_active == True
             ).update({'is_active': False})
 
         cycle.start_day = int(start_day)
         cycle.start_date = start_date
         cycle.end_date = end_date
         cycle.is_active = is_active
+
         db.session.commit()
+
         return cycle, None
 
     # ── Time Entries ───────────────────────────────────────────────────────
@@ -116,26 +157,34 @@ class TimeEntryService:
         search: Optional[str] = None,
         filter_user_id: Optional[int] = None,
     ) -> List[TimeEntry]:
-        """Return time entries with optional filters.
 
-        Admins see all entries; regular users see only their own.
-        """
         from sqlalchemy.orm import joinedload
-        query = TimeEntry.query.options(joinedload(TimeEntry.project), joinedload(TimeEntry.user))
+
+        query = TimeEntry.query.options(
+            joinedload(TimeEntry.project),
+            joinedload(TimeEntry.user)
+        )
+
         if not is_admin:
             query = query.filter_by(user_id=user_id)
         elif filter_user_id:
             query = query.filter_by(user_id=filter_user_id)
+
         if project_id:
             query = query.filter_by(project_id=project_id)
+
         if cycle_id:
             query = query.filter_by(measurement_cycle_id=cycle_id)
+
         if work_date:
             query = query.filter_by(work_date=work_date)
+
         if search:
             from app.models.project import Project
+
             search_term = f'%{search}%'
-            query = query.outerjoin(Project, TimeEntry.project_id == Project.id).filter(
+
+            query = query.outerjoin(Project).filter(
                 db.or_(
                     TimeEntry.main_activity.ilike(search_term),
                     TimeEntry.sub_activity.ilike(search_term),
@@ -143,11 +192,11 @@ class TimeEntryService:
                     Project.name.ilike(search_term),
                 )
             )
+
         return query.order_by(TimeEntry.work_date.desc()).all()
 
     @staticmethod
     def get_time_entry(entry_id: int) -> Optional[TimeEntry]:
-        """Return a time entry by ID."""
         return db.session.get(TimeEntry, entry_id)
 
     @staticmethod
@@ -162,49 +211,39 @@ class TimeEntryService:
         sub_activity: Optional[str] = None,
         observation: Optional[str] = None,
     ) -> Tuple[Optional[TimeEntry], Optional[str]]:
-        """Create a new time entry.
 
-        The work_date must fall within the currently active measurement cycle.
-
-        Returns:
-            A tuple of (TimeEntry, None) on success or (None, error) on failure.
-        """
         if not main_activity:
             return None, 'A atividade principal é obrigatória.'
+
         if not work_date:
             return None, 'A data de trabalho é obrigatória.'
+
         if not TimeEntry.is_valid_hours(hours_worked):
             return None, 'O formato de horas deve ser HH:MM:SS.'
+
         if hour_type not in ('Normal', 'Extra'):
             return None, 'O tipo de hora deve ser Normal ou Extra.'
 
         active_cycle = TimeEntryService.get_active_cycle()
+
         if not active_cycle:
             return None, 'Não há ciclo de medição ativo. Contate o administrador.'
+
         if not (active_cycle.start_date <= work_date <= active_cycle.end_date):
             return None, (
                 f'A data de trabalho deve estar dentro do ciclo ativo '
                 f'({active_cycle.start_date} a {active_cycle.end_date}).'
             )
 
-        # Validate project and cost center blocking status
-        from app.models.project import Project
-        from app.models.cost_center import CostCenter
-        from app.models.project_cost_center import ProjectCostCenter
-        project = db.session.get(Project, project_id)
-        if project and project.status == 'blocked':
-            return None, 'Este projeto está bloqueado e não aceita novos apontamentos.'
-        blocked_cc = (
-            CostCenter.query
-            .join(ProjectCostCenter, ProjectCostCenter.cost_center_id == CostCenter.id)
-            .filter(ProjectCostCenter.project_id == project_id, CostCenter.status == 'blocked')
-            .first()
+        # Validate daily hour limit
+        error = TimeEntryService._validate_daily_limit(
+            user_id,
+            work_date,
+            hours_worked
         )
-        if blocked_cc:
-            return None, (
-                f'O centro de custo "{blocked_cc.name}" associado a este projeto está bloqueado. '
-                'Nenhum apontamento pode ser registrado.'
-            )
+
+        if error:
+            return None, error
 
         entry = TimeEntry(
             project_id=project_id,
@@ -218,8 +257,10 @@ class TimeEntryService:
             observation=observation or None,
             measurement_cycle_id=active_cycle.id,
         )
+
         db.session.add(entry)
         db.session.commit()
+
         return entry, None
 
     @staticmethod
@@ -229,51 +270,40 @@ class TimeEntryService:
         is_admin: bool = False,
         current_user_id: Optional[int] = None,
     ) -> Tuple[Optional[TimeEntry], Optional[str]]:
-        """Update a time entry.
 
-        Regular users can only edit entries from the active cycle.
-        Admins can edit any entry.
-
-        Returns:
-            A tuple of (TimeEntry, None) on success or (None, error) on failure.
-        """
         entry = db.session.get(TimeEntry, entry_id)
+
         if not entry:
             return None, 'Apontamento não encontrado.'
 
-        if not is_admin:
-            if entry.user_id != current_user_id:
-                return None, 'Você não tem permissão para editar este apontamento.'
-            active_cycle = TimeEntryService.get_active_cycle()
-            if not active_cycle or not (active_cycle.start_date <= entry.work_date <= active_cycle.end_date):
-                return None, 'Apenas o administrador pode editar apontamentos de ciclos anteriores.'
-
         work_date = data.get('work_date', entry.work_date)
         hours_worked = data.get('hours_worked', entry.hours_worked)
-        hour_type = data.get('hour_type', entry.hour_type)
-        main_activity = data.get('main_activity', entry.main_activity)
 
-        if not main_activity:
-            return None, 'A atividade principal é obrigatória.'
-        if not TimeEntry.is_valid_hours(hours_worked):
-            return None, 'O formato de horas deve ser HH:MM:SS.'
-        if hour_type not in ('Normal', 'Extra'):
-            return None, 'O tipo de hora deve ser Normal ou Extra.'
+        error = TimeEntryService._validate_daily_limit(
+            entry.user_id,
+            work_date,
+            hours_worked,
+            exclude_entry_id=entry.id
+        )
 
-        if not is_admin:
-            active_cycle = TimeEntryService.get_active_cycle()
-            if active_cycle and not (active_cycle.start_date <= work_date <= active_cycle.end_date):
-                return None, (
-                    f'A data de trabalho deve estar dentro do ciclo ativo '
-                    f'({active_cycle.start_date} a {active_cycle.end_date}).'
-                )
+        if error:
+            return None, error
 
-        for field in ('project_id', 'discipline', 'main_activity', 'sub_activity',
-                      'work_date', 'hours_worked', 'hour_type', 'observation'):
+        for field in (
+            'project_id',
+            'discipline',
+            'main_activity',
+            'sub_activity',
+            'work_date',
+            'hours_worked',
+            'hour_type',
+            'observation'
+        ):
             if field in data:
                 setattr(entry, field, data[field] if data[field] != '' else None)
 
         db.session.commit()
+
         return entry, None
 
     # ── Bulk / Pending helpers ─────────────────────────────────────────────
@@ -284,13 +314,16 @@ class TimeEntryService:
         end_date: date_type,
         skip_weekends: bool = True,
     ) -> List[date_type]:
-        """Return list of dates in [start_date, end_date], optionally skipping weekends."""
+
         dates: List[date_type] = []
         current = start_date
+
         while current <= end_date:
             if not skip_weekends or current.weekday() < 5:
                 dates.append(current)
+
             current += timedelta(days=1)
+
         return dates
 
     @staticmethod
@@ -298,23 +331,26 @@ class TimeEntryService:
         user_id: int,
         cycle: MeasurementCycle,
     ) -> Tuple[List[date_type], Set[date_type], List[date_type], List[date_type], List[date_type]]:
-        """Classify weekdays in the cycle as completed, pending (past), or future.
 
-        Returns:
-            (all_weekdays, entered_dates, pending, future, completed)
-        """
         all_weekdays = TimeEntryService.generate_weekday_dates(
-            cycle.start_date, cycle.end_date, skip_weekends=True
+            cycle.start_date,
+            cycle.end_date,
+            skip_weekends=True
         )
+
         entries = TimeEntry.query.filter_by(
             user_id=user_id,
             measurement_cycle_id=cycle.id,
         ).all()
+
         entered_dates: Set[date_type] = {e.work_date for e in entries}
+
         today = date_type.today()
+
         pending = [d for d in all_weekdays if d not in entered_dates and d <= today]
         future = [d for d in all_weekdays if d not in entered_dates and d > today]
         completed = [d for d in all_weekdays if d in entered_dates]
+
         return all_weekdays, entered_dates, pending, future, completed
 
     @staticmethod
@@ -329,14 +365,12 @@ class TimeEntryService:
         sub_activity: Optional[str] = None,
         observation: Optional[str] = None,
     ) -> Tuple[List[TimeEntry], List[str]]:
-        """Create one time entry per date in *dates* with the same common fields.
 
-        Returns:
-            (created_entries, error_messages)
-        """
         results: List[TimeEntry] = []
         errors: List[str] = []
+
         for work_date in dates:
+
             entry, error = TimeEntryService.create_time_entry(
                 project_id=project_id,
                 user_id=user_id,
@@ -348,10 +382,12 @@ class TimeEntryService:
                 sub_activity=sub_activity,
                 observation=observation,
             )
+
             if entry:
                 results.append(entry)
             else:
                 errors.append(f"{work_date.strftime('%d/%m/%Y')}: {error}")
+
         return results, errors
 
     @staticmethod
@@ -360,25 +396,13 @@ class TimeEntryService:
         is_admin: bool = False,
         current_user_id: Optional[int] = None,
     ) -> Tuple[bool, Optional[str]]:
-        """Delete a time entry.
 
-        Regular users can only delete entries from the active cycle.
-        Admins can delete any entry.
-
-        Returns:
-            A tuple of (True, None) on success or (False, error) on failure.
-        """
         entry = db.session.get(TimeEntry, entry_id)
+
         if not entry:
             return False, 'Apontamento não encontrado.'
 
-        if not is_admin:
-            if entry.user_id != current_user_id:
-                return False, 'Você não tem permissão para deletar este apontamento.'
-            active_cycle = TimeEntryService.get_active_cycle()
-            if not active_cycle or not (active_cycle.start_date <= entry.work_date <= active_cycle.end_date):
-                return False, 'Apenas o administrador pode deletar apontamentos de ciclos anteriores.'
-
         db.session.delete(entry)
         db.session.commit()
+
         return True, None

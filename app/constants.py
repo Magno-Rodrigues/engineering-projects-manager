@@ -148,3 +148,16 @@ PROJECT_STATUS = ['planning', 'in_progress', 'on_hold', 'completed', 'cancelled'
 PROJECT_PRIORITY = ['low', 'medium', 'high', 'critical']
 
 PROJECT_CATEGORIES = ['Infrastructure', 'Software', 'Hardware', 'Consulting', 'Other']
+
+# ---------------------------------------------------------------------------
+# Time Entry / Apontamentos
+# ---------------------------------------------------------------------------
+
+# Maximum hours allowed per user per day
+MAX_HOURS_PER_DAY = 10
+
+# Default hour types used in time entries
+HOUR_TYPES = [
+    'Normal',
+    'Extra',
+]
