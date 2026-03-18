@@ -45,13 +45,34 @@ def upgrade():
     sa.UniqueConstraint('user_id', 'module_name', name='uq_user_module')
     )
 
-    # Fresh databases may not have these legacy index names; make this step idempotent.
-    op.execute("DROP INDEX IF EXISTS idx_password_reset_tokens_token")
-    op.execute("DROP INDEX IF EXISTS idx_password_reset_tokens_user_id")
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    has_password_reset_tokens = 'password_reset_tokens' in inspector.get_table_names()
 
-    with op.batch_alter_table('password_reset_tokens', schema=None) as batch_op:
-        batch_op.drop_constraint(batch_op.f('password_reset_token_user_id_fkey'), type_='foreignkey')
-        batch_op.create_foreign_key(None, 'users', ['user_id'], ['id'])
+    if not has_password_reset_tokens:
+        # Some environments created the base schema without this table.
+        op.create_table(
+            'password_reset_tokens',
+            sa.Column('id', sa.Integer(), nullable=False),
+            sa.Column('user_id', sa.Integer(), nullable=False),
+            sa.Column('token', sa.String(length=255), nullable=False),
+            sa.Column('created_at', sa.DateTime(), nullable=True),
+            sa.Column('expires_at', sa.DateTime(), nullable=False),
+            sa.Column('used', sa.Boolean(), nullable=True),
+            sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+            sa.PrimaryKeyConstraint('id'),
+            sa.UniqueConstraint('token'),
+        )
+        op.create_index('idx_password_reset_tokens_user_id', 'password_reset_tokens', ['user_id'], unique=False)
+        op.create_index('idx_password_reset_tokens_token', 'password_reset_tokens', ['token'], unique=True)
+    else:
+        # Fresh databases may not have these legacy index names; make this step idempotent.
+        op.execute("DROP INDEX IF EXISTS idx_password_reset_tokens_token")
+        op.execute("DROP INDEX IF EXISTS idx_password_reset_tokens_user_id")
+
+        with op.batch_alter_table('password_reset_tokens', schema=None) as batch_op:
+            batch_op.drop_constraint(batch_op.f('password_reset_token_user_id_fkey'), type_='foreignkey')
+            batch_op.create_foreign_key(None, 'users', ['user_id'], ['id'])
 
     with op.batch_alter_table('users', schema=None) as batch_op:
         batch_op.alter_column('status',
