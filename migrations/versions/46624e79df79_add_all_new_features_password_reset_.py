@@ -44,9 +44,12 @@ def upgrade():
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('user_id', 'module_name', name='uq_user_module')
     )
+
+    # Fresh databases may not have these legacy index names; make this step idempotent.
+    op.execute("DROP INDEX IF EXISTS idx_password_reset_tokens_token")
+    op.execute("DROP INDEX IF EXISTS idx_password_reset_tokens_user_id")
+
     with op.batch_alter_table('password_reset_tokens', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('idx_password_reset_tokens_token'))
-        batch_op.drop_index(batch_op.f('idx_password_reset_tokens_user_id'))
         batch_op.drop_constraint(batch_op.f('password_reset_token_user_id_fkey'), type_='foreignkey')
         batch_op.create_foreign_key(None, 'users', ['user_id'], ['id'])
 
