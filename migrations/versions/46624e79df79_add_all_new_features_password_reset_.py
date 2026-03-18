@@ -74,24 +74,66 @@ def upgrade():
             batch_op.drop_constraint(batch_op.f('password_reset_token_user_id_fkey'), type_='foreignkey')
             batch_op.create_foreign_key(None, 'users', ['user_id'], ['id'])
 
-    with op.batch_alter_table('users', schema=None) as batch_op:
-        batch_op.alter_column('status',
-               existing_type=sa.VARCHAR(length=32),
-               nullable=False,
-               existing_server_default=sa.text("'Ativo'::character varying"))
-        batch_op.alter_column('permissions',
-               existing_type=postgresql.JSONB(astext_type=sa.Text()),
-               type_=sa.JSON(),
-               existing_nullable=True)
-        batch_op.alter_column('first_login',
-               existing_type=sa.BOOLEAN(),
-               nullable=False,
-               existing_server_default=sa.text('true'))
-        batch_op.alter_column('password_reset_required',
-               existing_type=sa.BOOLEAN(),
-               nullable=False,
-               existing_server_default=sa.text('true'))
-        batch_op.create_index(batch_op.f('ix_users_key'), ['key'], unique=True)
+    # The initial migration in this repo creates a minimal users table. On a fresh DB,
+    # these newer columns do not exist yet, so we add them before altering.
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    user_cols = {c["name"] for c in inspector.get_columns("users")}
+
+    if "status" not in user_cols:
+        op.add_column(
+            "users",
+            sa.Column("status", sa.String(length=32), nullable=False, server_default=sa.text("'Ativo'")),
+        )
+    if "permissions" not in user_cols:
+        op.add_column("users", sa.Column("permissions", sa.JSON(), nullable=True))
+    if "first_login" not in user_cols:
+        op.add_column(
+            "users",
+            sa.Column("first_login", sa.Boolean(), nullable=False, server_default=sa.text("true")),
+        )
+    if "password_reset_required" not in user_cols:
+        op.add_column(
+            "users",
+            sa.Column("password_reset_required", sa.Boolean(), nullable=False, server_default=sa.text("false")),
+        )
+    if "key" not in user_cols:
+        op.add_column("users", sa.Column("key", sa.String(length=64), nullable=True))
+
+    # Re-introspect after potential adds.
+    user_cols = {c["name"] for c in inspector.get_columns("users")}
+
+    with op.batch_alter_table("users", schema=None) as batch_op:
+        if "status" in user_cols:
+            batch_op.alter_column(
+                "status",
+                existing_type=sa.VARCHAR(length=32),
+                nullable=False,
+                existing_server_default=sa.text("'Ativo'::character varying"),
+            )
+        # Some DBs may have JSONB; if not present, we already created JSON above.
+        if "permissions" in user_cols:
+            batch_op.alter_column(
+                "permissions",
+                type_=sa.JSON(),
+                existing_nullable=True,
+            )
+        if "first_login" in user_cols:
+            batch_op.alter_column(
+                "first_login",
+                existing_type=sa.BOOLEAN(),
+                nullable=False,
+                existing_server_default=sa.text("true"),
+            )
+        if "password_reset_required" in user_cols:
+            batch_op.alter_column(
+                "password_reset_required",
+                existing_type=sa.BOOLEAN(),
+                nullable=False,
+                existing_server_default=sa.text("false"),
+            )
+        if "key" in user_cols:
+            batch_op.create_index(batch_op.f("ix_users_key"), ["key"], unique=True)
 
     # ### end Alembic commands ###
 
