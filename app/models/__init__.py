@@ -1,4 +1,5 @@
 """Models package."""
+from app.models.financial_scenario import FinancialScenario
 from app.models.user import User
 from app.models.project import Project
 from app.models.task import Task
@@ -33,10 +34,10 @@ __all__ = [
     'MeasurementCycle', 'TimeEntry',
     'Supplier', 'CostCenter',
     'FinancialBudget', 'FinancialBudgetItem',
-    'FinancialTransaction', 'FinancialEarnedValue',
+    'FinancialTransaction', 'FinancialEarnedValue', 'FinancialScenario',
     'PEPPhase', 'PEPStage', 'PEPActivity', 'PEPActivityLog',
     'PEPRisk', 'PEPRiskLog',
     'PEPResourceAllocation', 'PEPResourceCapacity',
     'PEPBaseline', 'PEPVariation',
-    'PEPDecisionLog', 'PEPChangeLog', 'PEPComment',
+    'PEPDecisionLog', 'PEPChangeLog', 'PEPComment', 
 ]

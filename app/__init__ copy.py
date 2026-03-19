@@ -15,10 +15,18 @@ mail = Mail()
 
 
 def create_app(config_name: str = 'default') -> Flask:
+    """Create and configure the Flask application.
+
+    Args:
+        config_name: The configuration environment name.
+
+    Returns:
+        The configured Flask application instance.
+    """
     app = Flask(__name__)
     app.config.from_object(config[config_name])
 
-    # Logging
+    # Configure structured logging
     log_level = getattr(logging, app.config.get('LOG_LEVEL', 'INFO').upper(), logging.INFO)
     logging.basicConfig(
         level=log_level,
@@ -26,27 +34,26 @@ def create_app(config_name: str = 'default') -> Flask:
         datefmt='%Y-%m-%d %H:%M:%S',
     )
 
-    # Extensions
+    # Initialize extensions
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
     mail.init_app(app)
 
-    # IMPORTANTE: carregar models para o Alembic
-    with app.app_context():
-        from app import models
-
-        if config_name != 'testing':
+    # Initialize default modules (skip during testing)
+    if config_name != 'testing':
+        with app.app_context():
             try:
                 from app.utils.init_modules import init_default_modules
                 init_default_modules()
             except Exception as e:
-                app.logger.warning(f"init_default_modules error: {str(e)}")
+                app.logger.warning(f"Could not initialize default modules: {str(e)}")
 
-    # Context processor
+    # Context processor: inject user_can() helper into all templates
     @app.context_processor
     def inject_user_can():
         def user_can(module: str, action: str) -> bool:
+            """Return True if the current user can perform action on module."""
             if not current_user.is_authenticated:
                 return False
             if current_user.role == 'admin':
@@ -55,7 +62,7 @@ def create_app(config_name: str = 'default') -> Flask:
             return PermissionService.can_perform_action(current_user.id, module, action)
         return dict(user_can=user_can)
 
-    # Blueprints
+    # Register blueprints
     from app.routes.main import main_bp
     from app.routes.auth import auth_bp
     from app.routes.projects import projects_bp
@@ -71,9 +78,6 @@ def create_app(config_name: str = 'default') -> Flask:
     from app.routes.timeentry import timeentry_bp
     from app.routes.financial import financial_bp
     from app.routes.import_routes import import_bp
-    from app.routes.financial_api import financial_api_bp
-    from app.routes.pep import pep_bp
-    from app.commands import cli_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
@@ -89,9 +93,12 @@ def create_app(config_name: str = 'default') -> Flask:
     app.register_blueprint(pmbok_bp)
     app.register_blueprint(timeentry_bp)
     app.register_blueprint(financial_bp)
+    from app.routes.financial_api import financial_api_bp
     app.register_blueprint(financial_api_bp)
     app.register_blueprint(import_bp)
+    from app.routes.pep import pep_bp
     app.register_blueprint(pep_bp)
+    from app.commands import cli_bp
     app.register_blueprint(cli_bp)
 
     return app
