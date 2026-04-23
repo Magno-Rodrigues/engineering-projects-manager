@@ -1,210 +1,186 @@
-# Engineering Projects Manager
+# 🚀 Engineering Projects Manager
 
-A professional Flask application for managing engineering projects, tasks, and reports.
+> Full-stack platform for engineering project management, financial control, and performance analysis
+> Built in **20 days using AI-assisted development (vibe coding)**
 
-## ✅ Project Stability
+---
 
-> **Audit Status: STABLE** — The `main` branch has been audited and confirmed stable.
->
-> All core modules (authentication, projects, tasks, reports, financial, API) are tested and functional.
-> Database migrations are up to date. Dependencies are pinned and free of known vulnerabilities.
-> The project is ready for local setup and development.
+## ⚡ TL;DR
 
-## 🚀 Features
+* 🧠 Built with **AI-assisted workflow + manual engineering validation**
+* 🏗️ Complex domain: **projects, finance, EVM, imports**
+* 🔐 Multi-user system with **RBAC permissions**
+* 📊 Advanced features: **financial scenarios, cost tracking, reporting**
+* 🧪 Tested (unit + integration)
+* 🌐 Running locally and deployed
 
-- Project management (create, edit, delete, track status)
-- Task management per project with priority levels
-- Report generation per project
-- User authentication (register, login, logout)
-- RESTful JSON API endpoints
-- Role-based access control
+---
+
+## 🎯 Why this project matters
+
+This is not a CRUD app.
+
+It simulates a **real-world engineering management system**, including:
+
+* Financial planning and tracking
+* Earned Value Management (EVM)
+* Scenario simulation for decision-making
+* Integration with external tools (MS Project / Primavera)
+
+---
+
+## 🧠 Development Approach: Vibe Coding
+
+This project was built using an AI-assisted workflow:
+
+```text
+AI generates → I validate → I fix → I refactor → I evolve
+```
+
+✔ AI accelerated development
+✔ Human decisions ensured correctness and architecture
+
+> Result: fast delivery without sacrificing engineering quality
+
+---
 
 ## 🏗️ Architecture
 
+Layered architecture:
+
 ```
-app/
-├── __init__.py          # Application factory
-├── models/              # SQLAlchemy database models
-├── routes/              # Flask Blueprints
-├── services/            # Business logic layer
-├── static/              # CSS, JS, images
-├── templates/           # Jinja2 HTML templates
-└── utils/               # Decorators and helpers
-```
-
-## ⚙️ Setup
-
-### Prerequisites
-
-- Python 3.11+
-- PostgreSQL 15+
-- pip
-
-### Local Development
-
-1. **Clone the repository and check out the main branch**
-   ```bash
-   git clone https://github.com/Magno-Rodrigues/engineering-projects-manager.git
-   cd engineering-projects-manager
-
-   # Fetch all remote branches and tags
-   git fetch --all
-
-   # Ensure you are on the stable main branch
-   git checkout main
-   git pull origin main
-   ```
-
-2. **Create and activate a virtual environment**
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-3. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Configure environment variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your settings
-   ```
-
-   The `.env.example` file is pre-configured for local development (`ENV=development`).
-   Update `DATABASE_URL` to point to your local PostgreSQL instance, for example:
-   ```
-   DATABASE_URL=postgresql://postgres:postgres@localhost:5432/engineering_projects
-   ```
-
-5. **Create the PostgreSQL database**
-   ```bash
-   psql -U postgres -c "CREATE DATABASE engineering_projects;"
-   ```
-
-6. **Apply database migrations**
-   ```bash
-   flask db upgrade
-   ```
-
-   > **Note:** The `migrations/` folder already contains all migrations.
-   > Run `flask db upgrade` (not `flask db init`) to apply them to your database.
-
-7. **Run the application**
-   ```bash
-   flask run
-   ```
-
-   The application will be available at `http://localhost:5000`.
-
-### Docker
-
-Run the full stack with Docker Compose (no local PostgreSQL required):
-
-```bash
-docker-compose up --build
+Models (SQLAlchemy)
+   ↓
+Services (Business Logic)
+   ↓
+Routes (HTTP Layer)
 ```
 
-After the containers start, apply the migrations:
+### Key Design Decisions
 
-```bash
-docker-compose exec web flask db upgrade
-```
+* Separation of concerns (services vs routes)
+* Modular financial domain
+* RBAC (Role-Based Access Control)
+* Migration control with Alembic
 
-The application will be available at `http://localhost:5000`.
+---
 
-## 🧪 Running Tests
+## 🔥 Core Features
 
-Tests use an in-memory SQLite database and require no external services:
+### 📊 Project Management
 
-```bash
-pytest
-```
+* Full lifecycle tracking
+* Task and timeline control
+* Stakeholder management
 
-With coverage report:
+### 💰 Financial System
 
-```bash
-pytest --cov=app --cov-report=html
-```
+* Budgets and transactions
+* Cost centers
+* Financial reports
 
-Run a specific test file:
+### 📈 EVM (Earned Value Management)
 
-```bash
-pytest tests/test_auth.py -v
-```
+* Performance indicators
+* Cost & schedule analysis
 
-## 🖥️ VSCode Setup
+### 🔄 Scenario Simulation
 
-Open the project folder in VSCode:
+* Budget variance
+* Schedule forecasting
+* Decision support
 
-```bash
-code .
-```
+### 📥 Data Import
 
-Recommended extensions (install via the Extensions panel or `Ctrl+Shift+X`):
+* MS Project integration
+* Primavera integration
 
-- **Python** (`ms-python.python`) — Python language support and IntelliSense
-- **Pylance** (`ms-python.vscode-pylance`) — Fast type checking and auto-complete
-- **Ruff** (`charliermarsh.ruff`) — Fast Python linter and formatter
-- **GitLens** (`eamodio.gitlens`) — Enhanced Git integration
+### 🔐 Access Control
 
-After installing the Python extension, select your virtual environment interpreter:
+* User-based permissions
+* Module-level authorization
 
-1. Press `Ctrl+Shift+P` → **Python: Select Interpreter**
-2. Choose the interpreter inside your `venv/` directory (e.g. `./venv/bin/python`)
+---
 
-The `.vscode/settings.json` file already configures the recommended test runner and formatting options.
+## 🧪 Testing
 
-## 📦 Dependencies
+* Unit tests for services
+* Integration tests for routes
+* Coverage for critical modules:
 
-| Package | Version | Purpose |
-|---|---|---|
-| Flask | 2.3.2 | Web framework |
-| Flask-SQLAlchemy | 3.0.5 | ORM |
-| Flask-Migrate | 4.0.5 | Database migrations |
-| Flask-Login | 0.6.3 | Authentication |
-| Flask-Mail | 0.10.0 | Email support |
-| psycopg | 3.2.13 | PostgreSQL adapter |
-| python-dotenv | 1.0.0 | Environment variables |
-| pytest | 7.4.0 | Testing |
-| Werkzeug | 2.3.7 | WSGI utilities |
-| openpyxl | 3.1.0+ | Excel file import |
-| defusedxml | 0.7.1+ | Safe XML parsing |
+  * Financial
+  * Import
+  * Permissions
 
-## 🌐 API Endpoints
+---
 
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/projects` | List user projects |
-| GET | `/api/projects/<id>` | Get project details |
+## ⚠️ Real Challenges Solved
 
-## 📝 Environment Variables
+### Migration Chaos (Alembic)
 
-See `.env.example` for all available environment variables.
+* Broken revision chains
+* Duplicate migrations
+* Missing revision files
 
-| Variable | Default | Description |
-|---|---|---|
-| `FLASK_APP` | `run.py` | Flask application entry point |
-| `FLASK_ENV` | `development` | Flask environment |
-| `ENV` | `development` | Application environment |
-| `SECRET_KEY` | *(required)* | Flask secret key |
-| `DATABASE_URL` | `postgresql://postgres:postgres@localhost:5432/engineering_projects` | PostgreSQL connection URL |
-| `MAIL_SERVER` | — | SMTP server (optional) |
-| `MAIL_PORT` | `587` | SMTP port |
-| `MAIL_USERNAME` | — | SMTP username |
-| `MAIL_PASSWORD` | — | SMTP password |
+✔ Fixed by:
 
-## 🛠️ Troubleshooting
+* Recreating migrations
+* Normalizing revision history
+* Synchronizing DB state
 
-| Problem | Solution |
-|---|---|
-| `ModuleNotFoundError` | Ensure the virtual environment is activated and run `pip install -r requirements.txt` |
-| `could not connect to server` (PostgreSQL) | Check that PostgreSQL is running and `DATABASE_URL` in `.env` is correct |
-| `flask: command not found` | Set `FLASK_APP=run.py` and ensure Flask is installed in the active venv |
-| `flask db upgrade` fails with "Target database is not up to date" | Run `flask db stamp head` then `flask db upgrade` again |
-| `SMTP / email errors` | Set `ENV=development` to disable email sending during local development |
-| Tests fail with `ImportError` | Make sure you are running `pytest` from the project root directory |
-| VSCode does not find the interpreter | Press `Ctrl+Shift+P` → **Python: Select Interpreter** and pick `./venv/bin/python` |
+---
 
-If you encounter an error not listed above, open an issue describing the error message and the steps you followed.
+### Code Quality Issues (AI-generated)
+
+* Tight coupling in services
+* Redundant logic
+
+✔ Fixed by:
+
+* Refactoring services
+* Improving separation of concerns
+* Preparing for scalable architecture
+
+---
+
+## 🚀 Future Improvements
+
+* Repository Pattern
+* Multi-tenant architecture (SaaS-ready)
+* Redis caching
+* Background jobs (Celery/RQ)
+* Public API (REST/GraphQL)
+
+---
+
+## 🛠️ Tech Stack
+
+* **Backend:** Flask
+* **ORM:** SQLAlchemy
+* **Database:** PostgreSQL
+* **Migrations:** Alembic / Flask-Migrate
+* **Frontend:** Jinja2 + JavaScript
+* **Tests:** Pytest
+
+---
+
+## 📊 What this project demonstrates
+
+* Ability to handle **complex domain logic**
+* Strong understanding of **backend architecture**
+* Experience with **AI-assisted development workflows**
+* Capability to **debug, refactor, and stabilize systems**
+
+---
+
+## 👨‍💻 Author
+
+**Magno Rodrigues**
+Backend Developer | Python | Data | Systems Architecture
+
+---
+
+## ⭐ Final Note
+
+This project demonstrates that AI can accelerate development —
+but **engineering thinking is what makes it reliable.**
