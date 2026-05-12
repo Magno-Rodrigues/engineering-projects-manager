@@ -1,7 +1,12 @@
 # 🚀 Engineering Projects Manager
 
-> Full-stack platform for engineering project management, financial control, and performance analysis
-> Built in **20 days using AI-assisted development (vibe coding)**
+Engineering Project Management Platform
+
+Developed a full-stack platform focused on engineering project management, financial control, and performance analysis, integrating centralized workflows for operational monitoring and decision-making.
+
+Built features for project planning, budget tracking, KPI analysis, and process automation, improving visibility, organization, and management efficiency across engineering operations.
+
+Leveraged AI-assisted development methodologies (vibe coding) to accelerate implementation, optimize productivity, and streamline the delivery of technical solutions throughout the development lifecycle.
 
 ---
 
