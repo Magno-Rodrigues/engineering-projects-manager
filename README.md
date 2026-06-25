@@ -3,11 +3,9 @@
 Engineering Project Management Platform
 
 https://engineering-projects-manager-1.onrender.com/login
-- Feel free to test:
+Feel free to test:
 - User : User Testing
 - Password: cmrda123
-
-
 
 Developed a full-stack platform focused on engineering project management, financial control, and performance analysis, integrating centralized workflows for operational monitoring and decision-making.
 
