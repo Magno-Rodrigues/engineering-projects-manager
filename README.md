@@ -7,8 +7,7 @@ https://engineering-projects-manager-1.onrender.com/login
 - User : User Testing
 - Password: cmrda123
 
-* 🧠 Built with **AI-assisted workflow + manual engineering validation**
-* 🏗️ Complex domain: **projects, finance, EVM, imports**
+
 
 Developed a full-stack platform focused on engineering project management, financial control, and performance analysis, integrating centralized workflows for operational monitoring and decision-making.
 
