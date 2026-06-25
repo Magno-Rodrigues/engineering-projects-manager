@@ -3,7 +3,7 @@
 Engineering Project Management Platform
 
 https://engineering-projects-manager-1.onrender.com/login
-Feel free to test:
+
 - User : User Testing
 - Password: cmrda123
 
